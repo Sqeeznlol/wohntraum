@@ -186,42 +186,76 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Resend Inbound nests the email under `data` (event: "email.received")
+  // Support multiple inbound providers:
+  // - Resend Inbound: nests under `data`
+  // - CloudMailin (Original/JSON Normalized): { envelope, headers, plain, html }
+  // - Postmark Inbound: { From, To, Subject, HtmlBody, TextBody }
+  // - Mailgun Routes (form-encoded): { from, to, subject, "body-html", "body-plain" }
   const data =
     (payload.data as Record<string, unknown> | undefined) ?? payload;
 
   const asString = (v: unknown): string => {
     if (typeof v === "string") return v;
-    if (Array.isArray(v)) return v.map((x) => (typeof x === "string" ? x : (x as { email?: string })?.email ?? "")).filter(Boolean).join(", ");
+    if (Array.isArray(v)) {
+      return v
+        .map((x) =>
+          typeof x === "string" ? x : ((x as { email?: string; address?: string })?.email ?? (x as { address?: string })?.address ?? ""),
+        )
+        .filter(Boolean)
+        .join(", ");
+    }
     if (v && typeof v === "object") {
-      const o = v as { email?: string; address?: string };
-      return o.email ?? o.address ?? "";
+      const o = v as { email?: string; address?: string; from?: string; to?: string };
+      return o.email ?? o.address ?? o.from ?? o.to ?? "";
     }
     return "";
   };
+
+  // CloudMailin envelope { from, to, helo_domain }
+  const envelope = (data as Record<string, unknown>).envelope as
+    | Record<string, unknown>
+    | undefined;
+  // CloudMailin headers (lowercased)
+  const headers = (data as Record<string, unknown>).headers as
+    | Record<string, unknown>
+    | undefined;
 
   const from =
     asString(data.from) ||
     asString(data.sender) ||
     asString((data as Record<string, unknown>).From) ||
+    asString(envelope?.from) ||
+    asString(headers?.from) ||
     asString((payload as Record<string, unknown>).from);
+
   const to =
     asString(data.to) ||
     asString(data.recipient) ||
     asString((data as Record<string, unknown>).To) ||
+    asString(envelope?.to) ||
+    asString(headers?.to) ||
     asString((payload as Record<string, unknown>).to);
+
   const subject =
     (data.subject as string) ??
     ((data as Record<string, unknown>).Subject as string) ??
+    (headers?.subject as string) ??
     "(no subject)";
+
   const html =
     (data.html as string) ??
+    ((data as Record<string, unknown>).HtmlBody as string) ??
     ((data as Record<string, unknown>)["html-body"] as string) ??
+    ((data as Record<string, unknown>)["body-html"] as string) ??
     ((data as Record<string, unknown>).body_html as string) ??
     "";
+
   const text =
+    (data.plain as string) ??
     (data.text as string) ??
+    ((data as Record<string, unknown>).TextBody as string) ??
     ((data as Record<string, unknown>)["text-body"] as string) ??
+    ((data as Record<string, unknown>)["body-plain"] as string) ??
     ((data as Record<string, unknown>).body_plain as string) ??
     "";
 
