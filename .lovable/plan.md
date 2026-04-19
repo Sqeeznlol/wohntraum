@@ -1,35 +1,34 @@
 
 
-## Ziel
-Suchabos laufen weiter auf `sqeezylol@gmail.com`. Gmail leitet jede neue Suchabo-Mail automatisch an die Webhook-Adresse weiter, dort übernimmt die KI-Extraktion wie bisher geplant.
+## Problem
+Resend bietet im Dashboard keine einfache „Inbound-Adresse" mehr an (nur noch via API mit eigener Domain + MX-Records). Für deinen Use Case ungeeignet.
 
-## Lösungsweg
+## Lösung: anderer Inbound-Dienst
+Ich empfehle **CloudMailin** oder **Postmark Inbound** (ähnlich, beide gratis für unsere Menge):
 
-Gmail kann nicht direkt an einen HTTPS-Webhook senden. Wir brauchen eine **Inbound-E-Mail-Adresse** dazwischen, die Mails empfängt und als JSON an unseren Webhook POSTet. Empfehlung: **Resend Inbound** (Connector ist in Lovable bereits verfügbar, kostenlos für kleines Volumen, keine eigene Domain nötig — du bekommst sofort eine Adresse wie `irgendwas@inbound.resend.dev`).
+**Option A — CloudMailin** (mein Favorit für dich)
+- Gratis: 10 000 Mails/Monat
+- Du bekommst sofort eine fertige Adresse wie `abc123def@cloudmailin.net` — keine eigene Domain nötig
+- Setup: Account erstellen → „New Address" → Webhook-URL eintragen → fertig
+- Kein OAuth, kein Connector-Zwang — du kopierst einfach die Adresse
 
-Ablauf:
-```text
-Portal-Suchabo → sqeezylol@gmail.com → Gmail-Filter (Weiterleitung)
-   → abo@inbound.resend.dev → Resend-Webhook → /functions/v1/inbound-email
-   → KI-Extraktion → Dashboard
-```
+**Option B — Postmark Inbound**
+- Gratis: 100 Mails/Monat (eher knapp für viele Such-Abos)
+- Adresse wie `xyz@inbound.postmarkapp.com`
+- Sonst gleicher Ablauf
+
+**Option C — improvmx / Mailgun Routes**
+- Auch möglich, aber komplizierter im Setup
 
 ## Was ich umsetze
+1. **Webhook anpassen** (`supabase/functions/inbound-email/index.ts`): zusätzlich das Payload-Format von CloudMailin/Postmark verstehen (sie schicken `from`, `to`, `subject`, `html`, `plain` als Form-Daten oder JSON — ich mappe beide).
+2. **Onboarding-Seite umschreiben** auf den gewählten Dienst, mit denselben einfachen 4 Schritten wie jetzt:
+   - Schritt 1: Account bei CloudMailin
+   - Schritt 2: Adresse anlegen + Webhook-URL eintragen (Webhook-URL kannst du mit einem Klick kopieren)
+   - Schritt 3: Adresse in Gmail bestätigen
+   - Schritt 4: Gmail-Filter mit Sammel-Filter
+3. **Resend-Connector kann verbunden bleiben** — wir nutzen ihn später trotzdem zum *Versand* von Alert-Mails an dich. Das ist nämlich Resends Stärke.
 
-1. **Resend-Connector verbinden** (per `standard_connectors--connect`), damit wir eine funktionierende Inbound-Adresse + Webhook-Routing bekommen.
-2. **Inbound-Adresse auf der Onboarding-Seite anzeigen** statt nur der Webhook-URL — das ist die Adresse, die du in Gmail einträgst.
-3. **Onboarding-Seite umbauen** mit konkreter Schritt-für-Schritt-Anleitung speziell für Gmail + `sqeezylol@gmail.com`:
-   - Schritt A: Weiterleitungsadresse in Gmail hinzufügen (Settings → Forwarding and POP/IMAP → Add a forwarding address) und Bestätigungs-Code aus der eingehenden Mail holen.
-   - Schritt B: Filter pro Portal erstellen (von `noreply@immoscout24.ch`, `noreply@homegate.ch`, `noreply@flatfox.ch`, `newsletter@casasoft.ch`, `noreply@home.ch`, `noreply@newhome.ch`, `noreply@immostreet.ch`) → Aktion „Forward to: abo@inbound.resend.dev".
-   - Optional: Sammel-Filter mit `from:(immoscout24.ch OR homegate.ch OR flatfox.ch OR home.ch OR newhome.ch OR casasoft.ch OR immostreet.ch)`.
-4. **Webhook an Resend-Format anpassen** — der bestehende `inbound-email` Handler liest `from/to/subject/html/text`; ich ergänze das Mapping für Resends Payload-Struktur, damit beides funktioniert.
-5. **Test-Hinweis** auf der Onboarding-Seite: erste Mail manuell weiterleiten und prüfen, ob sie auf `/` als Inserat erscheint.
-
-## Voraussetzung von dir
-- Bestätigung, dass ich **Resend** als Inbound-Anbieter verbinden darf (einmaliger OAuth-Klick).
-- Falls Resend bei dir noch nicht eingerichtet ist: Account auf resend.com (gratis) — den Verbindungs-Schritt führe ich danach durch.
-
-## Alternative (falls du Resend nicht willst)
-- **CloudMailin** oder **Mailgun Routes**: gleiches Prinzip, kein Lovable-Connector — du müsstest Account selbst anlegen und die Webhook-URL dort eintragen. Mehr manuelle Arbeit, sonst gleichwertig.
-- **Gmail API direkt pollen** (alle paar Minuten neue Mails von Gmail abholen): aufwändiger, braucht Google-OAuth, mehr Latenz, nicht empfohlen für diesen Use Case.
+## Was du jetzt entscheiden musst
+Welchen Dienst nehmen wir? Ich würde **CloudMailin** empfehlen wegen 10 000 gratis Mails — das reicht locker auch wenn du 5 Such-Abos hast.
 
