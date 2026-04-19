@@ -216,7 +216,7 @@ function OnboardingPage() {
             </li>
           </ol>
 
-          <div className="rounded-md border-l-4 border-amber-500 bg-amber-500/10 p-3 text-sm">
+          <div className="rounded-md border-l-4 border-l-primary bg-muted p-3 text-sm">
             ⚠️ <strong>Wichtig:</strong> Wähle <strong>NICHT</strong> „Eine Kopie der
             eingehenden E-Mails an … weiterleiten". Lass das auf{" "}
             <strong>„Weiterleitung deaktivieren"</strong> stehen. Wir leiten gleich nur
