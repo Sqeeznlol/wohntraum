@@ -301,7 +301,7 @@ function OnboardingPage() {
       </Card>
 
       {/* TEST */}
-      <Card className="border-green-500/30 bg-green-500/5">
+      <Card className="border-primary/40 bg-primary/5">
         <CardContent className="space-y-3 p-6">
           <h2 className="text-lg font-semibold">✅ Funktioniert's? So testest du</h2>
           <ol className="list-inside list-decimal space-y-2 text-sm">
