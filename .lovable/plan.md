@@ -1,32 +1,35 @@
 
-## Schweizer Immobilien-Dashboard (E-Mail → KI → Übersicht)
 
-### So funktioniert's
-1. **Du bekommst eine eigene Inbound-Adresse**, z. B. `dein-name@inbound.lovable.app`.
-2. In jedem Suchabo (ImmoScout24, Flatfox, Homegate, Casasoft, ImmoStreet, Home.ch …) richtest du **automatische Weiterleitung** an diese Adresse ein – einmalig.
-3. Sobald eine Suchabo-Mail eintrifft, läuft im Hintergrund:
-   - **Mail empfangen** über einen Inbound-Webhook (Resend Inbound oder gleichwertiger Schweizer-tauglicher Anbieter).
-   - **KI-Extraktion** mit Lovable AI (Gemini): erkennt aus dem Mail-HTML *jedes einzelne Inserat* und liefert Titel, Preis (CHF), Fläche (m²), Zimmer, Ort/PLZ, Adresse falls vorhanden, Link, Bildvorschau, Portal.
-   - **CHF/m² automatisch berechnet** und gespeichert.
-   - **Duplikat-Erkennung**: gleiche Objekte über verschiedene Portale werden anhand von Adresse + Fläche + Preis zusammengeführt; alle Quell-Links bleiben sichtbar.
+## Ziel
+Suchabos laufen weiter auf `sqeezylol@gmail.com`. Gmail leitet jede neue Suchabo-Mail automatisch an die Webhook-Adresse weiter, dort übernimmt die KI-Extraktion wie bisher geplant.
 
-### Dashboard
-- **Listen-/Kachelansicht** aller Inserate, sortierbar nach CHF/m², Preis, Fläche, Datum, Portal.
-- **Filter**: Preisbereich, m²-Bereich, CHF/m²-Bereich, Zimmer, Ort/PLZ, Portal, Status, nur Favoriten.
-- **Karten-Ansicht** (OpenStreetMap/Leaflet) mit Pins; Klick öffnet das Inserat.
-- **Status pro Objekt**: Neu / Interessant / Kontaktiert / Besichtigt / Abgelehnt + freies Notizfeld.
-- **Detailseite**: alle Felder, Bild, Original-Mail-Auszug, alle Quell-Links bei Duplikaten, CHF/m² gross hervorgehoben.
-- **Alerts**: Schwellwert für CHF/m² einstellbar – bei Unterschreitung Highlight im Dashboard + optional Mail an dich.
-- **Gesamt-Statistik**: Anzahl Inserate pro Portal, Median CHF/m² pro Ort, Trend über die Zeit.
+## Lösungsweg
 
-### Daten
-- Tabellen für Inserate, Portale, Status/Notizen, Duplikat-Gruppen, Alert-Regeln, Roh-Mails (zur Nachverfolgung).
-- Alle Beträge in CHF, alle Flächen in m².
+Gmail kann nicht direkt an einen HTTPS-Webhook senden. Wir brauchen eine **Inbound-E-Mail-Adresse** dazwischen, die Mails empfängt und als JSON an unseren Webhook POSTet. Empfehlung: **Resend Inbound** (Connector ist in Lovable bereits verfügbar, kostenlos für kleines Volumen, keine eigene Domain nötig — du bekommst sofort eine Adresse wie `irgendwas@inbound.resend.dev`).
 
-### Onboarding-Seite
-- Schritt-für-Schritt-Anleitung mit deiner persönlichen Inbound-Adresse und kurzen Klick-Anleitungen pro Portal, wie man dort die Suchabo-Mails an diese Adresse weiterleitet.
+Ablauf:
+```text
+Portal-Suchabo → sqeezylol@gmail.com → Gmail-Filter (Weiterleitung)
+   → abo@inbound.resend.dev → Resend-Webhook → /functions/v1/inbound-email
+   → KI-Extraktion → Dashboard
+```
 
-### Offen / Voraussetzungen, die ich nach Freigabe einrichte
-- **Lovable Cloud** aktivieren (Datenbank + Server-Funktionen + Lovable AI).
-- **Inbound-E-Mail-Anbieter**: Empfehlung **Resend Inbound** (Connector vorhanden, du brauchst nur einmal bestätigen). Damit bekommst du sofort eine funktionierende Eingangsadresse, ohne eigene Domain.
-- Ohne Login (nur du), wie gewünscht – die Inbound-Adresse ist dein „Schlüssel".
+## Was ich umsetze
+
+1. **Resend-Connector verbinden** (per `standard_connectors--connect`), damit wir eine funktionierende Inbound-Adresse + Webhook-Routing bekommen.
+2. **Inbound-Adresse auf der Onboarding-Seite anzeigen** statt nur der Webhook-URL — das ist die Adresse, die du in Gmail einträgst.
+3. **Onboarding-Seite umbauen** mit konkreter Schritt-für-Schritt-Anleitung speziell für Gmail + `sqeezylol@gmail.com`:
+   - Schritt A: Weiterleitungsadresse in Gmail hinzufügen (Settings → Forwarding and POP/IMAP → Add a forwarding address) und Bestätigungs-Code aus der eingehenden Mail holen.
+   - Schritt B: Filter pro Portal erstellen (von `noreply@immoscout24.ch`, `noreply@homegate.ch`, `noreply@flatfox.ch`, `newsletter@casasoft.ch`, `noreply@home.ch`, `noreply@newhome.ch`, `noreply@immostreet.ch`) → Aktion „Forward to: abo@inbound.resend.dev".
+   - Optional: Sammel-Filter mit `from:(immoscout24.ch OR homegate.ch OR flatfox.ch OR home.ch OR newhome.ch OR casasoft.ch OR immostreet.ch)`.
+4. **Webhook an Resend-Format anpassen** — der bestehende `inbound-email` Handler liest `from/to/subject/html/text`; ich ergänze das Mapping für Resends Payload-Struktur, damit beides funktioniert.
+5. **Test-Hinweis** auf der Onboarding-Seite: erste Mail manuell weiterleiten und prüfen, ob sie auf `/` als Inserat erscheint.
+
+## Voraussetzung von dir
+- Bestätigung, dass ich **Resend** als Inbound-Anbieter verbinden darf (einmaliger OAuth-Klick).
+- Falls Resend bei dir noch nicht eingerichtet ist: Account auf resend.com (gratis) — den Verbindungs-Schritt führe ich danach durch.
+
+## Alternative (falls du Resend nicht willst)
+- **CloudMailin** oder **Mailgun Routes**: gleiches Prinzip, kein Lovable-Connector — du müsstest Account selbst anlegen und die Webhook-URL dort eintragen. Mehr manuelle Arbeit, sonst gleichwertig.
+- **Gmail API direkt pollen** (alle paar Minuten neue Mails von Gmail abholen): aufwändiger, braucht Google-OAuth, mehr Latenz, nicht empfohlen für diesen Use Case.
+
