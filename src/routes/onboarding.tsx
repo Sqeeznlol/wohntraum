@@ -52,11 +52,14 @@ function OnboardingPage() {
           </p>
           <p className="text-sm">
             Dafür brauchen wir einen kleinen „Briefträger" zwischen Gmail und dem
-            Dashboard. Dieser Briefträger heisst <strong>Resend</strong>. Resend nimmt die
-            E-Mails entgegen und gibt sie ans Dashboard weiter. Mehr macht's nicht.
+            Dashboard. Dieser Briefträger heisst <strong>CloudMailin</strong>. Er nimmt
+            die E-Mails entgegen und gibt sie ans Dashboard weiter. Mehr macht er nicht.
           </p>
           <p className="text-sm text-muted-foreground">
-            Bildlich: <em>Gmail → Resend (Briefträger) → Dashboard</em>
+            Bildlich: <em>Gmail → CloudMailin (Briefträger) → Dashboard</em>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            CloudMailin ist gratis bis 10 000 Mails/Monat – mehr als genug.
           </p>
         </CardContent>
       </Card>
@@ -69,33 +72,31 @@ function OnboardingPage() {
               Schritt 1 von 4
             </div>
             <h2 className="mt-1 text-lg font-semibold">
-              Bei Resend einen Account erstellen
+              Bei CloudMailin einen Account erstellen
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Resend ist gratis für unsere Menge an Mails. Du brauchst nur eine E-Mail und
-              ein Passwort.
+              Gratis. Du brauchst nur deine E-Mail und ein Passwort. Keine Kreditkarte.
             </p>
           </div>
 
           <ol className="list-inside list-decimal space-y-2 text-sm">
             <li>
-              Klick auf den Button unten – die Resend-Webseite öffnet sich in einem neuen
-              Tab.
+              Klick auf den Button unten – CloudMailin öffnet sich in einem neuen Tab.
             </li>
             <li>
-              Klick oben rechts auf <strong>„Sign Up"</strong> und melde dich an
-              (am besten mit deiner Gmail-Adresse <code>sqeezylol@gmail.com</code>).
+              Klick auf <strong>„Sign Up"</strong> und melde dich an
+              (am besten mit <code>sqeezylol@gmail.com</code>).
             </li>
-            <li>Bestätige die Anmeldung über die Mail, die Resend dir schickt.</li>
+            <li>Bestätige die Anmeldung über die Mail, die CloudMailin dir schickt.</li>
           </ol>
 
           <a
-            href="https://resend.com/signup"
+            href="https://www.cloudmailin.com/signup"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Resend öffnen <ExternalLink className="h-4 w-4" />
+            CloudMailin öffnen <ExternalLink className="h-4 w-4" />
           </a>
         </CardContent>
       </Card>
@@ -108,7 +109,7 @@ function OnboardingPage() {
               Schritt 2 von 4
             </div>
             <h2 className="mt-1 text-lg font-semibold">
-              In Resend eine „Inbound-Adresse" anlegen
+              In CloudMailin eine Empfangs-Adresse anlegen
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Das ist die E-Mail-Adresse vom Briefträger. Hier landen deine Such-Abos
@@ -118,36 +119,24 @@ function OnboardingPage() {
 
           <ol className="list-inside list-decimal space-y-3 text-sm">
             <li>
-              Geh in Resend links im Menü auf{" "}
-              <a
-                href="https://resend.com/inbound"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium underline"
-              >
-                Inbound
-              </a>{" "}
-              und klick auf <strong>„Add Inbound"</strong> (oder „Create").
+              Nach dem Login kommst du direkt aufs Dashboard. Klick oben auf{" "}
+              <strong>„Addresses"</strong> → <strong>„New Address"</strong>.
             </li>
             <li>
-              Wähle eine Adresse aus, z. B.{" "}
-              <code className="rounded bg-muted px-1">abo@inbound.resend.dev</code>. Den
-              Teil vor dem <code>@</code> kannst du frei wählen (z. B.{" "}
-              <code>sqeezy</code>). <strong>Notiere dir diese Adresse</strong> – du
-              brauchst sie in Schritt 3.
+              CloudMailin generiert automatisch eine Adresse wie{" "}
+              <code className="rounded bg-muted px-1">abc123def@cloudmailin.net</code>.
+              <strong> Notiere dir diese Adresse</strong> – du brauchst sie in Schritt 3
+              und 4.
             </li>
             <li>
-              Bei <strong>„Destination"</strong> wähle <strong>„Webhook"</strong> aus.
-            </li>
-            <li>
-              Kopiere die Adresse unten und füge sie ins Feld <strong>„Webhook URL"</strong>{" "}
-              ein. <em>Das ist die Adresse von deinem Dashboard.</em>
+              Bei <strong>„Target URL"</strong> (oder „POST Target") kopiere die
+              Webhook-URL hier unten rein:
             </li>
           </ol>
 
           <div className="space-y-2 rounded-md border bg-muted/40 p-3">
             <label className="text-xs font-semibold uppercase text-muted-foreground">
-              Webhook-URL (in Resend einfügen)
+              Webhook-URL (in CloudMailin als „Target URL" einfügen)
             </label>
             <div className="flex gap-2">
               <Input value={webhookUrl} readOnly className="font-mono text-xs" />
@@ -163,10 +152,14 @@ function OnboardingPage() {
 
           <ol
             className="list-inside list-decimal space-y-2 text-sm"
-            start={5}
+            start={4}
           >
             <li>
-              Klick <strong>„Save"</strong>. Fertig mit Resend!
+              Bei <strong>„Format"</strong> wähle <strong>„JSON Normalized"</strong>{" "}
+              (oder „Original" – beides funktioniert).
+            </li>
+            <li>
+              Klick <strong>„Create Address"</strong>. Fertig mit CloudMailin!
             </li>
           </ol>
         </CardContent>
@@ -184,7 +177,7 @@ function OnboardingPage() {
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Gmail ist von Haus aus misstrauisch. Du musst einmal bestätigen, dass es
-              Mails an die Resend-Adresse weiterleiten darf. Dauert 2 Minuten.
+              Mails an die CloudMailin-Adresse weiterleiten darf. Dauert 2 Minuten.
             </p>
           </div>
 
@@ -200,15 +193,16 @@ function OnboardingPage() {
               Klick auf <strong>„Weiterleitungsadresse hinzufügen"</strong>.
             </li>
             <li>
-              Tippe die <strong>Resend-Inbound-Adresse</strong> aus Schritt 2 ein
-              (z. B. <code>abo@inbound.resend.dev</code>) → <strong>„Weiter"</strong> →{" "}
-              <strong>„Fortfahren"</strong> → <strong>„OK"</strong>.
+              Tippe deine <strong>CloudMailin-Adresse</strong> aus Schritt 2 ein
+              (z. B. <code>abc123def@cloudmailin.net</code>) →{" "}
+              <strong>„Weiter"</strong> → <strong>„Fortfahren"</strong> →{" "}
+              <strong>„OK"</strong>.
             </li>
             <li>
-              Gmail schickt jetzt einen <strong>Bestätigungs-Code</strong> an diese
-              Adresse. Geh zurück in Resend → <strong>Logs</strong> (oder im Dashboard
-              hier auf der <strong>Inserate</strong>-Seite) – dort siehst du die Mail von
-              Gmail mit einem Code wie <code>123456789</code>.
+              Gmail schickt einen <strong>Bestätigungs-Code</strong> an diese Adresse.
+              Geh in CloudMailin oben rechts auf <strong>„Messages"</strong> (oder
+              „Inbox"/„Logs") – dort siehst du die Mail von Gmail mit einem Code wie{" "}
+              <code>123456789</code>.
             </li>
             <li>
               Kopiere den Code, geh zurück in Gmail-Einstellungen → Code eintippen →{" "}
@@ -286,7 +280,7 @@ function OnboardingPage() {
             </li>
             <li>
               Es erscheint eine Checkbox-Liste. Hak <strong>„Weiterleiten an:"</strong> an
-              und wähle im Dropdown deine <strong>Resend-Inbound-Adresse</strong> aus
+              und wähle im Dropdown deine <strong>CloudMailin-Adresse</strong> aus
               (die du in Schritt 3 bestätigt hast).
             </li>
             <li>
@@ -312,15 +306,15 @@ function OnboardingPage() {
             <li>
               Öffne sie → oben rechts auf die <strong>drei Punkte</strong> →{" "}
               <strong>„Weiterleiten"</strong> → an deine{" "}
-              <strong>Resend-Inbound-Adresse</strong> senden.
+              <strong>CloudMailin-Adresse</strong> senden.
             </li>
             <li>
               Geh zurück hier ins Dashboard auf <strong>Inserate</strong>. Innerhalb von
               ca. 10 Sekunden sollten die Wohnungen aus dieser Mail erscheinen.
             </li>
             <li>
-              Wenn nichts kommt: in Resend unter <strong>Logs</strong> nachschauen – dort
-              steht, ob die Mail angekommen ist und was passiert ist.
+              Wenn nichts kommt: in CloudMailin unter <strong>„Messages"</strong>{" "}
+              nachschauen – dort steht, ob die Mail angekommen ist und was passiert ist.
             </li>
           </ol>
         </CardContent>
@@ -332,7 +326,7 @@ function OnboardingPage() {
             Was läuft im Hintergrund?
           </h2>
           <ol className="list-inside list-decimal space-y-1 text-sm">
-            <li>Mail kommt bei Resend an → wird ans Dashboard weitergegeben.</li>
+            <li>Mail kommt bei CloudMailin an → wird ans Dashboard weitergegeben.</li>
             <li>
               Eine KI (Google Gemini) liest die Mail und holt für jedes Inserat: Titel,
               Preis, Fläche, Zimmer, Ort, Bild, Link.
