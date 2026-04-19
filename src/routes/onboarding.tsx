@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, CheckCircle2, Mail } from "lucide-react";
+import { Copy, CheckCircle2, ExternalLink, Lightbulb } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -22,60 +22,132 @@ function OnboardingPage() {
     setTimeout(() => setCopiedKey(null), 1500);
   };
 
-  const portals = [
-    { name: "ImmoScout24", from: "noreply@immoscout24.ch" },
-    { name: "Homegate", from: "noreply@homegate.ch" },
-    { name: "Flatfox", from: "noreply@flatfox.ch" },
-    { name: "Casasoft", from: "newsletter@casasoft.ch" },
-    { name: "ImmoStreet", from: "noreply@immostreet.ch" },
-    { name: "Home.ch", from: "noreply@home.ch" },
-    { name: "Newhome", from: "noreply@newhome.ch" },
-  ];
-
   const collectiveFilter =
     "from:(immoscout24.ch OR homegate.ch OR flatfox.ch OR home.ch OR newhome.ch OR casasoft.ch OR immostreet.ch)";
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Setup für sqeezylol@gmail.com</h1>
-        <p className="text-sm text-muted-foreground">
-          So leitest du Suchabo-Mails von Gmail automatisch ins Dashboard.
+        <h1 className="text-2xl font-semibold">Setup – ganz einfach erklärt</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Wir machen das in 4 Schritten. Du brauchst dafür ca. 10 Minuten und nur deinen
+          Browser. Kein Programmierwissen nötig.
         </p>
       </div>
 
+      {/* Was passiert hier eigentlich? */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="space-y-2 p-6">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold uppercase">
+              Was passiert hier eigentlich?
+            </h2>
+          </div>
+          <p className="text-sm">
+            Du bekommst Such-Abo-Mails von ImmoScout24, Homegate & Co. an{" "}
+            <strong>sqeezylol@gmail.com</strong>. Wir wollen, dass diese Mails automatisch
+            in dein Dashboard fliessen, damit du alle Wohnungen an{" "}
+            <strong>einem Ort</strong> siehst – inkl. CHF/m².
+          </p>
+          <p className="text-sm">
+            Dafür brauchen wir einen kleinen „Briefträger" zwischen Gmail und dem
+            Dashboard. Dieser Briefträger heisst <strong>Resend</strong>. Resend nimmt die
+            E-Mails entgegen und gibt sie ans Dashboard weiter. Mehr macht's nicht.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Bildlich: <em>Gmail → Resend (Briefträger) → Dashboard</em>
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* SCHRITT 1 */}
       <Card>
         <CardContent className="space-y-4 p-6">
-          <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-            Schritt 1 · Inbound-Adresse bei Resend anlegen
-          </h2>
-          <p className="text-sm">
-            Resend ist verbunden ✅. Lege jetzt im{" "}
-            <a
-              href="https://resend.com/inbound"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium underline"
-            >
-              Resend-Dashboard → Inbound
-            </a>{" "}
-            eine neue Inbound-Route an:
-          </p>
-          <ol className="list-inside list-decimal space-y-1 text-sm">
+          <div>
+            <div className="text-xs font-semibold uppercase text-muted-foreground">
+              Schritt 1 von 4
+            </div>
+            <h2 className="mt-1 text-lg font-semibold">
+              Bei Resend einen Account erstellen
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Resend ist gratis für unsere Menge an Mails. Du brauchst nur eine E-Mail und
+              ein Passwort.
+            </p>
+          </div>
+
+          <ol className="list-inside list-decimal space-y-2 text-sm">
             <li>
-              Inbound-Adresse wählen, z. B.{" "}
-              <code className="rounded bg-muted px-1">abo@inbound.deinedomain.ch</code>{" "}
-              (oder die Default-Resend-Subdomain).
+              Klick auf den Button unten – die Resend-Webseite öffnet sich in einem neuen
+              Tab.
             </li>
             <li>
-              Als <strong>Webhook-URL</strong> die untenstehende Adresse eintragen.
+              Klick oben rechts auf <strong>„Sign Up"</strong> und melde dich an
+              (am besten mit deiner Gmail-Adresse <code>sqeezylol@gmail.com</code>).
             </li>
-            <li>Speichern – Resend POSTet jede empfangene Mail an deinen Webhook.</li>
+            <li>Bestätige die Anmeldung über die Mail, die Resend dir schickt.</li>
           </ol>
 
-          <div className="space-y-2">
-            <label className="text-xs uppercase text-muted-foreground">
-              Webhook-URL (in Resend Inbound eintragen)
+          <a
+            href="https://resend.com/signup"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Resend öffnen <ExternalLink className="h-4 w-4" />
+          </a>
+        </CardContent>
+      </Card>
+
+      {/* SCHRITT 2 */}
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div>
+            <div className="text-xs font-semibold uppercase text-muted-foreground">
+              Schritt 2 von 4
+            </div>
+            <h2 className="mt-1 text-lg font-semibold">
+              In Resend eine „Inbound-Adresse" anlegen
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Das ist die E-Mail-Adresse vom Briefträger. Hier landen deine Such-Abos
+              zwischendurch, bevor sie ins Dashboard wandern.
+            </p>
+          </div>
+
+          <ol className="list-inside list-decimal space-y-3 text-sm">
+            <li>
+              Geh in Resend links im Menü auf{" "}
+              <a
+                href="https://resend.com/inbound"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium underline"
+              >
+                Inbound
+              </a>{" "}
+              und klick auf <strong>„Add Inbound"</strong> (oder „Create").
+            </li>
+            <li>
+              Wähle eine Adresse aus, z. B.{" "}
+              <code className="rounded bg-muted px-1">abo@inbound.resend.dev</code>. Den
+              Teil vor dem <code>@</code> kannst du frei wählen (z. B.{" "}
+              <code>sqeezy</code>). <strong>Notiere dir diese Adresse</strong> – du
+              brauchst sie in Schritt 3.
+            </li>
+            <li>
+              Bei <strong>„Destination"</strong> wähle <strong>„Webhook"</strong> aus.
+            </li>
+            <li>
+              Kopiere die Adresse unten und füge sie ins Feld <strong>„Webhook URL"</strong>{" "}
+              ein. <em>Das ist die Adresse von deinem Dashboard.</em>
+            </li>
+          </ol>
+
+          <div className="space-y-2 rounded-md border bg-muted/40 p-3">
+            <label className="text-xs font-semibold uppercase text-muted-foreground">
+              Webhook-URL (in Resend einfügen)
             </label>
             <div className="flex gap-2">
               <Input value={webhookUrl} readOnly className="font-mono text-xs" />
@@ -87,74 +159,114 @@ function OnboardingPage() {
                 )}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Notiere dir danach die <strong>Inbound-E-Mail-Adresse</strong> aus Resend
-              (z. B. <code>abo@inbound.deinedomain.ch</code>) – die brauchst du in Schritt 2.
-            </p>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-            Schritt 2 · Weiterleitungsadresse in Gmail freischalten
-          </h2>
-          <p className="text-sm">
-            Damit Gmail deine Inbound-Adresse als Ziel akzeptiert, musst du sie einmalig
-            bestätigen.
-          </p>
-          <ol className="list-inside list-decimal space-y-2 text-sm">
+          <ol
+            className="list-inside list-decimal space-y-2 text-sm"
+            start={5}
+          >
             <li>
-              In Gmail (<code>sqeezylol@gmail.com</code>) →{" "}
-              <strong>⚙ Einstellungen → Alle Einstellungen anzeigen → „Weiterleitung & POP/IMAP"</strong>.
-            </li>
-            <li>
-              <strong>„Weiterleitungsadresse hinzufügen"</strong> klicken → die Resend-Inbound-Adresse
-              eintragen → bestätigen.
-            </li>
-            <li>
-              Resend empfängt die Bestätigungsmail. Schau im{" "}
-              <a
-                href="https://resend.com/inbound"
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                Resend-Inbound-Log
-              </a>{" "}
-              nach dem Bestätigungs-Code (oder im Dashboard hier unter „Inserate" – die Mail
-              landet als Roh-Eintrag).
-            </li>
-            <li>
-              Code zurück in Gmail eingeben → fertig.{" "}
-              <strong>Wichtig: NICHT</strong> „Alle Mails weiterleiten" aktivieren – wir
-              filtern gleich gezielt.
+              Klick <strong>„Save"</strong>. Fertig mit Resend!
             </li>
           </ol>
         </CardContent>
       </Card>
 
+      {/* SCHRITT 3 */}
       <Card>
         <CardContent className="space-y-4 p-6">
-          <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-            Schritt 3 · Gmail-Filter pro Portal anlegen
-          </h2>
-          <p className="text-sm">
-            Gmail → <strong>⚙ → Filter und blockierte Adressen → Neuen Filter erstellen</strong>.
-            Pro Portal einen Filter, oder einmalig den Sammel-Filter unten.
-          </p>
-
-          <div className="rounded-md border bg-muted/40 p-3">
-            <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-              <Mail className="h-3 w-3" /> Sammel-Filter (empfohlen)
+          <div>
+            <div className="text-xs font-semibold uppercase text-muted-foreground">
+              Schritt 3 von 4
             </div>
+            <h2 className="mt-1 text-lg font-semibold">
+              Gmail beibringen, dass es dem Briefträger vertrauen darf
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Gmail ist von Haus aus misstrauisch. Du musst einmal bestätigen, dass es
+              Mails an die Resend-Adresse weiterleiten darf. Dauert 2 Minuten.
+            </p>
+          </div>
+
+          <ol className="list-inside list-decimal space-y-3 text-sm">
+            <li>
+              Öffne Gmail (<code>sqeezylol@gmail.com</code>). Klick oben rechts auf das{" "}
+              <strong>Zahnrad ⚙</strong> → <strong>„Alle Einstellungen anzeigen"</strong>.
+            </li>
+            <li>
+              Geh oben auf den Tab <strong>„Weiterleitung &amp; POP/IMAP"</strong>.
+            </li>
+            <li>
+              Klick auf <strong>„Weiterleitungsadresse hinzufügen"</strong>.
+            </li>
+            <li>
+              Tippe die <strong>Resend-Inbound-Adresse</strong> aus Schritt 2 ein
+              (z. B. <code>abo@inbound.resend.dev</code>) → <strong>„Weiter"</strong> →{" "}
+              <strong>„Fortfahren"</strong> → <strong>„OK"</strong>.
+            </li>
+            <li>
+              Gmail schickt jetzt einen <strong>Bestätigungs-Code</strong> an diese
+              Adresse. Geh zurück in Resend → <strong>Logs</strong> (oder im Dashboard
+              hier auf der <strong>Inserate</strong>-Seite) – dort siehst du die Mail von
+              Gmail mit einem Code wie <code>123456789</code>.
+            </li>
+            <li>
+              Kopiere den Code, geh zurück in Gmail-Einstellungen → Code eintippen →{" "}
+              <strong>„Bestätigen"</strong>.
+            </li>
+          </ol>
+
+          <div className="rounded-md border-l-4 border-amber-500 bg-amber-500/10 p-3 text-sm">
+            ⚠️ <strong>Wichtig:</strong> Wähle <strong>NICHT</strong> „Eine Kopie der
+            eingehenden E-Mails an … weiterleiten". Lass das auf{" "}
+            <strong>„Weiterleitung deaktivieren"</strong> stehen. Wir leiten gleich nur
+            gezielt die Immobilien-Mails weiter (Schritt 4) – nicht alles.
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* SCHRITT 4 */}
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div>
+            <div className="text-xs font-semibold uppercase text-muted-foreground">
+              Schritt 4 von 4
+            </div>
+            <h2 className="mt-1 text-lg font-semibold">
+              Gmail-Filter anlegen (nur Immo-Mails weiterleiten)
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Jetzt sagen wir Gmail: „Immer wenn eine Mail von ImmoScout, Homegate, Flatfox
+              etc. kommt, schick eine Kopie an den Briefträger." Alles andere bleibt
+              unberührt in deinem Posteingang.
+            </p>
+          </div>
+
+          <ol className="list-inside list-decimal space-y-3 text-sm">
+            <li>
+              In Gmail oben in die <strong>Suchleiste</strong> klicken. Ganz rechts in der
+              Suchleiste ist ein kleines <strong>Filter-Symbol</strong> (Schieberegler) –
+              draufklicken.
+            </li>
+            <li>
+              Im Feld <strong>„Von"</strong> diesen Text einfügen (Knopf zum Kopieren
+              unten):
+            </li>
+          </ol>
+
+          <div className="space-y-2 rounded-md border bg-muted/40 p-3">
+            <label className="text-xs font-semibold uppercase text-muted-foreground">
+              In Gmail-Filter „Von" einfügen
+            </label>
             <div className="flex gap-2">
-              <Input value={collectiveFilter} readOnly className="font-mono text-xs" />
+              <Input
+                value={collectiveFilter}
+                readOnly
+                className="font-mono text-xs"
+              />
               <Button
                 onClick={() => copy(collectiveFilter, "coll")}
                 variant="outline"
-                size="sm"
               >
                 {copiedKey === "coll" ? (
                   <CheckCircle2 className="h-4 w-4" />
@@ -163,61 +275,52 @@ function OnboardingPage() {
                 )}
               </Button>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Im Filter-Dialog ins Feld <strong>„Von"</strong> einfügen → Filter erstellen →
-              Aktion: <strong>„Weiterleiten an: deine Resend-Inbound-Adresse"</strong>.
+            <p className="text-xs text-muted-foreground">
+              Das deckt alle 7 grossen Schweizer Portale auf einmal ab.
             </p>
           </div>
 
-          <div>
-            <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-              Oder einzeln pro Portal
-            </div>
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              {portals.map((p) => (
-                <div
-                  key={p.name}
-                  className="flex items-center justify-between rounded-md border p-3"
-                >
-                  <div>
-                    <div className="text-sm font-medium">{p.name}</div>
-                    <div className="font-mono text-xs text-muted-foreground">{p.from}</div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copy(p.from, p.name)}
-                  >
-                    {copiedKey === p.name ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ol className="list-inside list-decimal space-y-3 text-sm" start={3}>
+            <li>
+              Unten rechts auf <strong>„Filter erstellen"</strong> klicken (nicht „Suchen").
+            </li>
+            <li>
+              Es erscheint eine Checkbox-Liste. Hak <strong>„Weiterleiten an:"</strong> an
+              und wähle im Dropdown deine <strong>Resend-Inbound-Adresse</strong> aus
+              (die du in Schritt 3 bestätigt hast).
+            </li>
+            <li>
+              Optional zusätzlich anhaken: <strong>„Auf passende Konversationen
+              anwenden"</strong> – dann werden auch ältere Mails einmalig importiert.
+            </li>
+            <li>
+              Klick auf <strong>„Filter erstellen"</strong>. <strong>Fertig! 🎉</strong>
+            </li>
+          </ol>
         </CardContent>
       </Card>
 
-      <Card>
+      {/* TEST */}
+      <Card className="border-green-500/30 bg-green-500/5">
         <CardContent className="space-y-3 p-6">
-          <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-            Schritt 4 · Test
-          </h2>
+          <h2 className="text-lg font-semibold">✅ Funktioniert's? So testest du</h2>
           <ol className="list-inside list-decimal space-y-2 text-sm">
             <li>
-              Warte auf eine echte Suchabo-Mail – oder leite manuell eine bestehende
-              Portal-Mail an deine Inbound-Adresse weiter.
+              Geh in Gmail in deinen Posteingang, such eine alte Mail von ImmoScout24 oder
+              Homegate.
             </li>
             <li>
-              Öffne die <strong>Inserate</strong>-Seite. Innerhalb weniger Sekunden sollten
-              die extrahierten Objekte erscheinen, inkl. <strong>CHF/m²</strong>.
+              Öffne sie → oben rechts auf die <strong>drei Punkte</strong> →{" "}
+              <strong>„Weiterleiten"</strong> → an deine{" "}
+              <strong>Resend-Inbound-Adresse</strong> senden.
             </li>
             <li>
-              Falls nichts ankommt: prüfe im Resend-Inbound-Log, ob die Mail eingetroffen
-              ist – dort siehst du auch Webhook-Antworten.
+              Geh zurück hier ins Dashboard auf <strong>Inserate</strong>. Innerhalb von
+              ca. 10 Sekunden sollten die Wohnungen aus dieser Mail erscheinen.
+            </li>
+            <li>
+              Wenn nichts kommt: in Resend unter <strong>Logs</strong> nachschauen – dort
+              steht, ob die Mail angekommen ist und was passiert ist.
             </li>
           </ol>
         </CardContent>
@@ -226,13 +329,21 @@ function OnboardingPage() {
       <Card>
         <CardContent className="space-y-2 p-6">
           <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-            Was im Hintergrund passiert
+            Was läuft im Hintergrund?
           </h2>
           <ol className="list-inside list-decimal space-y-1 text-sm">
-            <li>Mail trifft via Resend Inbound am Webhook ein, wird in <code>raw_emails</code> gespeichert.</li>
-            <li>Lovable AI (Gemini) extrahiert jedes Inserat: Titel, Preis, Fläche, Zimmer, Ort, Bild, Link.</li>
-            <li><strong>CHF/m²</strong> wird automatisch berechnet.</li>
-            <li>Duplikate über mehrere Portale werden anhand Adresse + Fläche + Preis zusammengeführt.</li>
+            <li>Mail kommt bei Resend an → wird ans Dashboard weitergegeben.</li>
+            <li>
+              Eine KI (Google Gemini) liest die Mail und holt für jedes Inserat: Titel,
+              Preis, Fläche, Zimmer, Ort, Bild, Link.
+            </li>
+            <li>
+              <strong>CHF/m²</strong> wird automatisch berechnet.
+            </li>
+            <li>
+              Wenn dasselbe Inserat auf mehreren Portalen erscheint, wird es
+              zusammengeführt.
+            </li>
             <li>Du siehst alles in Übersicht, Karte und Alerts.</li>
           </ol>
         </CardContent>
