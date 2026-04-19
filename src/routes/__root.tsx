@@ -1,22 +1,26 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Link, Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
+import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
+import leafletCss from "leaflet/dist/leaflet.css?url";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Seite nicht gefunden</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          Diese Seite existiert nicht.
         </p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            Zur Übersicht
           </Link>
         </div>
       </div>
@@ -29,20 +33,16 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { title: "Immobilien-Dashboard Schweiz" },
+      {
+        name: "description",
+        content:
+          "Aggregiert Suchabo-Mails von ImmoScout24, Homegate, Flatfox & Co. und berechnet automatisch CHF/m².",
+      },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "stylesheet", href: leafletCss },
     ],
   }),
   shellComponent: RootShell,
@@ -52,7 +52,7 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="de">
       <head>
         <HeadContent />
       </head>
@@ -65,5 +65,58 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+      }),
+  );
+  return (
+    <QueryClientProvider client={queryClient}>
+      <div className="min-h-screen bg-background">
+        <header className="border-b">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+            <Link to="/" className="text-lg font-semibold">
+              🏡 Immo-Dashboard CH
+            </Link>
+            <nav className="flex gap-4 text-sm">
+              <Link
+                to="/"
+                className="text-muted-foreground hover:text-foreground"
+                activeProps={{ className: "text-foreground font-medium" }}
+                activeOptions={{ exact: true }}
+              >
+                Inserate
+              </Link>
+              <Link
+                to="/map"
+                className="text-muted-foreground hover:text-foreground"
+                activeProps={{ className: "text-foreground font-medium" }}
+              >
+                Karte
+              </Link>
+              <Link
+                to="/alerts"
+                className="text-muted-foreground hover:text-foreground"
+                activeProps={{ className: "text-foreground font-medium" }}
+              >
+                Alerts
+              </Link>
+              <Link
+                to="/onboarding"
+                className="text-muted-foreground hover:text-foreground"
+                activeProps={{ className: "text-foreground font-medium" }}
+              >
+                Setup
+              </Link>
+            </nav>
+          </div>
+        </header>
+        <main className="mx-auto max-w-7xl px-4 py-6">
+          <Outlet />
+        </main>
+        <Toaster />
+      </div>
+    </QueryClientProvider>
+  );
 }
