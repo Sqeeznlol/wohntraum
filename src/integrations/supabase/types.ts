@@ -14,7 +14,201 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alert_rules: {
+        Row: {
+          city_filter: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          max_price_per_sqm: number | null
+          name: string
+        }
+        Insert: {
+          city_filter?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_price_per_sqm?: number | null
+          name: string
+        }
+        Update: {
+          city_filter?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_price_per_sqm?: number | null
+          name?: string
+        }
+        Relationships: []
+      }
+      listing_sources: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          portal: Database["public"]["Enums"]["portal"]
+          raw_email_id: string | null
+          seen_at: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          portal: Database["public"]["Enums"]["portal"]
+          raw_email_id?: string | null
+          seen_at?: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          portal?: Database["public"]["Enums"]["portal"]
+          raw_email_id?: string | null
+          seen_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_sources_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_sources_raw_email_id_fkey"
+            columns: ["raw_email_id"]
+            isOneToOne: false
+            referencedRelation: "raw_emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          address: string | null
+          area_sqm: number | null
+          city: string | null
+          created_at: string
+          description: string | null
+          fingerprint: string | null
+          first_seen_at: string
+          id: string
+          image_url: string | null
+          is_favorite: boolean
+          last_seen_at: string
+          latitude: number | null
+          longitude: number | null
+          notes: string | null
+          postal_code: string | null
+          price_chf: number | null
+          price_per_sqm: number | null
+          primary_portal: Database["public"]["Enums"]["portal"]
+          primary_url: string | null
+          rooms: number | null
+          status: Database["public"]["Enums"]["listing_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          area_sqm?: number | null
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          fingerprint?: string | null
+          first_seen_at?: string
+          id?: string
+          image_url?: string | null
+          is_favorite?: boolean
+          last_seen_at?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          postal_code?: string | null
+          price_chf?: number | null
+          price_per_sqm?: number | null
+          primary_portal?: Database["public"]["Enums"]["portal"]
+          primary_url?: string | null
+          rooms?: number | null
+          status?: Database["public"]["Enums"]["listing_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          area_sqm?: number | null
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          fingerprint?: string | null
+          first_seen_at?: string
+          id?: string
+          image_url?: string | null
+          is_favorite?: boolean
+          last_seen_at?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          postal_code?: string | null
+          price_chf?: number | null
+          price_per_sqm?: number | null
+          primary_portal?: Database["public"]["Enums"]["portal"]
+          primary_url?: string | null
+          rooms?: number | null
+          status?: Database["public"]["Enums"]["listing_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      raw_emails: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          from_address: string | null
+          html_body: string | null
+          id: string
+          listings_extracted: number
+          raw_payload: Json | null
+          received_at: string
+          status: Database["public"]["Enums"]["email_status"]
+          subject: string | null
+          text_body: string | null
+          to_address: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          from_address?: string | null
+          html_body?: string | null
+          id?: string
+          listings_extracted?: number
+          raw_payload?: Json | null
+          received_at?: string
+          status?: Database["public"]["Enums"]["email_status"]
+          subject?: string | null
+          text_body?: string | null
+          to_address?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          from_address?: string | null
+          html_body?: string | null
+          id?: string
+          listings_extracted?: number
+          raw_payload?: Json | null
+          received_at?: string
+          status?: Database["public"]["Enums"]["email_status"]
+          subject?: string | null
+          text_body?: string | null
+          to_address?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +217,22 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      email_status: "received" | "processing" | "processed" | "failed"
+      listing_status:
+        | "new"
+        | "interested"
+        | "contacted"
+        | "visited"
+        | "rejected"
+      portal:
+        | "immoscout24"
+        | "homegate"
+        | "flatfox"
+        | "casasoft"
+        | "immostreet"
+        | "home_ch"
+        | "newhome"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +359,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      email_status: ["received", "processing", "processed", "failed"],
+      listing_status: ["new", "interested", "contacted", "visited", "rejected"],
+      portal: [
+        "immoscout24",
+        "homegate",
+        "flatfox",
+        "casasoft",
+        "immostreet",
+        "home_ch",
+        "newhome",
+        "other",
+      ],
+    },
   },
 } as const
