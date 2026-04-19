@@ -186,27 +186,43 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Resend Inbound nests the email under `data` (event: "email.received")
+  const data =
+    (payload.data as Record<string, unknown> | undefined) ?? payload;
+
+  const asString = (v: unknown): string => {
+    if (typeof v === "string") return v;
+    if (Array.isArray(v)) return v.map((x) => (typeof x === "string" ? x : (x as { email?: string })?.email ?? "")).filter(Boolean).join(", ");
+    if (v && typeof v === "object") {
+      const o = v as { email?: string; address?: string };
+      return o.email ?? o.address ?? "";
+    }
+    return "";
+  };
+
   const from =
-    (payload.from as string) ??
-    (payload.sender as string) ??
-    (payload.From as string) ??
-    "";
+    asString(data.from) ||
+    asString(data.sender) ||
+    asString((data as Record<string, unknown>).From) ||
+    asString((payload as Record<string, unknown>).from);
   const to =
-    (payload.to as string) ??
-    (payload.recipient as string) ??
-    (payload.To as string) ??
-    "";
+    asString(data.to) ||
+    asString(data.recipient) ||
+    asString((data as Record<string, unknown>).To) ||
+    asString((payload as Record<string, unknown>).to);
   const subject =
-    (payload.subject as string) ?? (payload.Subject as string) ?? "(no subject)";
+    (data.subject as string) ??
+    ((data as Record<string, unknown>).Subject as string) ??
+    "(no subject)";
   const html =
-    (payload.html as string) ??
-    (payload["html-body"] as string) ??
-    (payload.body_html as string) ??
+    (data.html as string) ??
+    ((data as Record<string, unknown>)["html-body"] as string) ??
+    ((data as Record<string, unknown>).body_html as string) ??
     "";
   const text =
-    (payload.text as string) ??
-    (payload["text-body"] as string) ??
-    (payload.body_plain as string) ??
+    (data.text as string) ??
+    ((data as Record<string, unknown>)["text-body"] as string) ??
+    ((data as Record<string, unknown>).body_plain as string) ??
     "";
 
   // Insert raw email row
