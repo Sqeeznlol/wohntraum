@@ -284,49 +284,65 @@ function EmptyState() {
 function ListingCard({
   listing,
   alertThreshold,
+  isArchived,
+  onArchive,
 }: {
   listing: Listing;
   alertThreshold: string;
+  isArchived: boolean;
+  onArchive: (id: string, archive: boolean) => void;
 }) {
   const ppsm = listing.price_per_sqm != null ? Number(listing.price_per_sqm) : null;
   const isAlert =
     !!alertThreshold && ppsm != null && ppsm <= Number(alertThreshold) * 0.85;
 
+  const handleArchiveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onArchive(listing.id, !isArchived);
+  };
+
   return (
-    <Link to="/listings/$id" params={{ id: listing.id }} className="group block">
-      <Card className="overflow-hidden border-border/70 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card">
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          {listing.image_url ? (
-            <img
-              src={listing.image_url}
-              alt={listing.title}
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-              Kein Bild
-            </div>
-          )}
-          <div className="absolute left-3 top-3 flex gap-1.5">
-            <Badge
-              variant="secondary"
-              className="border-0 bg-background/85 text-[10px] font-medium uppercase tracking-wider text-foreground backdrop-blur-sm"
-            >
-              {PORTAL_LABELS[listing.primary_portal] ?? listing.primary_portal}
-            </Badge>
-            {isAlert && (
-              <Badge className="border-0 bg-accent text-[10px] font-medium uppercase tracking-wider text-accent-foreground">
-                Empfehlung
+    <div className="group relative">
+      <Link to="/listings/$id" params={{ id: listing.id }} className="block">
+        <Card className="overflow-hidden border-border/70 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card">
+          <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+            {listing.image_url ? (
+              <img
+                src={listing.image_url}
+                alt={listing.title}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                Kein Bild
+              </div>
+            )}
+            <div className="absolute left-3 top-3 flex gap-1.5">
+              <Badge
+                variant="secondary"
+                className="border-0 bg-background/85 text-[10px] font-medium uppercase tracking-wider text-foreground backdrop-blur-sm"
+              >
+                {PORTAL_LABELS[listing.primary_portal] ?? listing.primary_portal}
               </Badge>
+              {isAlert && (
+                <Badge className="border-0 bg-accent text-[10px] font-medium uppercase tracking-wider text-accent-foreground">
+                  Empfehlung
+                </Badge>
+              )}
+              {isArchived && (
+                <Badge className="border-0 bg-muted text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Archiviert
+                </Badge>
+              )}
+            </div>
+            {listing.is_favorite && (
+              <div className="absolute right-3 top-3 rounded-full bg-background/85 p-1.5 backdrop-blur-sm">
+                <Star className="h-3.5 w-3.5 fill-accent text-accent" />
+              </div>
             )}
           </div>
-          {listing.is_favorite && (
-            <div className="absolute right-3 top-3 rounded-full bg-background/85 p-1.5 backdrop-blur-sm">
-              <Star className="h-3.5 w-3.5 fill-accent text-accent" />
-            </div>
-          )}
-        </div>
         <CardContent className="space-y-3 p-5">
           <div className="space-y-1">
             <h3 className="line-clamp-2 font-serif-display text-lg leading-tight">
