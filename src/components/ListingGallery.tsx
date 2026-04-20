@@ -71,6 +71,27 @@ export function ListingGallery({
     },
   });
 
+  const importFromPortal = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke(
+        "import-listing-images",
+        { body: { listing_id: listingId } },
+      );
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { imported: number; skipped: number; total_found: number };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["listing_images", listingId] });
+      if (data.imported > 0) {
+        toast.success(`${data.imported} Bilder importiert`);
+      } else {
+        toast.info("Keine neuen Bilder gefunden");
+      }
+    },
+    onError: (e: Error) => toast.error(`Import fehlgeschlagen: ${e.message}`),
+  });
+
   const display = images.length > 0 ? images : fallbackUrl
     ? [{ id: "fallback", url: fallbackUrl, listing_id: listingId, sort_order: 0, created_at: "" }]
     : [];
