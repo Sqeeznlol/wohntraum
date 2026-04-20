@@ -97,25 +97,25 @@ function RootComponent() {
   );
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-md">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+      <div className="min-h-screen bg-background pb-[env(safe-area-inset-bottom)]">
+        <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-5">
             <Link to="/" className="flex items-baseline gap-2">
-              <span className="font-serif-display text-2xl">Immo Radar</span>
-              <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              <span className="font-serif-display text-xl md:text-2xl">Immo Radar</span>
+              <span className="hidden text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:inline">
                 Schweiz
               </span>
             </Link>
-            <nav className="flex items-center gap-7 text-sm">
+            <nav className="flex items-center gap-4 text-sm md:gap-7">
               {navItems.map(({ to, label, exact }) => (
                 <Link
                   key={to}
                   to={to}
                   activeOptions={exact ? { exact: true } : undefined}
-                  className="relative py-1 text-muted-foreground transition-colors hover:text-foreground"
+                  className="relative py-1 text-xs text-muted-foreground transition-colors hover:text-foreground md:text-sm"
                   activeProps={{
                     className:
-                      "relative py-1 text-foreground after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:bg-foreground",
+                      "relative py-1 text-xs md:text-sm text-foreground after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:bg-foreground",
                   }}
                 >
                   {label}
@@ -124,7 +124,7 @@ function RootComponent() {
             </nav>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-6 py-10">
+        <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-10">
           <Outlet />
         </main>
         <Toaster />
