@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, Star, MapPin } from "lucide-react";
+import { Heart, Star, MapPin, Archive, ArchiveRestore } from "lucide-react";
 
 type SortKey = "price_per_sqm" | "price_chf" | "area_sqm" | "created_at";
 
