@@ -31,12 +31,21 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Immo Radar — Schweizer Immobilien-Übersicht" },
+      { title: "Immo Radar — Schweizer Immobilien-Intelligenz" },
       {
         name: "description",
         content:
           "Aggregiert Suchabo-Mails von ImmoScout24, Homegate, Flatfox & Co. mit automatischer CHF/m²-Analyse.",
       },
+      { property: "og:title", content: "Immo Radar — Schweizer Immobilien-Intelligenz" },
+      { name: "twitter:title", content: "Immo Radar — Schweizer Immobilien-Intelligenz" },
+      { name: "description", content: "Property Pulse aggregates real estate listings from multiple Swiss platforms into one dashboard." },
+      { property: "og:description", content: "Property Pulse aggregates real estate listings from multiple Swiss platforms into one dashboard." },
+      { name: "twitter:description", content: "Property Pulse aggregates real estate listings from multiple Swiss platforms into one dashboard." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f7844e77-79d0-49be-b58c-98cfb4fe4ea6/id-preview-b46caf53--11d42ba7-dddd-4df0-97a5-7918bc14fb85.lovable.app-1776680311815.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f7844e77-79d0-49be-b58c-98cfb4fe4ea6/id-preview-b46caf53--11d42ba7-dddd-4df0-97a5-7918bc14fb85.lovable.app-1776680311815.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
