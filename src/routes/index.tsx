@@ -521,7 +521,7 @@ function PipelineCard({
                 title={formatExactTime(listing.first_seen_at)}
               >
                 <Clock className="h-2.5 w-2.5" />
-                {formatRelativeTime(listing.first_seen_at)}
+                {formatDateTime(listing.first_seen_at)}
               </div>
             </div>
           </CardContent>
