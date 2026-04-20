@@ -343,41 +343,53 @@ function ListingCard({
               </div>
             )}
           </div>
-        <CardContent className="space-y-3 p-5">
-          <div className="space-y-1">
-            <h3 className="line-clamp-2 font-serif-display text-lg leading-tight">
-              {listing.title}
-            </h3>
-            {listing.city && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                {listing.postal_code} {listing.city}
+          <CardContent className="space-y-3 p-5">
+            <div className="space-y-1">
+              <h3 className="line-clamp-2 font-serif-display text-lg leading-tight">
+                {listing.title}
+              </h3>
+              {listing.city && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  {listing.postal_code} {listing.city}
+                </div>
+              )}
+            </div>
+            <div className="flex items-end justify-between border-t border-border/70 pt-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Preis · Fläche
+                </div>
+                <div className="text-sm font-medium">
+                  {formatCHF(listing.price_chf ? Number(listing.price_chf) : null)} ·{" "}
+                  {formatSqm(listing.area_sqm ? Number(listing.area_sqm) : null)}
+                </div>
               </div>
-            )}
-          </div>
-          <div className="flex items-end justify-between border-t border-border/70 pt-3">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Preis · Fläche
-              </div>
-              <div className="text-sm font-medium">
-                {formatCHF(listing.price_chf ? Number(listing.price_chf) : null)} ·{" "}
-                {formatSqm(listing.area_sqm ? Number(listing.area_sqm) : null)}
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  CHF/m²
+                </div>
+                <div
+                  className={`font-serif-display text-2xl ${isAlert ? "text-accent" : ""}`}
+                >
+                  {formatPricePerSqm(ppsm)}
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                CHF/m²
-              </div>
-              <div
-                className={`font-serif-display text-2xl ${isAlert ? "text-accent" : ""}`}
-              >
-                {formatPricePerSqm(ppsm)}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+          </CardContent>
+        </Card>
+      </Link>
+      <button
+        onClick={handleArchiveClick}
+        title={isArchived ? "Wiederherstellen" : "Archivieren"}
+        className="absolute right-3 top-3 z-10 rounded-full bg-background/85 p-2 text-foreground opacity-0 backdrop-blur-sm transition-opacity hover:bg-background group-hover:opacity-100"
+      >
+        {isArchived ? (
+          <ArchiveRestore className="h-3.5 w-3.5" />
+        ) : (
+          <Archive className="h-3.5 w-3.5" />
+        )}
+      </button>
+    </div>
   );
 }
