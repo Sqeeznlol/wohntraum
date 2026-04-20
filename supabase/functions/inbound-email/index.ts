@@ -71,6 +71,70 @@ async function geocodeAddress(
   }
 }
 
+// Portal-URL-Muster, die wir aus Tracking-Wrappern extrahieren wollen
+const PORTAL_URL_RE =
+  /https?:\/\/(?:www\.)?(immoscout24\.ch|homegate\.ch|flatfox\.ch|casasoft\.com|immostreet\.ch|home\.ch|newhome\.ch)\/[^\s"'<>)]+/i;
+
+/**
+ * Entpackt Tracking-/Click-Wrapper (SendGrid, Mailchimp, HubSpot, …) zu echten Portal-URLs.
+ * 1) Folgt einem Redirect über fetch (HEAD/GET), maximal 5 Hops, 4 s Timeout.
+ * 2) Fallback: durchsucht den ursprünglichen Wrapper-String nach einer encoded Portal-URL.
+ * 3) Strippt UTM-/Tracking-Query-Parameter vom Endergebnis.
+ */
+async function unwrapTrackingUrl(url: string | null | undefined): Promise<string | null> {
+  if (!url) return null;
+  let current = url;
+
+  // Schon ein direkter Portal-Link? Nur säubern.
+  if (PORTAL_URL_RE.test(current) && !/sendgrid|mailchimp|hubspot|click\./i.test(current)) {
+    return stripTracking(current);
+  }
+
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(current, {
+      method: "GET",
+      redirect: "follow",
+      signal: ctrl.signal,
+      headers: { "User-Agent": "Mozilla/5.0 ImmoRadar/1.0" },
+    });
+    clearTimeout(t);
+    current = res.url || current;
+  } catch (e) {
+    console.warn("unwrap fetch failed:", e);
+  }
+
+  // Wenn Redirect nicht zum Portal führte, Wrapper-String absuchen
+  if (!PORTAL_URL_RE.test(current)) {
+    const decoded = (() => {
+      try {
+        return decodeURIComponent(url);
+      } catch {
+        return url;
+      }
+    })();
+    const m = decoded.match(PORTAL_URL_RE) ?? url.match(PORTAL_URL_RE);
+    if (m) current = m[0];
+  }
+
+  return stripTracking(current);
+}
+
+function stripTracking(url: string): string {
+  try {
+    const u = new URL(url);
+    const drop = [
+      "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+      "subscriptionId", "gclid", "fbclid", "mc_cid", "mc_eid",
+    ];
+    drop.forEach((k) => u.searchParams.delete(k));
+    return u.toString().replace(/\?$/, "");
+  } catch {
+    return url;
+  }
+}
+
 function detectPortal(from: string, html: string): Portal {
   const s = `${from} ${html}`.toLowerCase();
   if (s.includes("immoscout24")) return "immoscout24";
@@ -328,6 +392,9 @@ Deno.serve(async (req) => {
   for (const l of listings) {
     const fp = fingerprintOf(l);
 
+    // Tracking-/Click-Wrapper auflösen, bevor wir speichern
+    const cleanUrl = await unwrapTrackingUrl(l.url);
+
     // Try to find existing by fingerprint
     const { data: existing } = await supabase
       .from("listings")
@@ -339,12 +406,17 @@ Deno.serve(async (req) => {
 
     if (existing) {
       listingId = existing.id;
+      // Wenn bisheriger Link ein Tracking-Wrapper war, mit sauberem Link überschreiben
+      const existingIsTracking =
+        existing.primary_url &&
+        /sendgrid|mailchimp|hubspot|click\.|\/ls\/click/i.test(existing.primary_url);
       await supabase
         .from("listings")
         .update({
           last_seen_at: new Date().toISOString(),
-          // backfill missing fields
-          primary_url: existing.primary_url ?? l.url ?? null,
+          primary_url: existingIsTracking
+            ? (cleanUrl ?? existing.primary_url)
+            : (existing.primary_url ?? cleanUrl ?? null),
           image_url: existing.image_url ?? l.image_url ?? null,
         })
         .eq("id", listingId);
@@ -364,7 +436,7 @@ Deno.serve(async (req) => {
           latitude: geo?.lat ?? null,
           longitude: geo?.lon ?? null,
           primary_portal: l.portal,
-          primary_url: l.url ?? null,
+          primary_url: cleanUrl ?? null,
           image_url: l.image_url ?? null,
           fingerprint: fp,
         })
@@ -383,7 +455,7 @@ Deno.serve(async (req) => {
       .select("id")
       .eq("listing_id", listingId)
       .eq("portal", l.portal)
-      .eq("url", l.url ?? "")
+      .eq("url", cleanUrl ?? "")
       .maybeSingle();
 
     if (!srcExists) {
@@ -391,7 +463,7 @@ Deno.serve(async (req) => {
         listing_id: listingId,
         raw_email_id: rawEmail.id,
         portal: l.portal,
-        url: l.url ?? null,
+        url: cleanUrl ?? null,
       });
     }
 
