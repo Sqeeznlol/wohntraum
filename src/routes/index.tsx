@@ -244,7 +244,6 @@ function ListingsPage() {
               listing={l}
               alertThreshold={maxPricePerSqm}
               isArchived={showArchived}
-              onArchiveToggle={(archive) => archive.mutate ? null : null}
               onArchive={(id, doArchive) => archive.mutate({ id, archive: doArchive })}
             />
           ))}
