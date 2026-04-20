@@ -89,6 +89,7 @@ export type Database = {
       listings: {
         Row: {
           address: string | null
+          archived_at: string | null
           area_sqm: number | null
           city: string | null
           created_at: string
@@ -114,6 +115,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
           area_sqm?: number | null
           city?: string | null
           created_at?: string
@@ -139,6 +141,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
           area_sqm?: number | null
           city?: string | null
           created_at?: string
