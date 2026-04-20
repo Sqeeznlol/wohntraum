@@ -365,7 +365,12 @@ function forwardPropertyEmailsToLovable() {
       <Card>
         <CardContent className="space-y-4 p-6">
           <div>
-            <h2 className="text-lg font-semibold">Nützliche Werte</h2>
+            <h2 className="text-lg font-semibold">Nützliche Werte (nur zum Nachschauen)</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Diese Werte sind <strong>bereits im Script oben eingebaut</strong>. Du musst
+              hier nichts eingeben oder kopieren. Sie stehen nur hier, falls du später
+              den Filter ändern oder die Webhook-Adresse irgendwo brauchen willst.
+            </p>
           </div>
 
           <div className="space-y-2 rounded-md border bg-muted/40 p-3">
