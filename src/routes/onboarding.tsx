@@ -167,6 +167,8 @@ function OnboardingPage() {
         </p>
       </div>
 
+      <InboundStatus />
+
       {/* Was passiert hier eigentlich? */}
       <Card className="border-primary/30 bg-primary/5">
         <CardContent className="space-y-2 p-6">
