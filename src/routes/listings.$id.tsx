@@ -92,7 +92,7 @@ function ListingDetail() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          <ListingGallery listingId={id} fallbackUrl={l.image_url} title={l.title} />
+          <ListingGallery listingId={id} fallbackUrl={l.image_url} title={l.title} primaryUrl={l.primary_url} />
           <Card>
             <CardContent className="space-y-3 p-6">
               <h1 className="text-xl font-semibold">{l.title}</h1>
