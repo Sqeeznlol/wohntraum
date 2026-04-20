@@ -35,19 +35,38 @@ function ListingsPage() {
   const [portal, setPortal] = useState<Portal | "all">("all");
   const [status, setStatus] = useState<ListingStatus | "all">("all");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [maxPricePerSqm, setMaxPricePerSqm] = useState<string>("");
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const qc = useQueryClient();
 
   const { data: listings, isLoading } = useQuery({
-    queryKey: ["listings"],
+    queryKey: ["listings", showArchived],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const query = supabase
         .from("listings")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(500);
+      const { data, error } = showArchived
+        ? await query.not("archived_at", "is", null)
+        : await query.is("archived_at", null);
       if (error) throw error;
       return data as Listing[];
+    },
+  });
+
+  const archive = useMutation({
+    mutationFn: async ({ id, archive }: { id: string; archive: boolean }) => {
+      const { error } = await supabase
+        .from("listings")
+        .update({ archived_at: archive ? new Date().toISOString() : null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["listings"] });
+      toast.success(vars.archive ? "Inserat archiviert" : "Inserat wiederhergestellt");
     },
   });
 
