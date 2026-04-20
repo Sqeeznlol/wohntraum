@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Heart, ExternalLink, ArrowLeft } from "lucide-react";
+import { Heart, ExternalLink, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
