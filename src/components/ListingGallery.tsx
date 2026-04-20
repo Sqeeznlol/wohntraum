@@ -139,9 +139,23 @@ export function ListingGallery({
       )}
 
       <div className="flex flex-wrap items-center gap-2">
+        {primaryUrl && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => importFromPortal.mutate()}
+            disabled={importFromPortal.isPending}
+          >
+            {importFromPortal.isPending ? (
+              <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Lade Bilder…</>
+            ) : (
+              <><Download className="mr-1 h-4 w-4" /> Alle Bilder vom Portal importieren</>
+            )}
+          </Button>
+        )}
         {!adding ? (
           <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Bild hinzufügen
+            <Plus className="mr-1 h-4 w-4" /> Bild manuell hinzufügen
           </Button>
         ) : (
           <div className="flex w-full gap-2">
