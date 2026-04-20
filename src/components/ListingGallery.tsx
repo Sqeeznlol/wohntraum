@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X, Download, Loader2 } from "lucide-react";
 import type { ListingImage } from "@/lib/db-types";
 import { toast } from "sonner";
 
@@ -12,10 +12,12 @@ export function ListingGallery({
   listingId,
   fallbackUrl,
   title,
+  primaryUrl,
 }: {
   listingId: string;
   fallbackUrl: string | null;
   title: string;
+  primaryUrl?: string | null;
 }) {
   const qc = useQueryClient();
   const [newUrl, setNewUrl] = useState("");
@@ -69,6 +71,27 @@ export function ListingGallery({
     },
   });
 
+  const importFromPortal = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke(
+        "import-listing-images",
+        { body: { listing_id: listingId } },
+      );
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { imported: number; skipped: number; total_found: number };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["listing_images", listingId] });
+      if (data.imported > 0) {
+        toast.success(`${data.imported} Bilder importiert`);
+      } else {
+        toast.info("Keine neuen Bilder gefunden");
+      }
+    },
+    onError: (e: Error) => toast.error(`Import fehlgeschlagen: ${e.message}`),
+  });
+
   const display = images.length > 0 ? images : fallbackUrl
     ? [{ id: "fallback", url: fallbackUrl, listing_id: listingId, sort_order: 0, created_at: "" }]
     : [];
@@ -116,9 +139,23 @@ export function ListingGallery({
       )}
 
       <div className="flex flex-wrap items-center gap-2">
+        {primaryUrl && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => importFromPortal.mutate()}
+            disabled={importFromPortal.isPending}
+          >
+            {importFromPortal.isPending ? (
+              <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Lade Bilder…</>
+            ) : (
+              <><Download className="mr-1 h-4 w-4" /> Alle Bilder vom Portal importieren</>
+            )}
+          </Button>
+        )}
         {!adding ? (
           <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Bild hinzufügen
+            <Plus className="mr-1 h-4 w-4" /> Bild manuell hinzufügen
           </Button>
         ) : (
           <div className="flex w-full gap-2">

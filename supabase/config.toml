@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.geocode-listings]
 verify_jwt = false
+
+[functions.import-listing-images]
+verify_jwt = false
