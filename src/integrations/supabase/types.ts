@@ -236,6 +236,18 @@ export type Database = {
         }
         Relationships: []
       }
+      zh_postal_codes: {
+        Row: {
+          postal_code: string
+        }
+        Insert: {
+          postal_code: string
+        }
+        Update: {
+          postal_code?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
