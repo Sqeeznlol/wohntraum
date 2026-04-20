@@ -349,6 +349,7 @@ Deno.serve(async (req) => {
         })
         .eq("id", listingId);
     } else {
+      const geo = await geocodeAddress(l.address, l.postal_code, l.city);
       const { data: created, error: createErr } = await supabase
         .from("listings")
         .insert({
@@ -360,6 +361,8 @@ Deno.serve(async (req) => {
           city: l.city ?? null,
           postal_code: l.postal_code ?? null,
           address: l.address ?? null,
+          latitude: geo?.lat ?? null,
+          longitude: geo?.lon ?? null,
           primary_portal: l.portal,
           primary_url: l.url ?? null,
           image_url: l.image_url ?? null,
