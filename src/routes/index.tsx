@@ -239,7 +239,14 @@ function ListingsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((l) => (
-            <ListingCard key={l.id} listing={l} alertThreshold={maxPricePerSqm} />
+            <ListingCard
+              key={l.id}
+              listing={l}
+              alertThreshold={maxPricePerSqm}
+              isArchived={showArchived}
+              onArchiveToggle={(archive) => archive.mutate ? null : null}
+              onArchive={(id, doArchive) => archive.mutate({ id, archive: doArchive })}
+            />
           ))}
         </div>
       )}
