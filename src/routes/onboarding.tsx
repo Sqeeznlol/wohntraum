@@ -12,10 +12,11 @@ import {
   Inbox,
   Code2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { MatrixRain } from "@/components/MatrixRain";
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
@@ -169,6 +170,28 @@ function InboundStatus() {
 }
 
 function OnboardingPage() {
+  // Editor-/Owner-Modus: nur auf Lovable-Preview-Hosts ODER mit ?setup=1 sichtbar.
+  // Auf der veröffentlichten Domain sehen normale Besucher nur Live-Status + Matrix.
+  const isEditorMode = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const host = window.location.hostname;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("setup") === "1") {
+      try {
+        localStorage.setItem("immo_setup_unlocked", "1");
+      } catch {
+        /* ignore */
+      }
+      return true;
+    }
+    try {
+      if (localStorage.getItem("immo_setup_unlocked") === "1") return true;
+    } catch {
+      /* ignore */
+    }
+    return host.endsWith(".lovable.dev") || host.includes("id-preview--");
+  }, []);
+
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? "";
   const webhookUrl = `${supabaseUrl}/functions/v1/inbound-email`;
   const appsScript = `const WEBHOOK_URL = "${webhookUrl}";
