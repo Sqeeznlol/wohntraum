@@ -47,6 +47,30 @@ interface ExtractedListing {
   image_url?: string | null;
 }
 
+async function geocodeAddress(
+  address: string | null | undefined,
+  postal: string | null | undefined,
+  city: string | null | undefined,
+): Promise<{ lat: number; lon: number } | null> {
+  const parts = [address, postal && city ? `${postal} ${city}` : city ?? postal, "Schweiz"]
+    .filter(Boolean)
+    .join(", ");
+  if (!parts || parts === "Schweiz") return null;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ch&q=${encodeURIComponent(parts)}`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "ImmoRadar/1.0 (lovable.app)" },
+    });
+    if (!res.ok) return null;
+    const arr = (await res.json()) as Array<{ lat: string; lon: string }>;
+    if (!arr || arr.length === 0) return null;
+    return { lat: Number(arr[0].lat), lon: Number(arr[0].lon) };
+  } catch (e) {
+    console.warn("geocode failed:", e);
+    return null;
+  }
+}
+
 function detectPortal(from: string, html: string): Portal {
   const s = `${from} ${html}`.toLowerCase();
   if (s.includes("immoscout24")) return "immoscout24";
