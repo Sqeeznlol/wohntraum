@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import porscheImg from "@/assets/porsche-gt4rs.png";
 import {
   formatCHF,
   formatPricePerSqm,
@@ -203,17 +204,27 @@ function ListingsPage() {
               Pipeline · Schweiz
             </span>
             <h1 className="mt-1 font-serif-display text-3xl leading-[1.05] sm:text-5xl">
-              Deine Inserate,
+              Mein Weg zum
               <br className="sm:hidden" />
-              <span className="italic text-muted-foreground"> entschieden.</span>
+              <span className="italic"> GT4 RS.</span>
             </h1>
           </div>
-          <div className="hidden shrink-0 text-right sm:block">
-            <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-              Median CHF/m²
-            </div>
-            <div className="font-serif-display text-3xl">
-              {median ? Math.round(median).toLocaleString("de-CH") : "—"}
+          <div className="flex shrink-0 items-center gap-4">
+            <img
+              src={porscheImg}
+              alt="Porsche 911 GT4 RS — Motivation"
+              width={120}
+              height={120}
+              loading="lazy"
+              className="hidden h-16 w-auto drop-shadow-[0_8px_16px_rgba(0,0,0,0.15)] sm:block md:h-20"
+            />
+            <div className="hidden text-right sm:block">
+              <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                Median CHF/m²
+              </div>
+              <div className="font-serif-display text-3xl">
+                {median ? Math.round(median).toLocaleString("de-CH") : "—"}
+              </div>
             </div>
           </div>
         </div>
