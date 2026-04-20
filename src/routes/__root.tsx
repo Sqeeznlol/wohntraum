@@ -63,12 +63,17 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-const navItems = [
+const navItems: ReadonlyArray<{
+  to: "/" | "/map" | "/alerts" | "/onboarding";
+  label: string;
+  icon: typeof Home;
+  exact?: boolean;
+}> = [
   { to: "/", label: "Inserate", icon: Home, exact: true },
   { to: "/map", label: "Karte", icon: MapIcon },
   { to: "/alerts", label: "Alerts", icon: Bell },
   { to: "/onboarding", label: "Setup", icon: Sparkles },
-] as const;
+];
 
 function RootComponent() {
   const [queryClient] = useState(
