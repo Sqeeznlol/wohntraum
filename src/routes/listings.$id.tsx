@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Heart, ExternalLink, ArrowLeft } from "lucide-react";
+import { Heart, ExternalLink, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -174,6 +174,21 @@ function ListingDetail() {
               >
                 <Heart className="mr-1 h-4 w-4" />
                 {l.is_favorite ? "Favorit entfernen" : "Als Favorit markieren"}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  const archiving = !l.archived_at;
+                  update.mutate({ archived_at: archiving ? new Date().toISOString() : null });
+                  toast.success(archiving ? "Inserat archiviert" : "Inserat wiederhergestellt");
+                }}
+              >
+                {l.archived_at ? (
+                  <><ArchiveRestore className="mr-1 h-4 w-4" /> Wiederherstellen</>
+                ) : (
+                  <><Archive className="mr-1 h-4 w-4" /> Archivieren</>
+                )}
               </Button>
             </CardContent>
           </Card>

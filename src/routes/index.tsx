@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   formatCHF,
   formatPricePerSqm,
@@ -21,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, Star, MapPin } from "lucide-react";
+import { Heart, Star, MapPin, Archive, ArchiveRestore } from "lucide-react";
 
 type SortKey = "price_per_sqm" | "price_chf" | "area_sqm" | "created_at";
 
@@ -34,19 +35,38 @@ function ListingsPage() {
   const [portal, setPortal] = useState<Portal | "all">("all");
   const [status, setStatus] = useState<ListingStatus | "all">("all");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [maxPricePerSqm, setMaxPricePerSqm] = useState<string>("");
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const qc = useQueryClient();
 
   const { data: listings, isLoading } = useQuery({
-    queryKey: ["listings"],
+    queryKey: ["listings", showArchived],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const query = supabase
         .from("listings")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(500);
+      const { data, error } = showArchived
+        ? await query.not("archived_at", "is", null)
+        : await query.is("archived_at", null);
       if (error) throw error;
       return data as Listing[];
+    },
+  });
+
+  const archive = useMutation({
+    mutationFn: async ({ id, archive }: { id: string; archive: boolean }) => {
+      const { error } = await supabase
+        .from("listings")
+        .update({ archived_at: archive ? new Date().toISOString() : null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["listings"] });
+      toast.success(vars.archive ? "Inserat archiviert" : "Inserat wiederhergestellt");
     },
   });
 
@@ -123,6 +143,27 @@ function ListingsPage() {
       </section>
 
       {/* Filters */}
+      <div className="flex items-center gap-2">
+        <div className="inline-flex rounded-full border border-border/70 bg-card p-1 shadow-soft">
+          <button
+            onClick={() => setShowArchived(false)}
+            className={`rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors ${
+              !showArchived ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Aktiv
+          </button>
+          <button
+            onClick={() => setShowArchived(true)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors ${
+              showArchived ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Archive className="h-3 w-3" /> Archiv
+          </button>
+        </div>
+      </div>
+
       <Card className="border-border/70 bg-card shadow-soft">
         <CardContent className="grid grid-cols-1 gap-3 p-4 md:grid-cols-6">
           <Input
@@ -198,7 +239,13 @@ function ListingsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((l) => (
-            <ListingCard key={l.id} listing={l} alertThreshold={maxPricePerSqm} />
+            <ListingCard
+              key={l.id}
+              listing={l}
+              alertThreshold={maxPricePerSqm}
+              isArchived={showArchived}
+              onArchive={(id, doArchive) => archive.mutate({ id, archive: doArchive })}
+            />
           ))}
         </div>
       )}
@@ -237,84 +284,112 @@ function EmptyState() {
 function ListingCard({
   listing,
   alertThreshold,
+  isArchived,
+  onArchive,
 }: {
   listing: Listing;
   alertThreshold: string;
+  isArchived: boolean;
+  onArchive: (id: string, archive: boolean) => void;
 }) {
   const ppsm = listing.price_per_sqm != null ? Number(listing.price_per_sqm) : null;
   const isAlert =
     !!alertThreshold && ppsm != null && ppsm <= Number(alertThreshold) * 0.85;
 
+  const handleArchiveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onArchive(listing.id, !isArchived);
+  };
+
   return (
-    <Link to="/listings/$id" params={{ id: listing.id }} className="group block">
-      <Card className="overflow-hidden border-border/70 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card">
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          {listing.image_url ? (
-            <img
-              src={listing.image_url}
-              alt={listing.title}
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-              Kein Bild
-            </div>
-          )}
-          <div className="absolute left-3 top-3 flex gap-1.5">
-            <Badge
-              variant="secondary"
-              className="border-0 bg-background/85 text-[10px] font-medium uppercase tracking-wider text-foreground backdrop-blur-sm"
-            >
-              {PORTAL_LABELS[listing.primary_portal] ?? listing.primary_portal}
-            </Badge>
-            {isAlert && (
-              <Badge className="border-0 bg-accent text-[10px] font-medium uppercase tracking-wider text-accent-foreground">
-                Empfehlung
-              </Badge>
-            )}
-          </div>
-          {listing.is_favorite && (
-            <div className="absolute right-3 top-3 rounded-full bg-background/85 p-1.5 backdrop-blur-sm">
-              <Star className="h-3.5 w-3.5 fill-accent text-accent" />
-            </div>
-          )}
-        </div>
-        <CardContent className="space-y-3 p-5">
-          <div className="space-y-1">
-            <h3 className="line-clamp-2 font-serif-display text-lg leading-tight">
-              {listing.title}
-            </h3>
-            {listing.city && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                {listing.postal_code} {listing.city}
+    <div className="group relative">
+      <Link to="/listings/$id" params={{ id: listing.id }} className="block">
+        <Card className="overflow-hidden border-border/70 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card">
+          <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+            {listing.image_url ? (
+              <img
+                src={listing.image_url}
+                alt={listing.title}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                Kein Bild
               </div>
             )}
-          </div>
-          <div className="flex items-end justify-between border-t border-border/70 pt-3">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Preis · Fläche
-              </div>
-              <div className="text-sm font-medium">
-                {formatCHF(listing.price_chf ? Number(listing.price_chf) : null)} ·{" "}
-                {formatSqm(listing.area_sqm ? Number(listing.area_sqm) : null)}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                CHF/m²
-              </div>
-              <div
-                className={`font-serif-display text-2xl ${isAlert ? "text-accent" : ""}`}
+            <div className="absolute left-3 top-3 flex gap-1.5">
+              <Badge
+                variant="secondary"
+                className="border-0 bg-background/85 text-[10px] font-medium uppercase tracking-wider text-foreground backdrop-blur-sm"
               >
-                {formatPricePerSqm(ppsm)}
+                {PORTAL_LABELS[listing.primary_portal] ?? listing.primary_portal}
+              </Badge>
+              {isAlert && (
+                <Badge className="border-0 bg-accent text-[10px] font-medium uppercase tracking-wider text-accent-foreground">
+                  Empfehlung
+                </Badge>
+              )}
+              {isArchived && (
+                <Badge className="border-0 bg-muted text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Archiviert
+                </Badge>
+              )}
+            </div>
+            {listing.is_favorite && (
+              <div className="absolute right-3 top-3 rounded-full bg-background/85 p-1.5 backdrop-blur-sm">
+                <Star className="h-3.5 w-3.5 fill-accent text-accent" />
+              </div>
+            )}
+          </div>
+          <CardContent className="space-y-3 p-5">
+            <div className="space-y-1">
+              <h3 className="line-clamp-2 font-serif-display text-lg leading-tight">
+                {listing.title}
+              </h3>
+              {listing.city && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  {listing.postal_code} {listing.city}
+                </div>
+              )}
+            </div>
+            <div className="flex items-end justify-between border-t border-border/70 pt-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Preis · Fläche
+                </div>
+                <div className="text-sm font-medium">
+                  {formatCHF(listing.price_chf ? Number(listing.price_chf) : null)} ·{" "}
+                  {formatSqm(listing.area_sqm ? Number(listing.area_sqm) : null)}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  CHF/m²
+                </div>
+                <div
+                  className={`font-serif-display text-2xl ${isAlert ? "text-accent" : ""}`}
+                >
+                  {formatPricePerSqm(ppsm)}
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+          </CardContent>
+        </Card>
+      </Link>
+      <button
+        onClick={handleArchiveClick}
+        title={isArchived ? "Wiederherstellen" : "Archivieren"}
+        className="absolute right-3 top-3 z-10 rounded-full bg-background/85 p-2 text-foreground opacity-0 backdrop-blur-sm transition-opacity hover:bg-background group-hover:opacity-100"
+      >
+        {isArchived ? (
+          <ArchiveRestore className="h-3.5 w-3.5" />
+        ) : (
+          <Archive className="h-3.5 w-3.5" />
+        )}
+      </button>
+    </div>
   );
 }
