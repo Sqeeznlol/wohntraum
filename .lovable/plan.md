@@ -1,34 +1,45 @@
 
 
-## Problem
-Resend bietet im Dashboard keine einfache „Inbound-Adresse" mehr an (nur noch via API mit eigener Domain + MX-Records). Für deinen Use Case ungeeignet.
+## Antwort auf die Resend-Frage
 
-## Lösung: anderer Inbound-Dienst
-Ich empfehle **CloudMailin** oder **Postmark Inbound** (ähnlich, beide gratis für unsere Menge):
+**Resend ist gratis, ABER:** Das Empfangen von Mails geht bei Resend nur, wenn du eine **eigene Domain** hast (z. B. `deinname.ch`) und im Domain-Anbieter komplizierte DNS-Einträge (sog. „MX-Records") setzt. Ohne eigene Domain → bei Resend **gar nicht möglich**, Mails zu empfangen. Versenden geht, Empfangen nicht.
 
-**Option A — CloudMailin** (mein Favorit für dich)
-- Gratis: 10 000 Mails/Monat
-- Du bekommst sofort eine fertige Adresse wie `abc123def@cloudmailin.net` — keine eigene Domain nötig
-- Setup: Account erstellen → „New Address" → Webhook-URL eintragen → fertig
-- Kein OAuth, kein Connector-Zwang — du kopierst einfach die Adresse
+Das ist genau der Grund, warum CloudMailin überhaupt empfohlen wurde: dort kriegst du **sofort eine fertige Adresse** ohne Domain.
 
-**Option B — Postmark Inbound**
-- Gratis: 100 Mails/Monat (eher knapp für viele Such-Abos)
-- Adresse wie `xyz@inbound.postmarkapp.com`
-- Sonst gleicher Ablauf
+## Warum CloudMailin bei dir nicht ging
 
-**Option C — improvmx / Mailgun Routes**
-- Auch möglich, aber komplizierter im Setup
+Du hast geschrieben: „macht die Nachrichten nicht auf". Das klingt, als ob CloudMailin entweder gar keine Mails empfängt oder die Mails im CloudMailin-Dashboard nicht lesbar sind. Bevor wir den Dienst wechseln, müssen wir **wissen, was genau schiefgeht** — sonst wechseln wir nur zum nächsten Dienst und es passiert das Gleiche.
 
-## Was ich umsetze
-1. **Webhook anpassen** (`supabase/functions/inbound-email/index.ts`): zusätzlich das Payload-Format von CloudMailin/Postmark verstehen (sie schicken `from`, `to`, `subject`, `html`, `plain` als Form-Daten oder JSON — ich mappe beide).
-2. **Onboarding-Seite umschreiben** auf den gewählten Dienst, mit denselben einfachen 4 Schritten wie jetzt:
-   - Schritt 1: Account bei CloudMailin
-   - Schritt 2: Adresse anlegen + Webhook-URL eintragen (Webhook-URL kannst du mit einem Klick kopieren)
-   - Schritt 3: Adresse in Gmail bestätigen
-   - Schritt 4: Gmail-Filter mit Sammel-Filter
-3. **Resend-Connector kann verbunden bleiben** — wir nutzen ihn später trotzdem zum *Versand* von Alert-Mails an dich. Das ist nämlich Resends Stärke.
+## Mögliche Wege (von einfach bis aufwändig)
 
-## Was du jetzt entscheiden musst
-Welchen Dienst nehmen wir? Ich würde **CloudMailin** empfehlen wegen 10 000 gratis Mails — das reicht locker auch wenn du 5 Such-Abos hast.
+| Weg | Eigene Domain nötig? | Gratis? | Schwierigkeit |
+|---|---|---|---|
+| **CloudMailin reparieren** | nein | ja (10 000/Monat) | leicht — wir debuggen |
+| **Postmark Inbound** | nein | ja, aber nur 100 Mails/Monat | leicht |
+| **improvmx + Webhook-Trick** | nein (du kriegst eine `@improvmx`-Adresse) | ja | mittel |
+| **Resend Inbound** | **JA** (eigene Domain mit MX) | ja | schwer |
+| **Eigene Domain + Lovable/Resend** | **JA** | ja | schwer |
+
+## Was ich vorschlage als nächsten Schritt
+
+**Schritt 1 (5 Min): CloudMailin debuggen.** Ich ergänze auf der Setup-Seite einen kleinen **Status-Bereich**, der die letzten 10 eingegangenen Mails (Tabelle `raw_emails`) anzeigt — mit Absender, Status (`processing`/`processed`/`failed`) und Fehlermeldung. So sehen wir sofort:
+- Ob CloudMailin überhaupt Mails an uns weitergibt (= leerer Bereich heisst: CloudMailin schickt nichts)
+- Ob unsere Verarbeitung scheitert (= Status `failed` mit Fehlertext)
+- Ob die Gmail-Weiterleitung schon eingerichtet ist
+
+**Schritt 2 (nur falls CloudMailin wirklich kaputt):** Falls sich rausstellt, dass CloudMailin gar nichts schickt, wechseln wir auf **Postmark** (auch ohne Domain, gratis 100/Monat — reicht problemlos für ein paar Such-Abos).
+
+## Konkret zu ändern
+
+- `src/routes/onboarding.tsx`: Status-Card oben hinzufügen mit den letzten 10 `raw_emails` (auto-refresh alle 5 Sek). Zeigt Spalten: Empfangen, Von, Betreff, Status, extrahierte Inserate.
+- Keine DB-Änderungen nötig.
+- Keine Webhook-Änderungen nötig (akzeptiert bereits Postmark, CloudMailin und Mailgun).
+
+## Was du danach genau siehst und mir sagst
+
+- „Bereich ist leer" → CloudMailin sendet nichts → wir wechseln auf Postmark
+- „Da steht eine Mail, aber Status = failed" → wir lesen den Fehler und fixen ihn
+- „Da stehen Mails mit Status = processed" → es funktioniert, dann müssen wir nur schauen warum sie nicht im Inserate-Tab erscheinen
+
+Sag „los" und ich baue Schritt 1.
 
