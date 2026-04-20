@@ -143,6 +143,27 @@ function ListingsPage() {
       </section>
 
       {/* Filters */}
+      <div className="flex items-center gap-2">
+        <div className="inline-flex rounded-full border border-border/70 bg-card p-1 shadow-soft">
+          <button
+            onClick={() => setShowArchived(false)}
+            className={`rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors ${
+              !showArchived ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Aktiv
+          </button>
+          <button
+            onClick={() => setShowArchived(true)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors ${
+              showArchived ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Archive className="h-3 w-3" /> Archiv
+          </button>
+        </div>
+      </div>
+
       <Card className="border-border/70 bg-card shadow-soft">
         <CardContent className="grid grid-cols-1 gap-3 p-4 md:grid-cols-6">
           <Input
