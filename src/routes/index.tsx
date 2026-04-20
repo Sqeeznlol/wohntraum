@@ -29,7 +29,34 @@ import {
   Search,
   Check,
   ChevronRight,
+  Clock,
 } from "lucide-react";
+
+function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diff = Date.now() - then;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "gerade eben";
+  if (min < 60) return `vor ${min} Min.`;
+  const hrs = Math.floor(min / 60);
+  if (hrs < 24) return `vor ${hrs} Std.`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `vor ${days} Tag${days > 1 ? "en" : ""}`;
+  return new Date(iso).toLocaleDateString("de-CH", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function formatExactTime(iso: string): string {
+  return new Date(iso).toLocaleString("de-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export const Route = createFileRoute("/")({
   component: ListingsPage,
