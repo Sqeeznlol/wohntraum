@@ -2,23 +2,22 @@ import { Link, Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { Home, Map as MapIcon, Bell, Sparkles } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import leafletCss from "leaflet/dist/leaflet.css?url";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Seite nicht gefunden</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Diese Seite existiert nicht.
-        </p>
+    <div className="relative flex min-h-screen items-center justify-center px-4">
+      <div className="glass max-w-md rounded-3xl p-10 text-center shadow-elegant">
+        <h1 className="text-7xl font-bold text-gradient">404</h1>
+        <h2 className="mt-4 text-xl font-semibold">Seite nicht gefunden</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Diese Seite existiert nicht.</p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-full bg-gradient-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-glow transition-transform hover:scale-105"
           >
             Zur Übersicht
           </Link>
@@ -33,11 +32,11 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Immobilien-Dashboard Schweiz" },
+      { title: "Immo Radar — Schweizer Immobilien-Intelligenz" },
       {
         name: "description",
         content:
-          "Aggregiert Suchabo-Mails von ImmoScout24, Homegate, Flatfox & Co. und berechnet automatisch CHF/m².",
+          "Aggregiert Suchabo-Mails von ImmoScout24, Homegate, Flatfox & Co. mit automatischer CHF/m²-Analyse.",
       },
     ],
     links: [
@@ -52,7 +51,7 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de">
+    <html lang="de" className="dark">
       <head>
         <HeadContent />
       </head>
@@ -64,6 +63,18 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+const navItems: ReadonlyArray<{
+  to: "/" | "/map" | "/alerts" | "/onboarding";
+  label: string;
+  icon: typeof Home;
+  exact?: boolean;
+}> = [
+  { to: "/", label: "Inserate", icon: Home, exact: true },
+  { to: "/map", label: "Karte", icon: MapIcon },
+  { to: "/alerts", label: "Alerts", icon: Bell },
+  { to: "/onboarding", label: "Setup", icon: Sparkles },
+];
+
 function RootComponent() {
   const [queryClient] = useState(
     () =>
@@ -73,46 +84,41 @@ function RootComponent() {
   );
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-background">
-        <header className="border-b">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-            <Link to="/" className="text-lg font-semibold">
-              🏡 Immo-Dashboard CH
+      <div className="relative min-h-screen">
+        <header className="sticky top-0 z-40 border-b border-border/50 backdrop-blur-xl">
+          <div className="absolute inset-0 -z-10 bg-background/70" />
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
+            <Link to="/" className="group flex items-center gap-2">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
+                <Home className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm font-semibold tracking-tight">Immo Radar</span>
+                <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Schweiz · 2026
+                </span>
+              </div>
             </Link>
-            <nav className="flex gap-4 text-sm">
-              <Link
-                to="/"
-                className="text-muted-foreground hover:text-foreground"
-                activeProps={{ className: "text-foreground font-medium" }}
-                activeOptions={{ exact: true }}
-              >
-                Inserate
-              </Link>
-              <Link
-                to="/map"
-                className="text-muted-foreground hover:text-foreground"
-                activeProps={{ className: "text-foreground font-medium" }}
-              >
-                Karte
-              </Link>
-              <Link
-                to="/alerts"
-                className="text-muted-foreground hover:text-foreground"
-                activeProps={{ className: "text-foreground font-medium" }}
-              >
-                Alerts
-              </Link>
-              <Link
-                to="/onboarding"
-                className="text-muted-foreground hover:text-foreground"
-                activeProps={{ className: "text-foreground font-medium" }}
-              >
-                Setup
-              </Link>
+            <nav className="flex items-center gap-1 rounded-full border border-border/60 bg-card/40 p-1 backdrop-blur-md">
+              {navItems.map(({ to, label, icon: Icon, exact }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  activeOptions={exact ? { exact: true } : undefined}
+                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
+                  activeProps={{
+                    className:
+                      "flex items-center gap-1.5 rounded-full bg-gradient-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-glow sm:text-sm",
+                  }}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{label}</span>
+                </Link>
+              ))}
             </nav>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6">
+        <main className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
           <Outlet />
         </main>
         <Toaster />
