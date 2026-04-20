@@ -2,13 +2,145 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, CheckCircle2, ExternalLink, Lightbulb } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Copy, CheckCircle2, ExternalLink, Lightbulb, RefreshCw, Inbox } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
 });
+
+interface RawEmailRow {
+  id: string;
+  from_address: string | null;
+  subject: string | null;
+  status: "received" | "processing" | "processed" | "failed";
+  error_message: string | null;
+  listings_extracted: number;
+  received_at: string;
+}
+
+function StatusBadge({ status }: { status: RawEmailRow["status"] }) {
+  const map: Record<RawEmailRow["status"], { label: string; cls: string }> = {
+    received: { label: "Empfangen", cls: "bg-muted text-foreground" },
+    processing: { label: "Wird verarbeitet", cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
+    processed: { label: "Verarbeitet ✓", cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" },
+    failed: { label: "Fehler", cls: "bg-destructive/15 text-destructive" },
+  };
+  const { label, cls } = map[status];
+  return <Badge className={cls} variant="secondary">{label}</Badge>;
+}
+
+function InboundStatus() {
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ["raw_emails_recent"],
+    queryFn: async (): Promise<RawEmailRow[]> => {
+      const { data, error } = await supabase
+        .from("raw_emails")
+        .select("id, from_address, subject, status, error_message, listings_extracted, received_at")
+        .order("received_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return (data ?? []) as RawEmailRow[];
+    },
+    refetchInterval: 5000,
+  });
+
+  const rows = data ?? [];
+
+  return (
+    <Card className="border-primary/40">
+      <CardContent className="space-y-3 p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Inbox className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold uppercase">
+                Live-Status: Eingehende Mails
+              </h2>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Hier siehst du die letzten 10 Mails, die bei uns angekommen sind. Aktualisiert sich alle 5 Sekunden automatisch.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Lade …</p>
+        ) : rows.length === 0 ? (
+          <div className="rounded-md border border-dashed bg-muted/30 p-6 text-center text-sm">
+            <p className="font-medium">Noch keine Mails angekommen.</p>
+            <p className="mt-1 text-muted-foreground">
+              Sobald CloudMailin (oder ein anderer Dienst) eine Mail an unseren Webhook schickt, erscheint sie hier.
+              Tipp: Leite testweise eine alte Immo-Mail an deine CloudMailin-Adresse weiter.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium">Empfangen</th>
+                  <th className="px-3 py-2 text-left font-medium">Von</th>
+                  <th className="px-3 py-2 text-left font-medium">Betreff</th>
+                  <th className="px-3 py-2 text-left font-medium">Status</th>
+                  <th className="px-3 py-2 text-right font-medium">Inserate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-t align-top">
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-muted-foreground">
+                      {new Date(r.received_at).toLocaleString("de-CH", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="max-w-[180px] truncate px-3 py-2 text-xs">
+                      {r.from_address ?? "–"}
+                    </td>
+                    <td className="max-w-[280px] truncate px-3 py-2">
+                      <div className="truncate">{r.subject ?? "(kein Betreff)"}</div>
+                      {r.status === "failed" && r.error_message && (
+                        <div className="mt-1 text-xs text-destructive">
+                          {r.error_message}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {r.listings_extracted}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
+          <strong className="text-foreground">So liest du das:</strong>{" "}
+          Leer = es kommt nichts an (Weiterleitung prüfen).{" "}
+          <span className="text-destructive">Fehler</span> = Mail kam an, aber Verarbeitung schiefgelaufen (Fehlertext steht dabei).{" "}
+          <span className="text-emerald-700 dark:text-emerald-400">Verarbeitet ✓</span> = alles gut, Inserate sind im Dashboard.
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function OnboardingPage() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? "";
