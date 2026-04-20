@@ -79,14 +79,21 @@ export function ListingGallery({
       );
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      return data as { imported: number; skipped: number; total_found: number };
+      return data as {
+        imported: number;
+        skipped: number;
+        total_found: number;
+        method: "direct" | "firecrawl";
+        credits_used: number;
+      };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["listing_images", listingId] });
+      const tag = data.method === "direct" ? "🆓 gratis" : `💰 ${data.credits_used} Credit`;
       if (data.imported > 0) {
-        toast.success(`${data.imported} Bilder importiert`);
+        toast.success(`${data.imported} Bilder importiert (${tag})`);
       } else {
-        toast.info("Keine neuen Bilder gefunden");
+        toast.info(`Keine neuen Bilder gefunden (${tag})`);
       }
     },
     onError: (e: Error) => toast.error(`Import fehlgeschlagen: ${e.message}`),
