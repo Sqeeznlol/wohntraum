@@ -23,6 +23,7 @@ import {
 import { Heart, ExternalLink, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ListingGallery } from "@/components/ListingGallery";
 
 export const Route = createFileRoute("/listings/$id")({
   component: ListingDetail,
@@ -91,13 +92,7 @@ function ListingDetail() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          {l.image_url && (
-            <img
-              src={l.image_url}
-              alt={l.title}
-              className="w-full rounded-lg object-cover"
-            />
-          )}
+          <ListingGallery listingId={id} fallbackUrl={l.image_url} title={l.title} />
           <Card>
             <CardContent className="space-y-3 p-6">
               <h1 className="text-xl font-semibold">{l.title}</h1>
