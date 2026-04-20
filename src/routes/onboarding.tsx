@@ -242,15 +242,22 @@ function forwardPropertyEmailsToLovable() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Direkte Gmail-Weiterleitung zu Lovable</h1>
+        <h1 className="text-2xl font-semibold">
+          {isEditorMode ? "Direkte Gmail-Weiterleitung zu Lovable" : "System Status"}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Ohne CloudMailin. Ohne Resend. Gmail schickt passende Immo-Mails direkt an
-          dein Backend.
+          {isEditorMode
+            ? "Ohne CloudMailin. Ohne Resend. Gmail schickt passende Immo-Mails direkt an dein Backend."
+            : "Live-Überwachung des eingehenden Mail-Streams."}
         </p>
       </div>
 
       <InboundStatus />
 
+      {!isEditorMode && <MatrixRain height={520} />}
+
+      {isEditorMode && (
+      <>
       <Card className="border-primary/30 bg-primary/5">
         <CardContent className="space-y-2 p-6">
           <div className="flex items-center gap-2">
