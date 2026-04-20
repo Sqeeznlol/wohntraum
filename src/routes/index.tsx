@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import porscheImg from "@/assets/porsche-gt4rs.png";
+import { ListingSlotMachine } from "@/components/ListingSlotMachine";
 import {
   formatCHF,
   formatPricePerSqm,
