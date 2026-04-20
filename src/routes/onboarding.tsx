@@ -12,10 +12,11 @@ import {
   Inbox,
   Code2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { MatrixRain } from "@/components/MatrixRain";
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
@@ -169,6 +170,28 @@ function InboundStatus() {
 }
 
 function OnboardingPage() {
+  // Editor-/Owner-Modus: nur auf Lovable-Preview-Hosts ODER mit ?setup=1 sichtbar.
+  // Auf der veröffentlichten Domain sehen normale Besucher nur Live-Status + Matrix.
+  const isEditorMode = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const host = window.location.hostname;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("setup") === "1") {
+      try {
+        localStorage.setItem("immo_setup_unlocked", "1");
+      } catch {
+        /* ignore */
+      }
+      return true;
+    }
+    try {
+      if (localStorage.getItem("immo_setup_unlocked") === "1") return true;
+    } catch {
+      /* ignore */
+    }
+    return host.endsWith(".lovable.dev") || host.includes("id-preview--");
+  }, []);
+
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? "";
   const webhookUrl = `${supabaseUrl}/functions/v1/inbound-email`;
   const appsScript = `const WEBHOOK_URL = "${webhookUrl}";
@@ -219,15 +242,22 @@ function forwardPropertyEmailsToLovable() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Direkte Gmail-Weiterleitung zu Lovable</h1>
+        <h1 className="text-2xl font-semibold">
+          {isEditorMode ? "Direkte Gmail-Weiterleitung zu Lovable" : "System Status"}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Ohne CloudMailin. Ohne Resend. Gmail schickt passende Immo-Mails direkt an
-          dein Backend.
+          {isEditorMode
+            ? "Ohne CloudMailin. Ohne Resend. Gmail schickt passende Immo-Mails direkt an dein Backend."
+            : "Live-Überwachung des eingehenden Mail-Streams."}
         </p>
       </div>
 
       <InboundStatus />
 
+      {!isEditorMode && <MatrixRain height={520} />}
+
+      {isEditorMode && (
+      <>
       <Card className="border-primary/30 bg-primary/5">
         <CardContent className="space-y-2 p-6">
           <div className="flex items-center gap-2">
@@ -423,6 +453,8 @@ function forwardPropertyEmailsToLovable() {
           </ol>
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 }
