@@ -1,45 +1,45 @@
 
 
-## Antwort auf die Resend-Frage
+## Bilder automatisch vom Portal importieren
 
-**Resend ist gratis, ABER:** Das Empfangen von Mails geht bei Resend nur, wenn du eine **eigene Domain** hast (z. B. `deinname.ch`) und im Domain-Anbieter komplizierte DNS-Einträge (sog. „MX-Records") setzt. Ohne eigene Domain → bei Resend **gar nicht möglich**, Mails zu empfangen. Versenden geht, Empfangen nicht.
+Du hast recht — jedes Inserat hat 10–20 Bilder, aber wir speichern nur 1 (das aus dem E-Mail). Lösung: ein **Import-Button** auf der Detailseite, der per **Firecrawl** alle Bilder direkt vom Portal-Link (ImmoScout24, Homegate, etc.) holt und in die Galerie einfügt.
 
-Das ist genau der Grund, warum CloudMailin überhaupt empfohlen wurde: dort kriegst du **sofort eine fertige Adresse** ohne Domain.
+Firecrawl ist nötig, weil ImmoScout24 normale `fetch`-Anfragen blockiert (Anti-Bot-Schutz). Firecrawl umgeht das mit echtem Browser-Rendering.
 
-## Warum CloudMailin bei dir nicht ging
+### Was gebaut wird
 
-Du hast geschrieben: „macht die Nachrichten nicht auf". Das klingt, als ob CloudMailin entweder gar keine Mails empfängt oder die Mails im CloudMailin-Dashboard nicht lesbar sind. Bevor wir den Dienst wechseln, müssen wir **wissen, was genau schiefgeht** — sonst wechseln wir nur zum nächsten Dienst und es passiert das Gleiche.
+**1. Firecrawl-Connector aktivieren**
+Einmalige Verbindung — danach steht `FIRECRAWL_API_KEY` serverseitig zur Verfügung. Kein API-Key-Eingabe-Dialog für dich nötig.
 
-## Mögliche Wege (von einfach bis aufwändig)
+**2. Edge Function `import-listing-images`**
+- Input: `listing_id`
+- Holt `primary_url` aus DB → ruft Firecrawl `scrape` mit Format `['html', 'links']` auf
+- Extrahiert alle `<img>`-URLs + Bilder aus `og:image`, JSON-LD und Lazy-Load-Attributen (`data-src`, `srcset`)
+- Filtert: nur große Bilder (>600px im Pfad/URL), keine Logos/Icons/Avatare, keine Tracking-Pixel
+- Dedupliziert gegen bestehende `listing_images`
+- Insert in `listing_images` mit fortlaufendem `sort_order`
+- Return: `{ imported: 12, skipped: 2 }`
 
-| Weg | Eigene Domain nötig? | Gratis? | Schwierigkeit |
-|---|---|---|---|
-| **CloudMailin reparieren** | nein | ja (10 000/Monat) | leicht — wir debuggen |
-| **Postmark Inbound** | nein | ja, aber nur 100 Mails/Monat | leicht |
-| **improvmx + Webhook-Trick** | nein (du kriegst eine `@improvmx`-Adresse) | ja | mittel |
-| **Resend Inbound** | **JA** (eigene Domain mit MX) | ja | schwer |
-| **Eigene Domain + Lovable/Resend** | **JA** | ja | schwer |
+**3. UI auf Detailseite (`listings.$id.tsx`)**
+Neuer Button **„Alle Bilder vom Portal importieren"** über der Galerie:
+- Sichtbar nur wenn `primary_url` existiert
+- Während Import: Spinner + „Lade Bilder…"
+- Toast nach Erfolg: „12 Bilder importiert"
+- Galerie aktualisiert sich automatisch (Query-Invalidation)
 
-## Was ich vorschlage als nächsten Schritt
+**4. Auto-Import bei neuen E-Mails (Bonus)**
+In `inbound-email/index.ts`: wenn ein neues Listing angelegt wird und eine `primary_url` hat → Edge Function im Hintergrund (`waitUntil`) triggern. So füllt sich die Galerie ohne Klick.
 
-**Schritt 1 (5 Min): CloudMailin debuggen.** Ich ergänze auf der Setup-Seite einen kleinen **Status-Bereich**, der die letzten 10 eingegangenen Mails (Tabelle `raw_emails`) anzeigt — mit Absender, Status (`processing`/`processed`/`failed`) und Fehlermeldung. So sehen wir sofort:
-- Ob CloudMailin überhaupt Mails an uns weitergibt (= leerer Bereich heisst: CloudMailin schickt nichts)
-- Ob unsere Verarbeitung scheitert (= Status `failed` mit Fehlertext)
-- Ob die Gmail-Weiterleitung schon eingerichtet ist
+### Portal-spezifische Selektoren
 
-**Schritt 2 (nur falls CloudMailin wirklich kaputt):** Falls sich rausstellt, dass CloudMailin gar nichts schickt, wechseln wir auf **Postmark** (auch ohne Domain, gratis 100/Monat — reicht problemlos für ein paar Such-Abos).
+| Portal | Selektor / Strategie |
+|---|---|
+| ImmoScout24 | JSON-LD `@type: RealEstateListing` → `image[]`, `srcset` aus Slick-Slider |
+| Homegate | `og:image` + `picture > source[srcset]` in Galerie |
+| Comparis | `<img class="gallery">` |
+| Andere | Generisch: alle `<img>` >600px + `og:image` |
 
-## Konkret zu ändern
+### Deine Aktion
 
-- `src/routes/onboarding.tsx`: Status-Card oben hinzufügen mit den letzten 10 `raw_emails` (auto-refresh alle 5 Sek). Zeigt Spalten: Empfangen, Von, Betreff, Status, extrahierte Inserate.
-- Keine DB-Änderungen nötig.
-- Keine Webhook-Änderungen nötig (akzeptiert bereits Postmark, CloudMailin und Mailgun).
-
-## Was du danach genau siehst und mir sagst
-
-- „Bereich ist leer" → CloudMailin sendet nichts → wir wechseln auf Postmark
-- „Da steht eine Mail, aber Status = failed" → wir lesen den Fehler und fixen ihn
-- „Da stehen Mails mit Status = processed" → es funktioniert, dann müssen wir nur schauen warum sie nicht im Inserate-Tab erscheinen
-
-Sag „los" und ich baue Schritt 1.
+Du musst nur den **Firecrawl-Connector freigeben**, wenn der Verbindungs-Dialog erscheint. Danach läuft alles automatisch — bei bestehenden Inseraten per Button, bei neuen E-Mails automatisch.
 
