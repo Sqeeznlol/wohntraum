@@ -453,6 +453,8 @@ function forwardPropertyEmailsToLovable() {
           </ol>
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 }
