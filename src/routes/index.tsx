@@ -29,7 +29,34 @@ import {
   Search,
   Check,
   ChevronRight,
+  Clock,
 } from "lucide-react";
+
+function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diff = Date.now() - then;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "gerade eben";
+  if (min < 60) return `vor ${min} Min.`;
+  const hrs = Math.floor(min / 60);
+  if (hrs < 24) return `vor ${hrs} Std.`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `vor ${days} Tag${days > 1 ? "en" : ""}`;
+  return new Date(iso).toLocaleDateString("de-CH", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function formatExactTime(iso: string): string {
+  return new Date(iso).toLocaleString("de-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export const Route = createFileRoute("/")({
   component: ListingsPage,
@@ -481,12 +508,25 @@ function PipelineCard({
             <h3 className="line-clamp-2 font-serif-display text-base leading-tight">
               {listing.title}
             </h3>
-            {listing.city && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                {listing.postal_code} {listing.city}
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              {listing.city ? (
+                <div className="flex min-w-0 items-center gap-1">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate">
+                    {listing.postal_code} {listing.city}
+                  </span>
+                </div>
+              ) : (
+                <span />
+              )}
+              <div
+                className="flex shrink-0 items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium tabular-nums"
+                title={formatExactTime(listing.first_seen_at)}
+              >
+                <Clock className="h-2.5 w-2.5" />
+                {formatRelativeTime(listing.first_seen_at)}
               </div>
-            )}
+            </div>
           </CardContent>
         </Link>
 
