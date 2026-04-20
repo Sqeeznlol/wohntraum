@@ -41,6 +41,30 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_images: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          sort_order?: number
+          url?: string
+        }
+        Relationships: []
+      }
       listing_sources: {
         Row: {
           created_at: string
