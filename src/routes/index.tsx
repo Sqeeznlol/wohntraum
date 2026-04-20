@@ -262,6 +262,11 @@ function ListingsPage() {
         </div>
       </section>
 
+      {/* Slot machine — Casino-Style Inserat-Roulette */}
+      {listings && listings.length >= 3 && (
+        <ListingSlotMachine listings={listings} />
+      )}
+
       {/* Pipeline tabs — sticky, scrollable on mobile */}
       <div className="sticky top-[56px] z-30 -mx-4 border-y border-border/70 bg-background/95 px-4 py-2 backdrop-blur-md md:top-[72px] md:-mx-6 md:px-6">
         <div className="flex gap-1.5 overflow-x-auto scrollbar-none md:gap-2">
