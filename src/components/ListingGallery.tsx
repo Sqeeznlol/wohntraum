@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X, Download, Loader2 } from "lucide-react";
 import type { ListingImage } from "@/lib/db-types";
 import { toast } from "sonner";
 
@@ -12,10 +12,12 @@ export function ListingGallery({
   listingId,
   fallbackUrl,
   title,
+  primaryUrl,
 }: {
   listingId: string;
   fallbackUrl: string | null;
   title: string;
+  primaryUrl?: string | null;
 }) {
   const qc = useQueryClient();
   const [newUrl, setNewUrl] = useState("");
