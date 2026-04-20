@@ -392,6 +392,9 @@ Deno.serve(async (req) => {
   for (const l of listings) {
     const fp = fingerprintOf(l);
 
+    // Tracking-/Click-Wrapper auflösen, bevor wir speichern
+    const cleanUrl = await unwrapTrackingUrl(l.url);
+
     // Try to find existing by fingerprint
     const { data: existing } = await supabase
       .from("listings")
@@ -403,12 +406,17 @@ Deno.serve(async (req) => {
 
     if (existing) {
       listingId = existing.id;
+      // Wenn bisheriger Link ein Tracking-Wrapper war, mit sauberem Link überschreiben
+      const existingIsTracking =
+        existing.primary_url &&
+        /sendgrid|mailchimp|hubspot|click\.|\/ls\/click/i.test(existing.primary_url);
       await supabase
         .from("listings")
         .update({
           last_seen_at: new Date().toISOString(),
-          // backfill missing fields
-          primary_url: existing.primary_url ?? l.url ?? null,
+          primary_url: existingIsTracking
+            ? (cleanUrl ?? existing.primary_url)
+            : (existing.primary_url ?? cleanUrl ?? null),
           image_url: existing.image_url ?? l.image_url ?? null,
         })
         .eq("id", listingId);
@@ -428,7 +436,7 @@ Deno.serve(async (req) => {
           latitude: geo?.lat ?? null,
           longitude: geo?.lon ?? null,
           primary_portal: l.portal,
-          primary_url: l.url ?? null,
+          primary_url: cleanUrl ?? null,
           image_url: l.image_url ?? null,
           fingerprint: fp,
         })
@@ -447,7 +455,7 @@ Deno.serve(async (req) => {
       .select("id")
       .eq("listing_id", listingId)
       .eq("portal", l.portal)
-      .eq("url", l.url ?? "")
+      .eq("url", cleanUrl ?? "")
       .maybeSingle();
 
     if (!srcExists) {
@@ -455,7 +463,7 @@ Deno.serve(async (req) => {
         listing_id: listingId,
         raw_email_id: rawEmail.id,
         portal: l.portal,
-        url: l.url ?? null,
+        url: cleanUrl ?? null,
       });
     }
 
