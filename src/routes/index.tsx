@@ -508,12 +508,25 @@ function PipelineCard({
             <h3 className="line-clamp-2 font-serif-display text-base leading-tight">
               {listing.title}
             </h3>
-            {listing.city && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                {listing.postal_code} {listing.city}
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              {listing.city ? (
+                <div className="flex min-w-0 items-center gap-1">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate">
+                    {listing.postal_code} {listing.city}
+                  </span>
+                </div>
+              ) : (
+                <span />
+              )}
+              <div
+                className="flex shrink-0 items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium tabular-nums"
+                title={formatExactTime(listing.first_seen_at)}
+              >
+                <Clock className="h-2.5 w-2.5" />
+                {formatRelativeTime(listing.first_seen_at)}
               </div>
-            )}
+            </div>
           </CardContent>
         </Link>
 
