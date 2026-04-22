@@ -115,11 +115,16 @@ export type Database = {
           address: string | null
           archived_at: string | null
           area_sqm: number | null
+          building_year: number | null
           city: string | null
           created_at: string
           description: string | null
+          dwellings: number | null
+          egid: number | null
           fingerprint: string | null
           first_seen_at: string
+          floors: number | null
+          gwr_enriched_at: string | null
           id: string
           image_url: string | null
           is_favorite: boolean
@@ -141,11 +146,16 @@ export type Database = {
           address?: string | null
           archived_at?: string | null
           area_sqm?: number | null
+          building_year?: number | null
           city?: string | null
           created_at?: string
           description?: string | null
+          dwellings?: number | null
+          egid?: number | null
           fingerprint?: string | null
           first_seen_at?: string
+          floors?: number | null
+          gwr_enriched_at?: string | null
           id?: string
           image_url?: string | null
           is_favorite?: boolean
@@ -167,11 +177,16 @@ export type Database = {
           address?: string | null
           archived_at?: string | null
           area_sqm?: number | null
+          building_year?: number | null
           city?: string | null
           created_at?: string
           description?: string | null
+          dwellings?: number | null
+          egid?: number | null
           fingerprint?: string | null
           first_seen_at?: string
+          floors?: number | null
+          gwr_enriched_at?: string | null
           id?: string
           image_url?: string | null
           is_favorite?: boolean

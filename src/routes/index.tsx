@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import porscheImg from "@/assets/porsche-gt4rs.png";
 import { ListingSlotMachine } from "@/components/ListingSlotMachine";
+import { PitchHero } from "@/components/PitchHero";
 import {
   formatCHF,
   formatPricePerSqm,
@@ -261,6 +262,9 @@ function ListingsPage() {
           </Button>
         </div>
       </section>
+
+      {/* Pitch / Wert-Versprechen */}
+      <PitchHero />
 
       {/* Slot machine — Casino-Style Inserat-Roulette */}
       {listings && listings.length >= 3 && (
