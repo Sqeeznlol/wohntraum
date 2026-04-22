@@ -59,13 +59,20 @@ export function resolveLv95(loc: LocationInput): { east: number; north: number }
 
 const BASE = "https://maps.zh.ch/";
 
-function buildMapsUrl(topic: string, x: number, y: number, scale = 500): string {
+function buildMapsUrl(
+  topic: string,
+  x: number,
+  y: number,
+  scale = 500,
+  extra?: Record<string, string>,
+): string {
   const params = new URLSearchParams({
     topic,
     scale: String(scale),
     x: x.toFixed(2),
     y: y.toFixed(2),
     srid: "2056",
+    ...(extra ?? {}),
   });
   return `${BASE}?${params.toString()}`;
 }
@@ -120,9 +127,21 @@ export function gisOerebUrl(
   parcelNumber?: string | null,
 ): string {
   const c = resolveLv95(loc);
-  if (c) return buildMapsUrl("OerebKatasterZH", c.east, c.north, 500);
+  // Selektion der Liegenschaft über BFS + Katasternr (markiert die Parzelle gelb)
+  const selection: Record<string, string> | undefined =
+    bfs && parcelNumber
+      ? {
+          seltopic: "SelectionZH",
+          sellayer: "grundstuecke-oereb",
+          selproperty: "bfs_nr,nummer",
+          selvalues: `${bfs},${parcelNumber}`,
+        }
+      : undefined;
+  if (c) return buildMapsUrl("OerebKatasterZH", c.east, c.north, 500, selection);
   if (bfs && parcelNumber) {
     return `${BASE}?topic=OerebKatasterZH&srid=2056&scale=1500&bfsnr=${bfs}&katasternr=${encodeURIComponent(
+      parcelNumber,
+    )}&seltopic=SelectionZH&sellayer=grundstuecke-oereb&selproperty=bfs_nr,nummer&selvalues=${bfs},${encodeURIComponent(
       parcelNumber,
     )}`;
   }
