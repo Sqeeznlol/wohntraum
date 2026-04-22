@@ -24,6 +24,7 @@ import { Heart, ExternalLink, ArrowLeft, Archive, ArchiveRestore } from "lucide-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ListingGallery } from "@/components/ListingGallery";
+import { KatasterPanel } from "@/components/KatasterPanel";
 
 export const Route = createFileRoute("/listings/$id")({
   component: ListingDetail,
