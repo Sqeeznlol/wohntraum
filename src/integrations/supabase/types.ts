@@ -115,23 +115,35 @@ export type Database = {
           address: string | null
           archived_at: string | null
           area_sqm: number | null
+          bfs_number: number | null
+          building_area_sqm: number | null
+          building_category: string | null
+          building_status: string | null
           building_year: number | null
           city: string | null
           created_at: string
           description: string | null
           dwellings: number | null
           egid: number | null
+          egrid: string | null
           fingerprint: string | null
           first_seen_at: string
           floors: number | null
           gwr_enriched_at: string | null
+          heritage_protected: boolean | null
           id: string
           image_url: string | null
           is_favorite: boolean
+          isos_protected: boolean | null
           last_seen_at: string
           latitude: number | null
           longitude: number | null
+          lv95_east: number | null
+          lv95_north: number | null
+          municipality: string | null
           notes: string | null
+          parcel_area_sqm: number | null
+          parcel_number: string | null
           postal_code: string | null
           price_chf: number | null
           price_per_sqm: number | null
@@ -141,28 +153,44 @@ export type Database = {
           status: Database["public"]["Enums"]["listing_status"]
           title: string
           updated_at: string
+          zone_area_sqm: number | null
+          zone_code: string | null
+          zone_legal_status: string | null
+          zone_part_percent: number | null
         }
         Insert: {
           address?: string | null
           archived_at?: string | null
           area_sqm?: number | null
+          bfs_number?: number | null
+          building_area_sqm?: number | null
+          building_category?: string | null
+          building_status?: string | null
           building_year?: number | null
           city?: string | null
           created_at?: string
           description?: string | null
           dwellings?: number | null
           egid?: number | null
+          egrid?: string | null
           fingerprint?: string | null
           first_seen_at?: string
           floors?: number | null
           gwr_enriched_at?: string | null
+          heritage_protected?: boolean | null
           id?: string
           image_url?: string | null
           is_favorite?: boolean
+          isos_protected?: boolean | null
           last_seen_at?: string
           latitude?: number | null
           longitude?: number | null
+          lv95_east?: number | null
+          lv95_north?: number | null
+          municipality?: string | null
           notes?: string | null
+          parcel_area_sqm?: number | null
+          parcel_number?: string | null
           postal_code?: string | null
           price_chf?: number | null
           price_per_sqm?: number | null
@@ -172,28 +200,44 @@ export type Database = {
           status?: Database["public"]["Enums"]["listing_status"]
           title: string
           updated_at?: string
+          zone_area_sqm?: number | null
+          zone_code?: string | null
+          zone_legal_status?: string | null
+          zone_part_percent?: number | null
         }
         Update: {
           address?: string | null
           archived_at?: string | null
           area_sqm?: number | null
+          bfs_number?: number | null
+          building_area_sqm?: number | null
+          building_category?: string | null
+          building_status?: string | null
           building_year?: number | null
           city?: string | null
           created_at?: string
           description?: string | null
           dwellings?: number | null
           egid?: number | null
+          egrid?: string | null
           fingerprint?: string | null
           first_seen_at?: string
           floors?: number | null
           gwr_enriched_at?: string | null
+          heritage_protected?: boolean | null
           id?: string
           image_url?: string | null
           is_favorite?: boolean
+          isos_protected?: boolean | null
           last_seen_at?: string
           latitude?: number | null
           longitude?: number | null
+          lv95_east?: number | null
+          lv95_north?: number | null
+          municipality?: string | null
           notes?: string | null
+          parcel_area_sqm?: number | null
+          parcel_number?: string | null
           postal_code?: string | null
           price_chf?: number | null
           price_per_sqm?: number | null
@@ -203,6 +247,10 @@ export type Database = {
           status?: Database["public"]["Enums"]["listing_status"]
           title?: string
           updated_at?: string
+          zone_area_sqm?: number | null
+          zone_code?: string | null
+          zone_legal_status?: string | null
+          zone_part_percent?: number | null
         }
         Relationships: []
       }

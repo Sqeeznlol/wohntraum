@@ -46,3 +46,10 @@ export function geoadminGwrUrl(address: string, postalCode: string, city: string
   const q = encodeURIComponent(`${address}, ${postalCode} ${city}`);
   return `https://map.geo.admin.ch/?layers=ch.bfs.gebaeude_wohnungs_register&swisssearch=${q}`;
 }
+
+/**
+ * Direkter Maps-Link zur ÖREB-Karte mit BFS + Katasternummer (visuelle Kontrolle).
+ */
+export function gisOerebUrl(bfs: number, parcelNumber: string): string {
+  return `https://maps.zh.ch/?topic=OerebKatasterZH&srid=2056&scale=1500&bfsnr=${bfs}&katasternr=${encodeURIComponent(parcelNumber)}`;
+}
