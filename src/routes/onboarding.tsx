@@ -142,13 +142,13 @@ function InboundStatus() {
                       {formatReceivedAt(r.received_at)}
                     </td>
                     <td className="max-w-[180px] truncate px-3 py-2 text-xs">
-                      {r.from_address ?? "–"}
+                      <Redacted text={r.from_address ?? "–"} />
                     </td>
                     <td className="max-w-[320px] truncate px-3 py-2">
-                      <div className="truncate">{r.subject ?? "(kein Betreff)"}</div>
+                      <Redacted text={r.subject ?? "(kein Betreff)"} />
                       {r.status === "failed" && r.error_message && (
                         <div className="mt-1 text-xs text-destructive">
-                          {r.error_message}
+                          <Redacted text={r.error_message} />
                         </div>
                       )}
                     </td>
