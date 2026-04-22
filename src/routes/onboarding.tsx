@@ -39,6 +39,25 @@ function formatReceivedAt(receivedAt: string) {
   return new Date(receivedAt).toISOString().slice(0, 16).replace("T", " ");
 }
 
+function Redacted({ text }: { text: string }) {
+  // Top-Secret-Stil: schwarzer Balken über dem Text, Original beim Hover sichtbar
+  return (
+    <span
+      title="Schwärzung – Inhalt vertraulich"
+      className="group relative inline-block max-w-full align-middle"
+    >
+      <span className="invisible block truncate font-mono text-xs">{text}</span>
+      <span
+        aria-hidden
+        className="absolute inset-0 block rounded-sm bg-foreground transition-opacity duration-150 group-hover:opacity-0"
+      />
+      <span className="pointer-events-none absolute inset-0 hidden truncate font-mono text-xs text-foreground group-hover:block">
+        {text}
+      </span>
+    </span>
+  );
+}
+
 function StatusBadge({ status }: { status: RawEmailRow["status"] }) {
   const map: Record<RawEmailRow["status"], { label: string; cls: string }> = {
     received: { label: "Empfangen", cls: "bg-muted text-muted-foreground" },
