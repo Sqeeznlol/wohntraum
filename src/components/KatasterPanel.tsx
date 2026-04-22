@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Map,
   ExternalLink,
@@ -12,6 +13,7 @@ import {
   Landmark,
   ShieldAlert,
   Layers,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { enrichListingGwr } from "@/utils/gwr.functions";
@@ -32,6 +34,12 @@ interface Props {
 export function KatasterPanel({ listing }: Props) {
   const qc = useQueryClient();
   const [isEnriching, setIsEnriching] = useState(false);
+  const [missing, setMissing] = useState<string[]>([]);
+  const [manualEgid, setManualEgid] = useState("");
+  const [manualBfs, setManualBfs] = useState("");
+  const [manualParcel, setManualParcel] = useState("");
+  const [manualMunicipality, setManualMunicipality] = useState("");
+  const [showManual, setShowManual] = useState(false);
 
   if (!isZhPostalCode(listing.postal_code) || !listing.address || !listing.city) {
     return null;
@@ -42,25 +50,51 @@ export function KatasterPanel({ listing }: Props) {
   const city = listing.city;
 
   const enrich = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrides?: {
+      egid?: string;
+      bfs?: number;
+      parcel?: string;
+      municipality?: string;
+    }) => {
       setIsEnriching(true);
-      return enrichListingGwr({ data: { listingId: listing.id } });
+      return enrichListingGwr({
+        data: {
+          listingId: listing.id,
+          manualEgid: overrides?.egid ?? null,
+          manualBfs: overrides?.bfs ?? null,
+          manualParcel: overrides?.parcel ?? null,
+          manualMunicipality: overrides?.municipality ?? null,
+        },
+      });
     },
     onSuccess: (res) => {
       setIsEnriching(false);
+      setMissing(res.missing ?? []);
       if (res.ok) {
         toast.success("GIS-Daten geladen");
+        if ((res.missing ?? []).length > 0) setShowManual(true);
         qc.invalidateQueries({ queryKey: ["listing", listing.id] });
         qc.invalidateQueries({ queryKey: ["listings"] });
       } else {
         toast.error(res.error ?? "Anreicherung fehlgeschlagen");
+        setShowManual(true);
       }
     },
     onError: () => {
       setIsEnriching(false);
       toast.error("Anreicherung fehlgeschlagen");
+      setShowManual(true);
     },
   });
+
+  const runManual = () => {
+    enrich.mutate({
+      egid: manualEgid.trim() || undefined,
+      bfs: manualBfs.trim() ? Number(manualBfs.trim()) : undefined,
+      parcel: manualParcel.trim() || undefined,
+      municipality: manualMunicipality.trim() || undefined,
+    });
+  };
 
   const hasGwr = listing.egid != null || listing.building_year != null;
   const hasZone = listing.zone_code != null;
@@ -97,7 +131,7 @@ export function KatasterPanel({ listing }: Props) {
           size="sm"
           variant={hasGwr ? "ghost" : "outline"}
           className={hasGwr ? "h-7 w-full text-xs" : "w-full border-accent/40"}
-          onClick={() => enrich.mutate()}
+          onClick={() => enrich.mutate(undefined)}
           disabled={isEnriching}
         >
           {isEnriching ? (
@@ -112,6 +146,88 @@ export function KatasterPanel({ listing }: Props) {
             </>
           )}
         </Button>
+
+        {/* Was fehlt + manuelle Eingabe */}
+        {(missing.length > 0 || showManual) && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
+              <div className="flex-1">
+                <div className="text-xs font-semibold text-destructive">
+                  {missing.length > 0 ? "Diese Daten fehlen noch" : "Manuelle Eingabe"}
+                </div>
+                {missing.length > 0 && (
+                  <div className="mt-0.5 text-[11px] text-muted-foreground">
+                    Konnten nicht automatisch ermittelt werden:{" "}
+                    <span className="font-medium text-foreground">{missing.join(", ")}</span>
+                  </div>
+                )}
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Trage die fehlenden Werte aus dem{" "}
+                  <a
+                    href={gisAddressSearchUrl(addr, plz, city)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent underline"
+                  >
+                    GIS-Browser
+                  </a>{" "}
+                  ein und starte erneut.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <ManualInput
+                label="EGID"
+                placeholder="z.B. 150404"
+                value={manualEgid}
+                onChange={setManualEgid}
+              />
+              <ManualInput
+                label="BFS-Nr."
+                placeholder="z.B. 261"
+                value={manualBfs}
+                onChange={setManualBfs}
+              />
+              <ManualInput
+                label="Katasternummer"
+                placeholder="z.B. 4889"
+                value={manualParcel}
+                onChange={setManualParcel}
+              />
+              <ManualInput
+                label="Gemeinde"
+                placeholder="z.B. Zürich"
+                value={manualMunicipality}
+                onChange={setManualMunicipality}
+              />
+            </div>
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={runManual}
+              disabled={
+                isEnriching ||
+                (!manualEgid.trim() &&
+                  !manualBfs.trim() &&
+                  !manualParcel.trim() &&
+                  !manualMunicipality.trim())
+              }
+            >
+              {isEnriching ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Lade…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  Mit manuellen Werten erneut starten
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
         {/* Schutz-Flags prominent */}
         {(listing.heritage_protected || listing.isos_protected) && (
@@ -272,5 +388,31 @@ function KatasterLink({
       </span>
       <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-accent" />
     </a>
+  );
+}
+
+function ManualInput({
+  label,
+  placeholder,
+  value,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </label>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="mt-0.5 h-8 text-xs"
+      />
+    </div>
   );
 }
