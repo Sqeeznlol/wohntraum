@@ -149,11 +149,11 @@ export function KatasterPanel({ listing }: Props) {
 
         {/* Was fehlt + manuelle Eingabe */}
         {(missing.length > 0 || showManual) && (
-          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-3">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-3">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
               <div className="flex-1">
-                <div className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                <div className="text-xs font-semibold text-destructive">
                   {missing.length > 0 ? "Diese Daten fehlen noch" : "Manuelle Eingabe"}
                 </div>
                 {missing.length > 0 && (
