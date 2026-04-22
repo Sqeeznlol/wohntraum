@@ -59,13 +59,20 @@ export function resolveLv95(loc: LocationInput): { east: number; north: number }
 
 const BASE = "https://maps.zh.ch/";
 
-function buildMapsUrl(topic: string, x: number, y: number, scale = 500): string {
+function buildMapsUrl(
+  topic: string,
+  x: number,
+  y: number,
+  scale = 500,
+  extra?: Record<string, string>,
+): string {
   const params = new URLSearchParams({
     topic,
     scale: String(scale),
     x: x.toFixed(2),
     y: y.toFixed(2),
     srid: "2056",
+    ...(extra ?? {}),
   });
   return `${BASE}?${params.toString()}`;
 }
