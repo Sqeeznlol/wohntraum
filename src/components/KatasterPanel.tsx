@@ -3,7 +3,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Map, ExternalLink, Building2, Sparkles, Loader2 } from "lucide-react";
+import {
+  Map,
+  ExternalLink,
+  Building2,
+  Sparkles,
+  Loader2,
+  Landmark,
+  ShieldAlert,
+  Layers,
+} from "lucide-react";
 import { toast } from "sonner";
 import { enrichListingGwr } from "@/utils/gwr.functions";
 import {
@@ -11,6 +20,7 @@ import {
   gisZonenplanUrl,
   gisEigentumUrl,
   geoadminGwrUrl,
+  gisOerebUrl,
   isZhPostalCode,
 } from "@/lib/zh-gis";
 import type { Listing } from "@/lib/db-types";
@@ -39,7 +49,7 @@ export function KatasterPanel({ listing }: Props) {
     onSuccess: (res) => {
       setIsEnriching(false);
       if (res.ok) {
-        toast.success("GWR-Daten geladen");
+        toast.success("GIS-Daten geladen");
         qc.invalidateQueries({ queryKey: ["listing", listing.id] });
         qc.invalidateQueries({ queryKey: ["listings"] });
       } else {
@@ -53,6 +63,7 @@ export function KatasterPanel({ listing }: Props) {
   });
 
   const hasGwr = listing.egid != null || listing.building_year != null;
+  const hasZone = listing.zone_code != null;
 
   return (
     <Card className="border-accent/30 bg-gradient-to-br from-card to-accent/5 shadow-soft">
@@ -62,20 +73,94 @@ export function KatasterPanel({ listing }: Props) {
             <div className="flex items-center gap-2">
               <Map className="h-4 w-4 text-accent" />
               <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-                Kanton Zürich · GIS & GWR
+                Kanton Zürich · GIS · GWR · ÖREB
               </span>
             </div>
             <h3 className="mt-1 font-serif-display text-lg leading-tight">
               Kataster-Anreicherung
             </h3>
+            {listing.municipality && (
+              <p className="text-xs text-muted-foreground">
+                {listing.municipality}
+                {listing.bfs_number ? ` · BFS ${listing.bfs_number}` : ""}
+                {listing.parcel_number ? ` · Parz. ${listing.parcel_number}` : ""}
+              </p>
+            )}
           </div>
           <Badge variant="outline" className="border-accent/40 text-[10px] uppercase">
             ZH
           </Badge>
         </div>
 
+        {/* Re-Enrich Button (auch wenn Daten da sind) */}
+        <Button
+          size="sm"
+          variant={hasGwr ? "ghost" : "outline"}
+          className={hasGwr ? "h-7 w-full text-xs" : "w-full border-accent/40"}
+          onClick={() => enrich.mutate()}
+          disabled={isEnriching}
+        >
+          {isEnriching ? (
+            <>
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              Lade GIS-Daten…
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+              {hasGwr ? "Neu anreichern" : "EGID, Zone & Schutz automatisch laden"}
+            </>
+          )}
+        </Button>
+
+        {/* Schutz-Flags prominent */}
+        {(listing.heritage_protected || listing.isos_protected) && (
+          <div className="flex flex-wrap gap-1.5">
+            {listing.heritage_protected && (
+              <Badge className="gap-1 bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400">
+                <Landmark className="h-3 w-3" />
+                Denkmalschutz
+              </Badge>
+            )}
+            {listing.isos_protected && (
+              <Badge className="gap-1 bg-purple-500/15 text-purple-700 hover:bg-purple-500/20 dark:text-purple-400">
+                <ShieldAlert className="h-3 w-3" />
+                ISOS Ortsbild
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Zone */}
+        {hasZone && (
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-3">
+            <div className="flex items-center gap-2">
+              <Layers className="h-3.5 w-3.5 text-accent" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Bauzone
+              </span>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between gap-2">
+              <span className="font-serif-display text-xl">{listing.zone_code}</span>
+              {listing.zone_legal_status && (
+                <Badge variant="outline" className="text-[9px]">
+                  {listing.zone_legal_status}
+                </Badge>
+              )}
+            </div>
+            {listing.zone_part_percent != null && (
+              <div className="mt-0.5 text-[10px] text-muted-foreground">
+                {Number(listing.zone_part_percent).toFixed(1)}% der Parzelle
+                {listing.zone_area_sqm != null
+                  ? ` · ${Math.round(Number(listing.zone_area_sqm))} m²`
+                  : ""}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* GWR-Daten */}
-        {hasGwr ? (
+        {hasGwr && (
           <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/60 bg-background/60 p-3">
             <GwrStat label="EGID" value={listing.egid ? String(listing.egid) : "—"} />
             <GwrStat
@@ -90,27 +175,25 @@ export function KatasterPanel({ listing }: Props) {
               label="Wohnungen"
               value={listing.dwellings ? String(listing.dwellings) : "—"}
             />
-          </div>
-        ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full border-accent/40"
-            onClick={() => enrich.mutate()}
-            disabled={isEnriching}
-          >
-            {isEnriching ? (
-              <>
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                Lade GWR-Daten…
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                EGID & Baujahr automatisch laden
-              </>
+            {listing.building_category && (
+              <GwrStat label="Kategorie" value={listing.building_category} wide />
             )}
-          </Button>
+            {listing.building_status && (
+              <GwrStat label="Status" value={listing.building_status} wide />
+            )}
+            {listing.parcel_area_sqm != null && (
+              <GwrStat
+                label="Parzelle"
+                value={`${Math.round(Number(listing.parcel_area_sqm))} m²`}
+              />
+            )}
+            {listing.building_area_sqm != null && (
+              <GwrStat
+                label="Gebäudefläche"
+                value={`${Math.round(Number(listing.building_area_sqm))} m²`}
+              />
+            )}
+          </div>
         )}
 
         {/* GIS-Links */}
@@ -119,6 +202,13 @@ export function KatasterPanel({ listing }: Props) {
             Direkt im Kataster prüfen
           </div>
           <div className="grid gap-1.5">
+            {listing.bfs_number && listing.parcel_number && (
+              <KatasterLink
+                href={gisOerebUrl(listing.bfs_number, listing.parcel_number)}
+                label="ÖREB-Kataster (Parzelle)"
+                icon={<Layers className="h-3.5 w-3.5" />}
+              />
+            )}
             <KatasterLink
               href={gisZonenplanUrl(addr, plz, city)}
               label="Zonenplan (W1 / W2 / W3)"
@@ -143,21 +233,19 @@ export function KatasterPanel({ listing }: Props) {
         </div>
 
         <p className="text-[10px] leading-relaxed text-muted-foreground">
-          Quelle: GIS-ZH (maps.zh.ch) & Bundesamt für Statistik (housing-stat.ch).
-          Bauzonen-Klassifikation direkt im Zonenplan einsehbar.
+          Quellen: GWR (geo.admin.ch) · AV WFS, ÖREB, Denkmalschutz, ISOS (maps.zh.ch /
+          wms.zh.ch). Alle Daten kostenlos & ohne Registrierung.
         </p>
       </CardContent>
     </Card>
   );
 }
 
-function GwrStat({ label, value }: { label: string; value: string }) {
+function GwrStat({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
   return (
-    <div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="font-serif-display text-base">{value}</div>
+    <div className={wide ? "col-span-2" : undefined}>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="font-serif-display text-base leading-tight">{value}</div>
     </div>
   );
 }
