@@ -147,6 +147,88 @@ export function KatasterPanel({ listing }: Props) {
           )}
         </Button>
 
+        {/* Was fehlt + manuelle Eingabe */}
+        {(missing.length > 0 || showManual) && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <div className="flex-1">
+                <div className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                  {missing.length > 0 ? "Diese Daten fehlen noch" : "Manuelle Eingabe"}
+                </div>
+                {missing.length > 0 && (
+                  <div className="mt-0.5 text-[11px] text-muted-foreground">
+                    Konnten nicht automatisch ermittelt werden:{" "}
+                    <span className="font-medium text-foreground">{missing.join(", ")}</span>
+                  </div>
+                )}
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Trage die fehlenden Werte aus dem{" "}
+                  <a
+                    href={gisAddressSearchUrl(addr, plz, city)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent underline"
+                  >
+                    GIS-Browser
+                  </a>{" "}
+                  ein und starte erneut.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <ManualInput
+                label="EGID"
+                placeholder="z.B. 150404"
+                value={manualEgid}
+                onChange={setManualEgid}
+              />
+              <ManualInput
+                label="BFS-Nr."
+                placeholder="z.B. 261"
+                value={manualBfs}
+                onChange={setManualBfs}
+              />
+              <ManualInput
+                label="Katasternummer"
+                placeholder="z.B. 4889"
+                value={manualParcel}
+                onChange={setManualParcel}
+              />
+              <ManualInput
+                label="Gemeinde"
+                placeholder="z.B. Zürich"
+                value={manualMunicipality}
+                onChange={setManualMunicipality}
+              />
+            </div>
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={runManual}
+              disabled={
+                isEnriching ||
+                (!manualEgid.trim() &&
+                  !manualBfs.trim() &&
+                  !manualParcel.trim() &&
+                  !manualMunicipality.trim())
+              }
+            >
+              {isEnriching ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Lade…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  Mit manuellen Werten erneut starten
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
         {/* Schutz-Flags prominent */}
         {(listing.heritage_protected || listing.isos_protected) && (
           <div className="flex flex-wrap gap-1.5">
