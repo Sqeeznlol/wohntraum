@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Listing } from "@/lib/db-types";
 import { formatCHF, formatPricePerSqm, formatSqm, PORTAL_LABELS } from "@/lib/format";
@@ -42,6 +42,7 @@ function MapPage() {
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<"map" | "list">("map");
   const [geocoding, setGeocoding] = useState(false);
+  const autoRanRef = useRef(false);
   useEffect(() => setMounted(true), []);
 
   const { data: listings, refetch } = useQuery({
@@ -69,6 +70,10 @@ function MapPage() {
   }, [listings]);
 
   const preciseCount = points.filter((p) => p.precise).length;
+  const missingCoords = useMemo(
+    () => (listings ?? []).filter((l) => l.latitude == null || l.longitude == null).length,
+    [listings],
+  );
 
   const runGeocode = async () => {
     setGeocoding(true);
@@ -87,6 +92,16 @@ function MapPage() {
     }
   };
 
+  // Auto-trigger geocoding once if there are listings without coordinates
+  useEffect(() => {
+    if (autoRanRef.current) return;
+    if (!listings || listings.length === 0) return;
+    if (missingCoords === 0) return;
+    autoRanRef.current = true;
+    void runGeocode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listings, missingCoords]);
+
   if (!mounted) return <div className="h-[600px] animate-pulse rounded-lg bg-muted" />;
 
   return (
@@ -98,7 +113,8 @@ function MapPage() {
           </span>
           <h1 className="font-serif-display text-3xl sm:text-4xl">Karte</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {preciseCount} exakt · {points.length - preciseCount} grob (PLZ) · {(listings?.length ?? 0) - points.length} ohne Adresse
+            {preciseCount} exakt · {points.length - preciseCount} grob (PLZ) ·{" "}
+            {(listings?.length ?? 0) - points.length} ohne Adresse
           </p>
         </div>
         <div className="flex gap-2">
@@ -226,24 +242,86 @@ function ListView({
   );
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function MapView({
   points,
 }: {
   points: { listing: Listing; coords: [number, number]; precise: boolean }[];
 }) {
-  const [Comp, setComp] = useState<null | {
-    MapContainer: typeof import("react-leaflet").MapContainer;
-    TileLayer: typeof import("react-leaflet").TileLayer;
-    Marker: typeof import("react-leaflet").Marker;
-    Popup: typeof import("react-leaflet").Popup;
-    icon: import("leaflet").Icon;
-  }>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<import("leaflet").Map | null>(null);
+  const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const [ready, setReady] = useState(false);
 
+  // Initialize the map exactly once per mount, defensively clearing prior leaflet state.
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
-      const RL = await import("react-leaflet");
       const L = await import("leaflet");
+      if (cancelled || !containerRef.current) return;
+
+      // StrictMode in dev double-invokes effects; clean any leftover leaflet binding on the node.
+      const node = containerRef.current as HTMLDivElement & { _leaflet_id?: number };
+      if (node._leaflet_id) {
+        delete node._leaflet_id;
+        node.innerHTML = "";
+      }
+
+      const map = L.map(node, {
+        center: CH_CENTER,
+        zoom: 8,
+        scrollWheelZoom: true,
+      });
+      mapRef.current = map;
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+      }).addTo(map);
+
+      setReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+      if (layerRef.current && mapRef.current) {
+        mapRef.current.removeLayer(layerRef.current);
+        layerRef.current = null;
+      }
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      if (containerRef.current) {
+        const node = containerRef.current as HTMLDivElement & { _leaflet_id?: number };
+        if (node._leaflet_id) delete node._leaflet_id;
+      }
+      setReady(false);
+    };
+  }, []);
+
+  // (Re)render markers whenever points change.
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    let cancelled = false;
+
+    (async () => {
+      const L = await import("leaflet");
+      if (cancelled || !mapRef.current) return;
+
+      if (layerRef.current) {
+        mapRef.current.removeLayer(layerRef.current);
+        layerRef.current = null;
+      }
+
       const icon = L.icon({
         iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
         iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -251,54 +329,46 @@ function MapView({
         iconSize: [25, 41],
         iconAnchor: [12, 41],
       });
-      if (!cancelled) setComp({ ...RL, icon });
+
+      const group = L.layerGroup().addTo(mapRef.current);
+      layerRef.current = group;
+      const bounds: [number, number][] = [];
+
+      for (const p of points) {
+        const popupHtml = `
+          <div style="font-size:13px;line-height:1.4;min-width:200px">
+            <div style="font-weight:600;margin-bottom:2px">${escapeHtml(p.listing.title)}</div>
+            <div style="font-size:11px;color:#666">${PORTAL_LABELS[p.listing.primary_portal]} · ${p.listing.postal_code ?? ""} ${escapeHtml(p.listing.city ?? "")}</div>
+            ${p.listing.address ? `<div style="font-size:11px;color:#666">${escapeHtml(p.listing.address)}</div>` : ""}
+            <div style="font-size:11px;margin-top:4px">${formatCHF(p.listing.price_chf ? Number(p.listing.price_chf) : null)} · ${formatSqm(p.listing.area_sqm ? Number(p.listing.area_sqm) : null)}</div>
+            <div style="font-weight:600;margin-top:2px">${formatPricePerSqm(p.listing.price_per_sqm ? Number(p.listing.price_per_sqm) : null)}</div>
+            <a href="/listings/${p.listing.id}" style="display:inline-block;margin-top:6px;color:#2563eb;text-decoration:underline;font-size:12px">Details öffnen →</a>
+          </div>`;
+        L.marker(p.coords, { icon, opacity: p.precise ? 1 : 0.55 })
+          .bindPopup(popupHtml)
+          .addTo(group);
+        bounds.push(p.coords);
+      }
+
+      if (bounds.length > 0 && mapRef.current) {
+        try {
+          mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        } catch {
+          // ignore
+        }
+      }
     })();
+
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  if (!Comp) return <div className="h-[600px] animate-pulse bg-muted" />;
-  const { MapContainer, TileLayer, Marker, Popup, icon } = Comp;
+  }, [points, ready]);
 
   return (
-    <MapContainer center={CH_CENTER} zoom={8} style={{ height: 600, width: "100%" }}>
-      <TileLayer
-        attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      {points.map((p) => (
-        <Marker key={p.listing.id} position={p.coords} icon={icon}>
-          <Popup>
-            <div className="space-y-1 text-sm">
-              <div className="font-medium">{p.listing.title}</div>
-              <div className="text-xs">
-                {PORTAL_LABELS[p.listing.primary_portal]} · {p.listing.postal_code}{" "}
-                {p.listing.city}
-              </div>
-              {p.listing.address && (
-                <div className="text-xs text-muted-foreground">{p.listing.address}</div>
-              )}
-              <div className="text-xs">
-                {formatCHF(p.listing.price_chf ? Number(p.listing.price_chf) : null)} ·{" "}
-                {formatSqm(p.listing.area_sqm ? Number(p.listing.area_sqm) : null)}
-              </div>
-              <div className="font-semibold">
-                {formatPricePerSqm(
-                  p.listing.price_per_sqm ? Number(p.listing.price_per_sqm) : null,
-                )}
-              </div>
-              <Link
-                to="/listings/$id"
-                params={{ id: p.listing.id }}
-                className="text-primary underline"
-              >
-                Details
-              </Link>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
+    <div
+      ref={containerRef}
+      style={{ height: 600, width: "100%" }}
+      className="rounded-lg"
+    />
   );
 }
