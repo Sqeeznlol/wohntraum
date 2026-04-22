@@ -327,14 +327,14 @@ export const enrichListingGwr = createServerFn({ method: "POST" })
       }
 
       const update: Database["public"]["Tables"]["listings"]["Update"] = {
-        egid: gwr.egid ?? null,
-        egrid: parcel?.egrid ?? gwr.egrid ?? null,
-        building_year: gwr.gbauj ?? null,
-        floors: gwr.gastw ?? null,
-        dwellings: gwr.ganzwhg ?? null,
-        building_area_sqm: gwr.garea ?? null,
-        building_category: gwr.gkat ? (GKAT_MAP[gwr.gkat] ?? `Code ${gwr.gkat}`) : null,
-        building_status: gwr.gstat ? (GSTAT_MAP[gwr.gstat] ?? `Code ${gwr.gstat}`) : null,
+        egid: gwr?.egid ?? (effectiveEgid ? Number(effectiveEgid.replace(/[^\d]/g, "")) : null),
+        egrid: parcel?.egrid ?? gwr?.egrid ?? null,
+        building_year: gwr?.gbauj ?? null,
+        floors: gwr?.gastw ?? null,
+        dwellings: gwr?.ganzwhg ?? null,
+        building_area_sqm: gwr?.garea ?? null,
+        building_category: gwr?.gkat ? (GKAT_MAP[gwr.gkat] ?? `Code ${gwr.gkat}`) : null,
+        building_status: gwr?.gstat ? (GSTAT_MAP[gwr.gstat] ?? `Code ${gwr.gstat}`) : null,
         parcel_number: parcelNr,
         parcel_area_sqm: parcel?.area_sqm ?? null,
         bfs_number: bfs,
@@ -351,6 +351,14 @@ export const enrichListingGwr = createServerFn({ method: "POST" })
       };
 
       await supabase.from("listings").update(update).eq("id", listing.id);
+
+      // Was fehlt nach der Anreicherung?
+      const missing: string[] = [];
+      if (!update.egid) missing.push("EGID");
+      if (!update.building_year) missing.push("Baujahr");
+      if (!update.zone_code) missing.push("Bauzone");
+      if (!update.parcel_number) missing.push("Katasternummer");
+      if (!update.bfs_number) missing.push("BFS-Nr.");
 
       return {
         ok: true,
