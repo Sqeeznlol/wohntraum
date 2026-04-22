@@ -14,14 +14,13 @@ import {
   ShieldAlert,
   Layers,
   AlertTriangle,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { enrichListingGwr } from "@/utils/gwr.functions";
 import {
   gisAddressSearchUrl,
-  gisZonenplanUrl,
   gisEigentumUrl,
-  geoadminGwrUrl,
   gisOerebUrl,
   isZhPostalCode,
 } from "@/lib/zh-gis";
@@ -325,24 +324,14 @@ export function KatasterPanel({ listing }: Props) {
               icon={<Layers className="h-3.5 w-3.5" />}
             />
             <KatasterLink
-              href={gisZonenplanUrl(listing, fallbackQuery)}
-              label="Zonenplan (W1 / W2 / W3)"
-              icon={<Building2 className="h-3.5 w-3.5" />}
-            />
-            <KatasterLink
               href={gisEigentumUrl(listing, fallbackQuery)}
               label="Eigentumsauskunft / Parzelle"
               icon={<Map className="h-3.5 w-3.5" />}
             />
             <KatasterLink
-              href={gisAddressSearchUrl(listing, fallbackQuery)}
-              label="GIS-Browser maps.zh.ch"
-              icon={<Map className="h-3.5 w-3.5" />}
-            />
-            <KatasterLink
-              href={geoadminGwrUrl(listing, fallbackQuery)}
-              label="GWR Bundes-Karte"
-              icon={<Building2 className="h-3.5 w-3.5" />}
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fallbackQuery)}`}
+              label="Google Maps"
+              icon={<MapPin className="h-3.5 w-3.5" />}
             />
           </div>
         </div>
