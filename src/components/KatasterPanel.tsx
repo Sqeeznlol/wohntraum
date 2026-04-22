@@ -390,3 +390,29 @@ function KatasterLink({
     </a>
   );
 }
+
+function ManualInput({
+  label,
+  placeholder,
+  value,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </label>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="mt-0.5 h-8 text-xs"
+      />
+    </div>
+  );
+}
