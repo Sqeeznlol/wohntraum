@@ -34,6 +34,12 @@ interface Props {
 export function KatasterPanel({ listing }: Props) {
   const qc = useQueryClient();
   const [isEnriching, setIsEnriching] = useState(false);
+  const [missing, setMissing] = useState<string[]>([]);
+  const [manualEgid, setManualEgid] = useState("");
+  const [manualBfs, setManualBfs] = useState("");
+  const [manualParcel, setManualParcel] = useState("");
+  const [manualMunicipality, setManualMunicipality] = useState("");
+  const [showManual, setShowManual] = useState(false);
 
   if (!isZhPostalCode(listing.postal_code) || !listing.address || !listing.city) {
     return null;
@@ -44,25 +50,51 @@ export function KatasterPanel({ listing }: Props) {
   const city = listing.city;
 
   const enrich = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrides?: {
+      egid?: string;
+      bfs?: number;
+      parcel?: string;
+      municipality?: string;
+    }) => {
       setIsEnriching(true);
-      return enrichListingGwr({ data: { listingId: listing.id } });
+      return enrichListingGwr({
+        data: {
+          listingId: listing.id,
+          manualEgid: overrides?.egid ?? null,
+          manualBfs: overrides?.bfs ?? null,
+          manualParcel: overrides?.parcel ?? null,
+          manualMunicipality: overrides?.municipality ?? null,
+        },
+      });
     },
     onSuccess: (res) => {
       setIsEnriching(false);
+      setMissing(res.missing ?? []);
       if (res.ok) {
         toast.success("GIS-Daten geladen");
+        if ((res.missing ?? []).length > 0) setShowManual(true);
         qc.invalidateQueries({ queryKey: ["listing", listing.id] });
         qc.invalidateQueries({ queryKey: ["listings"] });
       } else {
         toast.error(res.error ?? "Anreicherung fehlgeschlagen");
+        setShowManual(true);
       }
     },
     onError: () => {
       setIsEnriching(false);
       toast.error("Anreicherung fehlgeschlagen");
+      setShowManual(true);
     },
   });
+
+  const runManual = () => {
+    enrich.mutate({
+      egid: manualEgid.trim() || undefined,
+      bfs: manualBfs.trim() ? Number(manualBfs.trim()) : undefined,
+      parcel: manualParcel.trim() || undefined,
+      municipality: manualMunicipality.trim() || undefined,
+    });
+  };
 
   const hasGwr = listing.egid != null || listing.building_year != null;
   const hasZone = listing.zone_code != null;
