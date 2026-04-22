@@ -131,7 +131,7 @@ export function KatasterPanel({ listing }: Props) {
           size="sm"
           variant={hasGwr ? "ghost" : "outline"}
           className={hasGwr ? "h-7 w-full text-xs" : "w-full border-accent/40"}
-          onClick={() => enrich.mutate()}
+          onClick={() => enrich.mutate(undefined)}
           disabled={isEnriching}
         >
           {isEnriching ? (
