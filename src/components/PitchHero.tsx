@@ -16,26 +16,7 @@ export function PitchHero() {
       <div className="absolute -bottom-16 -left-12 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
 
       <div className="relative">
-        <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-accent">
-          <Sparkles className="h-3 w-3" />
-          Schweizer Immobilien-Intelligence
-        </div>
-        <h2 className="mt-3 max-w-2xl font-serif-display text-2xl leading-[1.1] sm:text-3xl md:text-4xl">
-          Ein Suchabo, das wirklich{" "}
-          <span className="italic text-accent">arbeitet.</span>
-        </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
-          Statt täglich fünf Portale durchzuklicken, sammelt mein Radar jedes neue
-          Inserat aus ImmoScout24, Homegate, Flatfox, Newhome &amp; Co. — vereint
-          sie in einer Pipeline, reichert sie automatisch mit{" "}
-          <span className="font-medium text-foreground">
-            Bauzone, EGID, Baujahr und GIS-Daten
-          </span>{" "}
-          aus dem Zürcher Kataster an und filtert nach Rendite, bevor du auch nur
-          einen Klick machst.
-        </p>
-
-        <div className="mt-6 grid grid-cols-2 gap-2.5 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
           {features.map((f) => (
             <div
               key={f.label}
