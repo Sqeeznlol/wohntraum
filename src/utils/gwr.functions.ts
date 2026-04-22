@@ -237,37 +237,73 @@ async function fetchIsos(east: number, north: number): Promise<boolean> {
 // ============================================================================
 
 export const enrichListingGwr = createServerFn({ method: "POST" })
-  .inputValidator((data: { listingId: string }) => data)
+  .inputValidator(
+    (data: {
+      listingId: string;
+      manualEgid?: string | null;
+      manualBfs?: number | null;
+      manualParcel?: string | null;
+      manualMunicipality?: string | null;
+    }) => data,
+  )
   .handler(async ({ data }) => {
     const supabaseUrl = process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !serviceKey) {
-      return { ok: false, error: "Backend nicht konfiguriert" };
+      return { ok: false, error: "Backend nicht konfiguriert", missing: [] };
     }
     const supabase = createClient<Database>(supabaseUrl, serviceKey);
 
     const { data: listing, error } = await supabase
       .from("listings")
-      .select("id, address, postal_code, city, egid")
+      .select("id, address, postal_code, city, egid, bfs_number, parcel_number, municipality")
       .eq("id", data.listingId)
       .maybeSingle();
 
-    if (error || !listing) return { ok: false, error: "Inserat nicht gefunden" };
-    if (!listing.address || !listing.postal_code || !listing.city) {
-      return { ok: false, error: "Adresse unvollständig" };
+    if (error || !listing)
+      return { ok: false, error: "Inserat nicht gefunden", missing: [] };
+
+    const effectiveEgid = data.manualEgid?.trim() || (listing.egid ? String(listing.egid) : null);
+    const effectiveBfs = data.manualBfs ?? listing.bfs_number ?? null;
+    const effectiveParcel = data.manualParcel?.trim() || listing.parcel_number || null;
+    const effectiveMunicipality =
+      data.manualMunicipality?.trim() || listing.municipality || null;
+
+    const hasAddress = !!(listing.address && listing.postal_code && listing.city);
+    const hasManualParcel = effectiveBfs && effectiveParcel;
+
+    if (!effectiveEgid && !hasAddress && !hasManualParcel) {
+      return {
+        ok: false,
+        error: "Zu wenig Daten für die Anreicherung",
+        missing: ["EGID oder Adresse oder BFS-Nr. + Parzellennummer"],
+      };
     }
 
     try {
-      // 1. GWR — entweder via vorhandener EGID oder über Adresse
-      const gwr = listing.egid
-        ? await fetchGwrByEgid(String(listing.egid))
-        : await fetchGwrByAddress(listing.address, listing.postal_code, listing.city);
+      // 1. GWR — EGID > Adresse > Parzelle (kein direkter GWR-Lookup, später nur Parzelle)
+      let gwr: GwrAttributes | null = null;
+      if (effectiveEgid) {
+        gwr = await fetchGwrByEgid(effectiveEgid);
+      } else if (hasAddress) {
+        gwr = await fetchGwrByAddress(listing.address!, listing.postal_code!, listing.city!);
+      }
 
-      if (!gwr) return { ok: false, error: "Keine GWR-Daten für diese Adresse" };
+      // Falls GWR nichts liefert, aber Parzelle/BFS manuell da sind → nur Parzellen-Pipeline laufen lassen
+      if (!gwr && !hasManualParcel) {
+        const missing: string[] = [];
+        if (!effectiveEgid) missing.push("EGID (Bundesgebäude-Nr.)");
+        if (!hasManualParcel) missing.push("BFS-Nr. + Katasternummer");
+        return {
+          ok: false,
+          error: "Keine GWR-Daten für diese Adresse gefunden",
+          missing,
+        };
+      }
 
-      const bfs = gwr.ggdenr ?? null;
-      const parcelNr = gwr.lparz ?? null;
-      const municipality = gwr.ggdename ?? null;
+      const bfs = gwr?.ggdenr ?? effectiveBfs ?? null;
+      const parcelNr = gwr?.lparz ?? effectiveParcel ?? null;
+      const municipality = gwr?.ggdename ?? effectiveMunicipality ?? null;
 
       // 2. Parallel: Parzelle (AV WFS) + Denkmalschutz-Set
       const [parcel, heritageSet] = await Promise.all([
