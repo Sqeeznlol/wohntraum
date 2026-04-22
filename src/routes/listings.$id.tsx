@@ -189,6 +189,8 @@ function ListingDetail() {
             </CardContent>
           </Card>
 
+          <KatasterPanel listing={l} />
+
           <Card>
             <CardContent className="space-y-3 p-6">
               <div>
