@@ -127,9 +127,21 @@ export function gisOerebUrl(
   parcelNumber?: string | null,
 ): string {
   const c = resolveLv95(loc);
-  if (c) return buildMapsUrl("OerebKatasterZH", c.east, c.north, 500);
+  // Selektion der Liegenschaft über BFS + Katasternr (markiert die Parzelle gelb)
+  const selection: Record<string, string> | undefined =
+    bfs && parcelNumber
+      ? {
+          seltopic: "SelectionZH",
+          sellayer: "grundstuecke-oereb",
+          selproperty: "bfs_nr,nummer",
+          selvalues: `${bfs},${parcelNumber}`,
+        }
+      : undefined;
+  if (c) return buildMapsUrl("OerebKatasterZH", c.east, c.north, 500, selection);
   if (bfs && parcelNumber) {
     return `${BASE}?topic=OerebKatasterZH&srid=2056&scale=1500&bfsnr=${bfs}&katasternr=${encodeURIComponent(
+      parcelNumber,
+    )}&seltopic=SelectionZH&sellayer=grundstuecke-oereb&selproperty=bfs_nr,nummer&selvalues=${bfs},${encodeURIComponent(
       parcelNumber,
     )}`;
   }
