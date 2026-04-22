@@ -166,7 +166,7 @@ export function KatasterPanel({ listing }: Props) {
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   Trage die fehlenden Werte aus dem{" "}
                   <a
-                    href={gisAddressSearchUrl(addr, plz, city)}
+                    href={gisAddressSearchUrl(listing, fallbackQuery)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-accent underline"
@@ -319,30 +319,28 @@ export function KatasterPanel({ listing }: Props) {
             Direkt im Kataster prüfen
           </div>
           <div className="grid gap-1.5">
-            {listing.bfs_number && listing.parcel_number && (
-              <KatasterLink
-                href={gisOerebUrl(listing.bfs_number, listing.parcel_number)}
-                label="ÖREB-Kataster (Parzelle)"
-                icon={<Layers className="h-3.5 w-3.5" />}
-              />
-            )}
             <KatasterLink
-              href={gisZonenplanUrl(addr, plz, city)}
+              href={gisOerebUrl(listing, listing.bfs_number, listing.parcel_number)}
+              label="ÖREB-Kataster (Parzelle)"
+              icon={<Layers className="h-3.5 w-3.5" />}
+            />
+            <KatasterLink
+              href={gisZonenplanUrl(listing, fallbackQuery)}
               label="Zonenplan (W1 / W2 / W3)"
               icon={<Building2 className="h-3.5 w-3.5" />}
             />
             <KatasterLink
-              href={gisEigentumUrl(addr, plz, city)}
+              href={gisEigentumUrl(listing, fallbackQuery)}
               label="Eigentumsauskunft / Parzelle"
               icon={<Map className="h-3.5 w-3.5" />}
             />
             <KatasterLink
-              href={gisAddressSearchUrl(addr, plz, city)}
+              href={gisAddressSearchUrl(listing, fallbackQuery)}
               label="GIS-Browser maps.zh.ch"
               icon={<Map className="h-3.5 w-3.5" />}
             />
             <KatasterLink
-              href={geoadminGwrUrl(addr, plz, city)}
+              href={geoadminGwrUrl(listing, fallbackQuery)}
               label="GWR Bundes-Karte"
               icon={<Building2 className="h-3.5 w-3.5" />}
             />
