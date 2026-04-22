@@ -89,29 +89,69 @@ async function fetchGwrByAddress(
   postalCode: string,
   city: string,
 ): Promise<GwrAttributes | null> {
-  // Erst über Search API einen Treffer finden, dann featureId → find
+  // Strategie:
+  // 1) Adresse via SearchServer (origins=address) → featureId enthält EGID
+  // 2) Falls Treffer, EGID extrahieren und GWR-Layer per searchField=egid abfragen
+  // 3) Fallback: GWR-Layer direkt per searchField=egaid (Strasse + Hausnr) versuchen
   const searchTerm = `${address}, ${postalCode} ${city}`;
-  const searchUrl = `https://api3.geo.admin.ch/rest/services/api/SearchServer?searchText=${encodeURIComponent(searchTerm)}&type=locations&origins=address&limit=1`;
-  const searchRes = await fetch(searchUrl, { headers: { Accept: "application/json" } });
-  if (!searchRes.ok) return null;
-  const searchData = (await searchRes.json()) as {
-    results?: Array<{ attrs?: { featureId?: string } }>;
-  };
-  const featureId = searchData.results?.[0]?.attrs?.featureId;
-  if (!featureId) return null;
 
-  // featureId direkt im GWR-Layer finden
-  const findUrl = `https://api3.geo.admin.ch/rest/services/ech/MapServer/find?layer=ch.bfs.gebaeude_wohnungs_register&searchText=${encodeURIComponent(searchTerm)}&searchField=ggdename&returnGeometry=false&contains=true`;
-  const findRes = await fetch(findUrl, { headers: { Accept: "application/json" } });
-  if (!findRes.ok) return null;
-  const findJson = (await findRes.json()) as { results?: Array<{ attributes?: GwrAttributes }> };
-  // Bestes Match: PLZ stimmt
+  // --- 1) Adress-Suche
+  const searchUrl = `https://api3.geo.admin.ch/rest/services/api/SearchServer?searchText=${encodeURIComponent(searchTerm)}&type=locations&origins=address&limit=5`;
+  try {
+    const searchRes = await fetch(searchUrl, { headers: { Accept: "application/json" } });
+    if (searchRes.ok) {
+      const searchData = (await searchRes.json()) as {
+        results?: Array<{ attrs?: { featureId?: string; detail?: string; label?: string } }>;
+      };
+      const plz = parseInt(postalCode, 10);
+      // Treffer mit passender PLZ bevorzugen
+      const best =
+        searchData.results?.find((r) => {
+          const det = (r.attrs?.detail ?? r.attrs?.label ?? "").toLowerCase();
+          return det.includes(String(plz));
+        }) ?? searchData.results?.[0];
+
+      const featureId = best?.attrs?.featureId;
+      if (featureId) {
+        // featureId Format: "EGID_EDID" oder nur "EGID"
+        const egid = featureId.split("_")[0];
+        if (egid && /^\d+$/.test(egid)) {
+          const byEgid = await fetchGwrByEgid(egid);
+          if (byEgid) return byEgid;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("SearchServer lookup failed:", e);
+  }
+
+  // --- 2) Fallback: Strasse + Hausnr im GWR-Layer matchen via PLZ
   const plz = parseInt(postalCode, 10);
-  const match =
-    findJson.results?.find((r) => r.attributes?.dplz4 === plz)?.attributes ??
-    findJson.results?.[0]?.attributes ??
-    null;
-  return match;
+  const findUrl = `https://api3.geo.admin.ch/rest/services/ech/MapServer/find?layer=ch.bfs.gebaeude_wohnungs_register&searchText=${plz}&searchField=dplz4&returnGeometry=false&contains=false`;
+  try {
+    const findRes = await fetch(findUrl, { headers: { Accept: "application/json" } });
+    if (!findRes.ok) return null;
+    const findJson = (await findRes.json()) as {
+      results?: Array<{ attributes?: GwrAttributes }>;
+    };
+    // address z.B. "Diessenhoferstrasse 33" → Strasse + Hausnr trennen
+    const m = address.match(/^(.+?)\s+(\d+\w*)\s*$/);
+    const street = (m?.[1] ?? address).toLowerCase().trim();
+    const houseNr = (m?.[2] ?? "").toLowerCase().trim();
+
+    const match = findJson.results?.find((r) => {
+      const a = r.attributes;
+      if (!a) return false;
+      const streetNames = (a.strname ?? []).map((s) => (s ?? "").toLowerCase());
+      const matchStreet = streetNames.some((s) => s.includes(street) || street.includes(s));
+      const matchNr = houseNr ? (a.deinr ?? "").toLowerCase() === houseNr : true;
+      return matchStreet && matchNr;
+    });
+    return match?.attributes ?? null;
+  } catch (e) {
+    console.warn("GWR find fallback failed:", e);
+    return null;
+  }
 }
 
 // ============================================================================
