@@ -48,6 +48,7 @@ export function KatasterPanel({ listing }: Props) {
   const addr = listing.address;
   const plz = listing.postal_code!;
   const city = listing.city;
+  const fallbackQuery = `${addr}, ${plz} ${city}`;
 
   const enrich = useMutation({
     mutationFn: async (overrides?: {
