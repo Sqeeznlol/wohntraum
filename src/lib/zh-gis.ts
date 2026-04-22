@@ -117,33 +117,22 @@ export function geoadminGwrUrl(loc: LocationInput, fallbackQuery?: string): stri
 }
 
 /**
- * ÖREB-Kataster direkt auf der Liegenschaft (koordinatenbasiert).
- * `bfs` und `parcelNumber` werden ignoriert wenn Koordinaten vorhanden sind,
- * weil maps.zh.ch BFS+Katasternr-Links unzuverlässig auflöst.
+ * ÖREB-Kataster mit selektierter Parzelle.
+ * Bevorzugt das `locate=parz` Format von maps.zh.ch — dieses zoomt auf die
+ * Parzelle UND markiert sie mit roter Umrandung. Format: locations=<gemeinde>,<parz-nr>
+ * Fallback: Koordinaten ohne Selektion.
  */
 export function gisOerebUrl(
   loc: LocationInput,
   bfs?: number | null,
   parcelNumber?: string | null,
 ): string {
-  const c = resolveLv95(loc);
-  // Selektion der Liegenschaft über BFS + Katasternr (markiert die Parzelle gelb)
-  const selection: Record<string, string> | undefined =
-    bfs && parcelNumber
-      ? {
-          seltopic: "SelectionZH",
-          sellayer: "grundstuecke-oereb",
-          selproperty: "bfs_nr,nummer",
-          selvalues: `${bfs},${parcelNumber}`,
-        }
-      : undefined;
-  if (c) return buildMapsUrl("OerebKatasterZH", c.east, c.north, 500, selection);
   if (bfs && parcelNumber) {
-    return `${BASE}?topic=OerebKatasterZH&srid=2056&scale=1500&bfsnr=${bfs}&katasternr=${encodeURIComponent(
-      parcelNumber,
-    )}&seltopic=SelectionZH&sellayer=grundstuecke-oereb&selproperty=bfs_nr,nummer&selvalues=${bfs},${encodeURIComponent(
+    return `${BASE}?topic=OerebKatasterZH&locate=parz&locations=${bfs},${encodeURIComponent(
       parcelNumber,
     )}`;
   }
+  const c = resolveLv95(loc);
+  if (c) return buildMapsUrl("OerebKatasterZH", c.east, c.north, 500);
   return `${BASE}?topic=OerebKatasterZH`;
 }
