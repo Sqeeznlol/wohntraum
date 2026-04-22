@@ -263,6 +263,9 @@ function ListingsPage() {
         </div>
       </section>
 
+      {/* Pitch / Wert-Versprechen */}
+      <PitchHero />
+
       {/* Slot machine — Casino-Style Inserat-Roulette */}
       {listings && listings.length >= 3 && (
         <ListingSlotMachine listings={listings} />
