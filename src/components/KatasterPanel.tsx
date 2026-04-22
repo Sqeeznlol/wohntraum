@@ -117,13 +117,13 @@ export function KatasterPanel({ listing }: Props) {
         {(listing.heritage_protected || listing.isos_protected) && (
           <div className="flex flex-wrap gap-1.5">
             {listing.heritage_protected && (
-              <Badge className="gap-1 bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400">
+              <Badge variant="secondary" className="gap-1">
                 <Landmark className="h-3 w-3" />
                 Denkmalschutz
               </Badge>
             )}
             {listing.isos_protected && (
-              <Badge className="gap-1 bg-purple-500/15 text-purple-700 hover:bg-purple-500/20 dark:text-purple-400">
+              <Badge variant="secondary" className="gap-1">
                 <ShieldAlert className="h-3 w-3" />
                 ISOS Ortsbild
               </Badge>
