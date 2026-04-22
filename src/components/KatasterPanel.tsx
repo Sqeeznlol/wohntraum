@@ -14,14 +14,13 @@ import {
   ShieldAlert,
   Layers,
   AlertTriangle,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { enrichListingGwr } from "@/utils/gwr.functions";
 import {
   gisAddressSearchUrl,
-  gisZonenplanUrl,
   gisEigentumUrl,
-  geoadminGwrUrl,
   gisOerebUrl,
   isZhPostalCode,
 } from "@/lib/zh-gis";
