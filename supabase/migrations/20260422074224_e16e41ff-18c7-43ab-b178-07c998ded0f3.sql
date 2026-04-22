@@ -1,0 +1,17 @@
+ALTER TABLE public.listings
+  ADD COLUMN IF NOT EXISTS egrid text,
+  ADD COLUMN IF NOT EXISTS parcel_number text,
+  ADD COLUMN IF NOT EXISTS parcel_area_sqm numeric,
+  ADD COLUMN IF NOT EXISTS bfs_number integer,
+  ADD COLUMN IF NOT EXISTS municipality text,
+  ADD COLUMN IF NOT EXISTS building_area_sqm numeric,
+  ADD COLUMN IF NOT EXISTS building_category text,
+  ADD COLUMN IF NOT EXISTS building_status text,
+  ADD COLUMN IF NOT EXISTS zone_code text,
+  ADD COLUMN IF NOT EXISTS zone_legal_status text,
+  ADD COLUMN IF NOT EXISTS zone_area_sqm numeric,
+  ADD COLUMN IF NOT EXISTS zone_part_percent numeric,
+  ADD COLUMN IF NOT EXISTS heritage_protected boolean,
+  ADD COLUMN IF NOT EXISTS isos_protected boolean,
+  ADD COLUMN IF NOT EXISTS lv95_east numeric,
+  ADD COLUMN IF NOT EXISTS lv95_north numeric;
