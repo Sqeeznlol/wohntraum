@@ -371,9 +371,10 @@ export const enrichListingGwr = createServerFn({ method: "POST" })
         municipality,
         bfs,
         parcel_number: parcelNr,
+        missing,
       };
     } catch (e) {
       console.error("GIS enrichment failed:", e);
-      return { ok: false, error: "GIS-Abruf fehlgeschlagen" };
+      return { ok: false, error: "GIS-Abruf fehlgeschlagen", missing: [] };
     }
   });
