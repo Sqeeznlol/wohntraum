@@ -152,6 +152,7 @@ function ListingDetail() {
           </Card>
 
           <ListingDocuments listingId={id} />
+          <ListingViewings listingId={id} />
         </div>
 
         <div className="space-y-4">
