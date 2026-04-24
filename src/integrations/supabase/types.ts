@@ -95,6 +95,30 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          listing_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       listing_sources: {
         Row: {
           created_at: string

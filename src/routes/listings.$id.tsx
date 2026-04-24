@@ -12,7 +12,7 @@ import type { Listing, ListingSource, ListingStatus } from "@/lib/db-types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+
 import {
   Select,
   SelectContent,
@@ -21,12 +21,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Heart, ExternalLink, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { ListingGallery } from "@/components/ListingGallery";
 import { KatasterPanel } from "@/components/KatasterPanel";
 import { ListingDocuments } from "@/components/ListingDocuments";
 import { ListingViewings } from "@/components/ListingViewings";
+import { ListingNotes } from "@/components/ListingNotes";
 
 export const Route = createFileRoute("/listings/$id")({
   component: ListingDetail,
@@ -56,16 +57,6 @@ function ListingDetail() {
       };
     },
   });
-
-  const [notes, setNotes] = useState("");
-  const [extraNotes, setExtraNotes] = useState("");
-  useEffect(() => {
-    if (data?.listing) {
-      setNotes(data.listing.notes ?? "");
-      setExtraNotes((data.listing as any).extra_notes ?? "");
-    }
-  }, [data?.listing]);
-
   const update = useMutation({
     mutationFn: async (patch: Partial<Listing>) => {
       const { error } = await supabase.from("listings").update(patch).eq("id", id);
@@ -152,6 +143,7 @@ function ListingDetail() {
           </Card>
 
           <ListingDocuments listingId={id} />
+          <ListingNotes listingId={id} />
           <ListingViewings listingId={id} />
         </div>
 
@@ -223,48 +215,6 @@ function ListingDetail() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div>
-                <label className="text-xs uppercase text-muted-foreground">
-                  Notizen
-                </label>
-                <Textarea
-                  className="mt-1 min-h-[100px]"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Eigene Notizen…"
-                />
-                <Button
-                  size="sm"
-                  className="mt-2 w-full"
-                  onClick={() => {
-                    update.mutate({ notes });
-                    toast.success("Notiz gespeichert");
-                  }}
-                >
-                  Speichern
-                </Button>
-              </div>
-              <div>
-                <label className="text-xs uppercase text-muted-foreground">
-                  Zusatznotizen
-                </label>
-                <Textarea
-                  className="mt-1 min-h-[120px]"
-                  value={extraNotes}
-                  onChange={(e) => setExtraNotes(e.target.value)}
-                  placeholder="Weitere Notizen, Beobachtungen, To-Dos…"
-                />
-                <Button
-                  size="sm"
-                  className="mt-2 w-full"
-                  onClick={() => {
-                    update.mutate({ extra_notes: extraNotes } as any);
-                    toast.success("Zusatznotiz gespeichert");
-                  }}
-                >
-                  Speichern
-                </Button>
               </div>
             </CardContent>
           </Card>
