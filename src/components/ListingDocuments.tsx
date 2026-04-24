@@ -37,7 +37,8 @@ export function ListingDocuments({ listingId }: { listingId: string }) {
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<ListingDocument | null>(null);
-
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [fullscreenDoc, setFullscreenDoc] = useState<ListingDocument | null>(null);
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ["listing-documents", listingId],
     queryFn: async () => {
