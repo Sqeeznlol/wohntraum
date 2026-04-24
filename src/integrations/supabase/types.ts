@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_documents: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          listing_id: string
+          mime_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          listing_id: string
+          mime_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          listing_id?: string
+          mime_type?: string | null
+        }
+        Relationships: []
+      }
       listing_images: {
         Row: {
           created_at: string
@@ -126,6 +156,7 @@ export type Database = {
           dwellings: number | null
           egid: number | null
           egrid: string | null
+          extra_notes: string | null
           fingerprint: string | null
           first_seen_at: string
           floors: number | null
@@ -173,6 +204,7 @@ export type Database = {
           dwellings?: number | null
           egid?: number | null
           egrid?: string | null
+          extra_notes?: string | null
           fingerprint?: string | null
           first_seen_at?: string
           floors?: number | null
@@ -220,6 +252,7 @@ export type Database = {
           dwellings?: number | null
           egid?: number | null
           egrid?: string | null
+          extra_notes?: string | null
           fingerprint?: string | null
           first_seen_at?: string
           floors?: number | null
