@@ -57,8 +57,12 @@ function ListingDetail() {
   });
 
   const [notes, setNotes] = useState("");
+  const [extraNotes, setExtraNotes] = useState("");
   useEffect(() => {
-    if (data?.listing) setNotes(data.listing.notes ?? "");
+    if (data?.listing) {
+      setNotes(data.listing.notes ?? "");
+      setExtraNotes((data.listing as any).extra_notes ?? "");
+    }
   }, [data?.listing]);
 
   const update = useMutation({
