@@ -153,6 +153,7 @@ function ListingDetail() {
           </Card>
 
           <ListingDocuments listingId={id} />
+          <ListingNotes listingId={id} />
           <ListingViewings listingId={id} />
         </div>
 
