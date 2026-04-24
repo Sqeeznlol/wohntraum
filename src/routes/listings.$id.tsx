@@ -226,48 +226,6 @@ function ListingDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-xs uppercase text-muted-foreground">
-                  Notizen
-                </label>
-                <Textarea
-                  className="mt-1 min-h-[100px]"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Eigene Notizen…"
-                />
-                <Button
-                  size="sm"
-                  className="mt-2 w-full"
-                  onClick={() => {
-                    update.mutate({ notes });
-                    toast.success("Notiz gespeichert");
-                  }}
-                >
-                  Speichern
-                </Button>
-              </div>
-              <div>
-                <label className="text-xs uppercase text-muted-foreground">
-                  Zusatznotizen
-                </label>
-                <Textarea
-                  className="mt-1 min-h-[120px]"
-                  value={extraNotes}
-                  onChange={(e) => setExtraNotes(e.target.value)}
-                  placeholder="Weitere Notizen, Beobachtungen, To-Dos…"
-                />
-                <Button
-                  size="sm"
-                  className="mt-2 w-full"
-                  onClick={() => {
-                    update.mutate({ extra_notes: extraNotes } as any);
-                    toast.success("Zusatznotiz gespeichert");
-                  }}
-                >
-                  Speichern
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>
