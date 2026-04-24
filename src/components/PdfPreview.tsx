@@ -3,7 +3,6 @@ import { Loader2 } from "lucide-react";
 
 // pdf.js v4 - load worker via Vite ?url import (CDN-free, bundled)
 import * as pdfjsLib from "pdfjs-dist";
-// @ts-expect-error - vite worker url import
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
