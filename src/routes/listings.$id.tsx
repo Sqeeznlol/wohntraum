@@ -57,16 +57,6 @@ function ListingDetail() {
       };
     },
   });
-
-  const [notes, setNotes] = useState("");
-  const [extraNotes, setExtraNotes] = useState("");
-  useEffect(() => {
-    if (data?.listing) {
-      setNotes(data.listing.notes ?? "");
-      setExtraNotes((data.listing as any).extra_notes ?? "");
-    }
-  }, [data?.listing]);
-
   const update = useMutation({
     mutationFn: async (patch: Partial<Listing>) => {
       const { error } = await supabase.from("listings").update(patch).eq("id", id);
