@@ -78,8 +78,7 @@ export function PdfPreview({
           const ctx = canvas.getContext("2d");
           if (!ctx) continue;
 
-          await page.render({ canvasContext: ctx, viewport: scaled, canvas })
-            .promise;
+          await page.render({ canvasContext: ctx, viewport: scaled }).promise;
           rendered.push(canvas.toDataURL("image/jpeg", 0.85));
           if (!cancelled) setPages([...rendered]);
         }
