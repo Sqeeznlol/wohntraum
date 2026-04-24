@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { ListingGallery } from "@/components/ListingGallery";
 import { KatasterPanel } from "@/components/KatasterPanel";
 import { ListingDocuments } from "@/components/ListingDocuments";
+import { ListingViewings } from "@/components/ListingViewings";
 
 export const Route = createFileRoute("/listings/$id")({
   component: ListingDetail,
@@ -151,6 +152,7 @@ function ListingDetail() {
           </Card>
 
           <ListingDocuments listingId={id} />
+          <ListingViewings listingId={id} />
         </div>
 
         <div className="space-y-4">
