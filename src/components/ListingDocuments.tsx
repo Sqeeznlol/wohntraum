@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Upload, Trash2, Download, Loader2, ChevronDown, ChevronRight, Maximize2 } from "lucide-react";
+import { PdfPreview } from "@/components/PdfPreview";
 import { toast } from "sonner";
 
 type ListingDocument = {
