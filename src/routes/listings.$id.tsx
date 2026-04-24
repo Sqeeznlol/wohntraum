@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ListingGallery } from "@/components/ListingGallery";
 import { KatasterPanel } from "@/components/KatasterPanel";
+import { ListingDocuments } from "@/components/ListingDocuments";
 
 export const Route = createFileRoute("/listings/$id")({
   component: ListingDetail,
