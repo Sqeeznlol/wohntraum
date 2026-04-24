@@ -149,6 +149,8 @@ function ListingDetail() {
               ))}
             </CardContent>
           </Card>
+
+          <ListingDocuments listingId={id} />
         </div>
 
         <div className="space-y-4">
