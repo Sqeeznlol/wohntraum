@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Upload, Trash2, Eye, Download, Loader2 } from "lucide-react";
+import { FileText, Upload, Trash2, Eye, Download, Loader2, ChevronDown, ChevronRight, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 
 type ListingDocument = {
