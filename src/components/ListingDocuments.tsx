@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Upload, Trash2, Download, Loader2, ChevronDown, ChevronRight, Maximize2 } from "lucide-react";
+import { PdfPreview } from "@/components/PdfPreview";
 import { toast } from "sonner";
 
 type ListingDocument = {
@@ -209,10 +210,10 @@ export function ListingDocuments({ listingId }: { listingId: string }) {
                   </div>
                   {isOpen && (
                     <div className="border-t bg-muted/30 p-2">
-                      <iframe
-                        src={`${publicUrl(doc.file_path)}#view=FitH`}
+                      <PdfPreview
+                        src={publicUrl(doc.file_path)}
+                        fileName={doc.file_name}
                         className="h-[480px] w-full rounded border bg-white"
-                        title={doc.file_name}
                       />
                     </div>
                   )}
@@ -228,10 +229,10 @@ export function ListingDocuments({ listingId }: { listingId: string }) {
               <DialogTitle className="truncate">{fullscreenDoc?.file_name}</DialogTitle>
             </DialogHeader>
             {fullscreenDoc && (
-              <iframe
+              <PdfPreview
                 src={publicUrl(fullscreenDoc.file_path)}
+                fileName={fullscreenDoc.file_name}
                 className="h-[75vh] w-full rounded-md border"
-                title={fullscreenDoc.file_name}
               />
             )}
           </DialogContent>
