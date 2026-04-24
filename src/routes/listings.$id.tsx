@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ListingGallery } from "@/components/ListingGallery";
 import { KatasterPanel } from "@/components/KatasterPanel";
+import { ListingDocuments } from "@/components/ListingDocuments";
 
 export const Route = createFileRoute("/listings/$id")({
   component: ListingDetail,
@@ -56,8 +57,12 @@ function ListingDetail() {
   });
 
   const [notes, setNotes] = useState("");
+  const [extraNotes, setExtraNotes] = useState("");
   useEffect(() => {
-    if (data?.listing) setNotes(data.listing.notes ?? "");
+    if (data?.listing) {
+      setNotes(data.listing.notes ?? "");
+      setExtraNotes((data.listing as any).extra_notes ?? "");
+    }
   }, [data?.listing]);
 
   const update = useMutation({
@@ -144,6 +149,8 @@ function ListingDetail() {
               ))}
             </CardContent>
           </Card>
+
+          <ListingDocuments listingId={id} />
         </div>
 
         <div className="space-y-4">
@@ -231,6 +238,27 @@ function ListingDetail() {
                   onClick={() => {
                     update.mutate({ notes });
                     toast.success("Notiz gespeichert");
+                  }}
+                >
+                  Speichern
+                </Button>
+              </div>
+              <div>
+                <label className="text-xs uppercase text-muted-foreground">
+                  Zusatznotizen
+                </label>
+                <Textarea
+                  className="mt-1 min-h-[120px]"
+                  value={extraNotes}
+                  onChange={(e) => setExtraNotes(e.target.value)}
+                  placeholder="Weitere Notizen, Beobachtungen, To-Dos…"
+                />
+                <Button
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => {
+                    update.mutate({ extra_notes: extraNotes } as any);
+                    toast.success("Zusatznotiz gespeichert");
                   }}
                 >
                   Speichern
