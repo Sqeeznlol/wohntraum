@@ -229,10 +229,10 @@ export function ListingDocuments({ listingId }: { listingId: string }) {
               <DialogTitle className="truncate">{fullscreenDoc?.file_name}</DialogTitle>
             </DialogHeader>
             {fullscreenDoc && (
-              <iframe
+              <PdfPreview
                 src={publicUrl(fullscreenDoc.file_path)}
+                fileName={fullscreenDoc.file_name}
                 className="h-[75vh] w-full rounded-md border"
-                title={fullscreenDoc.file_name}
               />
             )}
           </DialogContent>
