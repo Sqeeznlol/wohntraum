@@ -210,10 +210,10 @@ export function ListingDocuments({ listingId }: { listingId: string }) {
                   </div>
                   {isOpen && (
                     <div className="border-t bg-muted/30 p-2">
-                      <iframe
-                        src={`${publicUrl(doc.file_path)}#view=FitH`}
+                      <PdfPreview
+                        src={publicUrl(doc.file_path)}
+                        fileName={doc.file_name}
                         className="h-[480px] w-full rounded border bg-white"
-                        title={doc.file_name}
                       />
                     </div>
                   )}
