@@ -27,6 +27,7 @@ import { ListingGallery } from "@/components/ListingGallery";
 import { KatasterPanel } from "@/components/KatasterPanel";
 import { ListingDocuments } from "@/components/ListingDocuments";
 import { ListingViewings } from "@/components/ListingViewings";
+import { ListingNotes } from "@/components/ListingNotes";
 
 export const Route = createFileRoute("/listings/$id")({
   component: ListingDetail,
