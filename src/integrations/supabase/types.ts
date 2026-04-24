@@ -140,6 +140,36 @@ export type Database = {
           },
         ]
       }
+      listing_viewings: {
+        Row: {
+          attendees: string | null
+          created_at: string
+          id: string
+          listing_id: string
+          notes: string | null
+          updated_at: string
+          viewing_at: string
+        }
+        Insert: {
+          attendees?: string | null
+          created_at?: string
+          id?: string
+          listing_id: string
+          notes?: string | null
+          updated_at?: string
+          viewing_at: string
+        }
+        Update: {
+          attendees?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string
+          notes?: string | null
+          updated_at?: string
+          viewing_at?: string
+        }
+        Relationships: []
+      }
       listings: {
         Row: {
           address: string | null
