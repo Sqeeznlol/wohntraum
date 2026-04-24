@@ -52,6 +52,15 @@ export function ListingDocuments({ listingId }: { listingId: string }) {
     },
   });
 
+  // Auto-expand first/newest document so user immediately sees a preview
+  useEffect(() => {
+    if (docs.length > 0) {
+      setExpanded((prev) => {
+        if (Object.keys(prev).length > 0) return prev;
+        return { [docs[0].id]: true };
+      });
+    }
+  }, [docs]);
   const uploadFile = async (file: File) => {
     if (file.type !== "application/pdf") {
       toast.error("Nur PDF-Dateien sind erlaubt");
