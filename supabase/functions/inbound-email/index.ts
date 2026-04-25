@@ -1,6 +1,7 @@
 // Inbound Email Webhook
-// Receives forwarded real-estate alert emails, extracts listings via Lovable AI,
-// computes CHF/m², deduplicates, and stores them.
+// Receives forwarded real-estate alert emails, extracts listings via a
+// portal-aware regex parser (NO AI), computes CHF/m², deduplicates, and
+// stores them. AI extraction was removed on user request.
 //
 // POST body (flexible — supports Resend Inbound, generic forwarders):
 // {
@@ -21,7 +22,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
 type Portal =
   | "immoscout24"
@@ -75,17 +75,10 @@ async function geocodeAddress(
 const PORTAL_URL_RE =
   /https?:\/\/(?:www\.)?(immoscout24\.ch|homegate\.ch|flatfox\.ch|casasoft\.com|immostreet\.ch|home\.ch|newhome\.ch)\/[^\s"'<>)]+/i;
 
-/**
- * Entpackt Tracking-/Click-Wrapper (SendGrid, Mailchimp, HubSpot, …) zu echten Portal-URLs.
- * 1) Folgt einem Redirect über fetch (HEAD/GET), maximal 5 Hops, 4 s Timeout.
- * 2) Fallback: durchsucht den ursprünglichen Wrapper-String nach einer encoded Portal-URL.
- * 3) Strippt UTM-/Tracking-Query-Parameter vom Endergebnis.
- */
 async function unwrapTrackingUrl(url: string | null | undefined): Promise<string | null> {
   if (!url) return null;
   let current = url;
 
-  // Schon ein direkter Portal-Link? Nur säubern.
   if (PORTAL_URL_RE.test(current) && !/sendgrid|mailchimp|hubspot|click\./i.test(current)) {
     return stripTracking(current);
   }
@@ -105,7 +98,6 @@ async function unwrapTrackingUrl(url: string | null | undefined): Promise<string
     console.warn("unwrap fetch failed:", e);
   }
 
-  // Wenn Redirect nicht zum Portal führte, Wrapper-String absuchen
   if (!PORTAL_URL_RE.test(current)) {
     const decoded = (() => {
       try {
@@ -158,99 +150,146 @@ function fingerprintOf(l: ExtractedListing): string {
   return `${addr}|${area}|${price}`;
 }
 
-async function extractListingsWithAI(
-  subject: string,
-  html: string,
-  text: string,
+// ============================================================================
+// Regex-based extraction (replaces the previous AI extractor).
+// ============================================================================
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseNumber(s: string): number | null {
+  const cleaned = s.replace(/['’\s\u00A0]/g, "").replace(",", ".");
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
+// Extrahiert ein einzelnes Inserat aus einem Text-Block (eines <a>-Wrappers).
+function parseListingFromBlock(
+  blockHtml: string,
   defaultPortal: Portal,
-): Promise<ExtractedListing[]> {
-  const content = `Subject: ${subject}\n\nHTML:\n${html.slice(0, 60000)}\n\nText:\n${text.slice(0, 10000)}`;
+): ExtractedListing | null {
+  const linkMatch = blockHtml.match(/href=["']([^"']+)["']/i);
+  if (!linkMatch) return null;
+  const url = linkMatch[1];
 
-  const tools = [
-    {
-      type: "function",
-      function: {
-        name: "save_listings",
-        description:
-          "Extract every individual real-estate listing from the email. Return one item per property.",
-        parameters: {
-          type: "object",
-          properties: {
-            listings: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  description: { type: "string" },
-                  price_chf: {
-                    type: "number",
-                    description: "Price in CHF as a number, no currency symbol",
-                  },
-                  area_sqm: { type: "number", description: "Area in square meters" },
-                  rooms: { type: "number" },
-                  city: { type: "string" },
-                  postal_code: { type: "string" },
-                  address: { type: "string" },
-                  portal: {
-                    type: "string",
-                    enum: [
-                      "immoscout24",
-                      "homegate",
-                      "flatfox",
-                      "casasoft",
-                      "immostreet",
-                      "home_ch",
-                      "newhome",
-                      "other",
-                    ],
-                  },
-                  url: { type: "string" },
-                  image_url: { type: "string" },
-                },
-                required: ["title", "portal"],
-              },
-            },
-          },
-          required: ["listings"],
-          additionalProperties: false,
-        },
-      },
-    },
-  ];
+  // Bild
+  const imgMatch = blockHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
+  const image_url = imgMatch ? imgMatch[1] : null;
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You extract Swiss real-estate listings from search-alert emails. Always return ALL listings in the email. Prices are in CHF. Sizes in m². Use null for missing values. Default portal if unsure: " +
-            defaultPortal,
-        },
-        { role: "user", content },
-      ],
-      tools,
-      tool_choice: { type: "function", function: { name: "save_listings" } },
-    }),
-  });
+  // Plain Text aus dem Block
+  const text = stripHtml(blockHtml);
+  if (text.length < 10) return null;
 
-  if (!resp.ok) {
-    const t = await resp.text();
-    throw new Error(`AI gateway ${resp.status}: ${t}`);
+  // Titel: erste Zeile mit ≥ 8 Zeichen, vor dem ersten "CHF"
+  const beforePrice = text.split(/CHF/i)[0] ?? text;
+  const title = beforePrice.slice(0, 200).trim() || "Inserat";
+
+  // Preis: "CHF 1'250'000" / "1.250.000 CHF" / "CHF 1.25 Mio"
+  let price_chf: number | null = null;
+  const mioMatch = text.match(/CHF\s*([\d',\.\s]+)\s*(Mio\.?|Millionen?)/i);
+  if (mioMatch) {
+    const n = parseNumber(mioMatch[1]);
+    if (n != null) price_chf = Math.round(n * 1_000_000);
+  }
+  if (price_chf == null) {
+    const priceMatch = text.match(/CHF\s*([\d'’\.\s]{4,15})(?!\s*Mio)/i);
+    if (priceMatch) {
+      const n = parseNumber(priceMatch[1]);
+      if (n != null && n >= 1000) price_chf = Math.round(n);
+    }
   }
 
-  const data = await resp.json();
-  const call = data?.choices?.[0]?.message?.tool_calls?.[0];
-  if (!call) return [];
-  const args = JSON.parse(call.function.arguments);
-  return (args.listings ?? []) as ExtractedListing[];
+  // Fläche: "120 m²" / "120 qm"
+  let area_sqm: number | null = null;
+  const areaMatch = text.match(/(\d{2,5}(?:[.,]\d+)?)\s*m(?:²|2|\^2)/i);
+  if (areaMatch) area_sqm = parseNumber(areaMatch[1]);
+
+  // Zimmer: "4.5 Zimmer", "4½ Zi."
+  let rooms: number | null = null;
+  const roomsMatch = text.match(/(\d(?:[.,]\d+)?|\d½)\s*(?:Zi\.?|Zimmer|pieces?|pi[èe]ces?)/i);
+  if (roomsMatch) {
+    const r = roomsMatch[1].replace("½", ".5");
+    rooms = parseNumber(r);
+  }
+
+  // PLZ + Ort: "8003 Zürich"
+  let postal_code: string | null = null;
+  let city: string | null = null;
+  const plzMatch = text.match(/\b(\d{4})\s+([A-ZÄÖÜ][\wÄÖÜäöüéèêàâç\-\s]{2,40})/);
+  if (plzMatch) {
+    postal_code = plzMatch[1];
+    city = plzMatch[2].trim().split(/\s{2,}|,/)[0];
+  }
+
+  return {
+    title,
+    description: null,
+    price_chf,
+    area_sqm,
+    rooms,
+    city,
+    postal_code,
+    address: null,
+    portal: defaultPortal,
+    url,
+    image_url,
+  };
+}
+
+// Findet alle <a href="…portal…"> Blocks in der Mail und parst sie.
+function extractListings(html: string, defaultPortal: Portal): ExtractedListing[] {
+  if (!html) return [];
+
+  const anchorRe = /<a\b[^>]*href=["'][^"']+["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const seenUrls = new Set<string>();
+  const out: ExtractedListing[] = [];
+
+  // Wir nehmen ganze <a>-Blöcke samt äußerem <a>-Tag.
+  const anchorWithTagRe =
+    /<a\b[^>]*href=["']([^"']+)["'][^>]*>[\s\S]*?<\/a>/gi;
+
+  let match: RegExpExecArray | null;
+  while ((match = anchorWithTagRe.exec(html)) !== null) {
+    const fullBlock = match[0];
+    const href = match[1];
+
+    // Nur Anker, die plausibel zu einem Inserat führen
+    if (!/(immoscout24|homegate|flatfox|home\.ch|newhome|casasoft|immostreet|sendgrid|mailchimp|hubspot|click\.)/i.test(href)) {
+      continue;
+    }
+    if (seenUrls.has(href)) continue;
+    seenUrls.add(href);
+
+    const parsed = parseListingFromBlock(fullBlock, defaultPortal);
+    if (!parsed) continue;
+    // Mindestens Titel ODER Bild ODER Preis – sonst zu schwach
+    if (!parsed.image_url && parsed.price_chf == null && parsed.area_sqm == null) {
+      continue;
+    }
+    out.push(parsed);
+  }
+
+  // Dedup nach Bild-URL (gleiches Inserat erscheint oft mehrfach)
+  const dedup = new Map<string, ExtractedListing>();
+  for (const l of out) {
+    const key = l.image_url ?? l.url ?? l.title;
+    if (!dedup.has(key)) dedup.set(key, l);
+  }
+  // Anker, die offensichtlich Footer/Logo-Links sind, ignorieren
+  void anchorRe;
+  return Array.from(dedup.values()).slice(0, 50);
 }
 
 Deno.serve(async (req) => {
@@ -274,11 +313,6 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Support multiple inbound providers:
-  // - Resend Inbound: nests under `data`
-  // - CloudMailin (Original/JSON Normalized): { envelope, headers, plain, html }
-  // - Postmark Inbound: { From, To, Subject, HtmlBody, TextBody }
-  // - Mailgun Routes (form-encoded): { from, to, subject, "body-html", "body-plain" }
   const data =
     (payload.data as Record<string, unknown> | undefined) ?? payload;
 
@@ -299,11 +333,9 @@ Deno.serve(async (req) => {
     return "";
   };
 
-  // CloudMailin envelope { from, to, helo_domain }
   const envelope = (data as Record<string, unknown>).envelope as
     | Record<string, unknown>
     | undefined;
-  // CloudMailin headers (lowercased)
   const headers = (data as Record<string, unknown>).headers as
     | Record<string, unknown>
     | undefined;
@@ -374,10 +406,18 @@ Deno.serve(async (req) => {
 
   let listings: ExtractedListing[] = [];
   try {
-    listings = await extractListingsWithAI(subject, html, text, defaultPortal);
+    listings = extractListings(html, defaultPortal);
+    if (listings.length === 0 && text) {
+      // Fallback: Plain-Text scannen wenn kein HTML lieferbar war
+      const textAsHtml = text.replace(
+        /(https?:\/\/\S+)/g,
+        '<a href="$1">$1</a>',
+      );
+      listings = extractListings(textAsHtml, defaultPortal);
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("AI extraction failed:", msg);
+    console.error("extraction failed:", msg);
     await supabase
       .from("raw_emails")
       .update({ status: "failed", error_message: msg })
@@ -395,7 +435,12 @@ Deno.serve(async (req) => {
     // Tracking-/Click-Wrapper auflösen, bevor wir speichern
     const cleanUrl = await unwrapTrackingUrl(l.url);
 
-    // Try to find existing by fingerprint
+    // Bilder mit Tracking-Wrapper verwerfen (wären keine echten Bilder)
+    const cleanImage =
+      l.image_url && /sendgrid\.net|mailchimp|hubspot|\/ls\/click|click\.[a-z0-9]+\./i.test(l.image_url)
+        ? null
+        : l.image_url ?? null;
+
     const { data: existing } = await supabase
       .from("listings")
       .select("id, primary_url, image_url")
@@ -406,7 +451,6 @@ Deno.serve(async (req) => {
 
     if (existing) {
       listingId = existing.id;
-      // Wenn bisheriger Link ein Tracking-Wrapper war, mit sauberem Link überschreiben
       const existingIsTracking =
         existing.primary_url &&
         /sendgrid|mailchimp|hubspot|click\.|\/ls\/click/i.test(existing.primary_url);
@@ -417,7 +461,7 @@ Deno.serve(async (req) => {
           primary_url: existingIsTracking
             ? (cleanUrl ?? existing.primary_url)
             : (existing.primary_url ?? cleanUrl ?? null),
-          image_url: existing.image_url ?? l.image_url ?? null,
+          image_url: existing.image_url ?? cleanImage,
         })
         .eq("id", listingId);
     } else {
@@ -437,7 +481,7 @@ Deno.serve(async (req) => {
           longitude: geo?.lon ?? null,
           primary_portal: l.portal,
           primary_url: cleanUrl ?? null,
-          image_url: l.image_url ?? null,
+          image_url: cleanImage,
           fingerprint: fp,
         })
         .select("id")
@@ -449,7 +493,6 @@ Deno.serve(async (req) => {
       listingId = created.id;
     }
 
-    // Add source row if not already linked
     const { data: srcExists } = await supabase
       .from("listing_sources")
       .select("id")
