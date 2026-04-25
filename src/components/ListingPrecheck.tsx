@@ -171,9 +171,10 @@ export function ListingPrecheck({
 
   const save = useMutation({
     mutationFn: async () => {
-      const payload = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = {
         listing_id: listingId,
-        data: form as unknown as Record<string, unknown>,
+        data: form,
       };
       if (row?.id) {
         const { error } = await supabase
