@@ -179,3 +179,13 @@
     display: none;
   }
 }
+
+/* Prevent horizontal scroll from full-bleed sections; allow vertical only */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Safari: smooth touch scrolling for inner scrollers */
+@supports (-webkit-touch-callout: none) {
+  .precheck-bleed { -webkit-overflow-scrolling: touch; }
+}

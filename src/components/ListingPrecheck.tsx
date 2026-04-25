@@ -254,10 +254,27 @@ export function ListingPrecheck({
       )}
 
       {open && (
-        <CardContent>
-          <div className="grid gap-6 lg:grid-cols-2">
+        <CardContent className="px-3 sm:px-6">
+          {/* Web: aus dem max-w-7xl Container ausbrechen für breiteres Layout */}
+          <div className="precheck-bleed">
+            <style>{`
+              .precheck-bleed { width: 100%; }
+              @media (min-width: 1280px) {
+                .precheck-bleed {
+                  width: 100vw;
+                  margin-left: calc(50% - 50vw);
+                  margin-right: calc(50% - 50vw);
+                  padding-left: 1.5rem;
+                  padding-right: 1.5rem;
+                }
+              }
+              @media (min-width: 1536px) {
+                .precheck-bleed { padding-left: 3rem; padding-right: 3rem; }
+              }
+            `}</style>
+            <div className="grid gap-6 lg:grid-cols-2 xl:mx-auto xl:max-w-[1800px]">
             {/* LINKS: Formular */}
-            <div className="space-y-8">
+            <div className="space-y-8 min-w-0">
               {/* 1. Steckbrief */}
               <Section title="1. Projekt-Steckbrief">
                 <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
@@ -397,7 +414,10 @@ export function ListingPrecheck({
             </div>
 
             {/* RECHTS: Live-Vorschau wie PDF */}
-            <div className="lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
+            <div
+              className="min-w-0 lg:sticky lg:top-4"
+              style={{ height: "calc(100dvh - 2rem)" }}
+            >
               <div className="mb-2 flex items-center justify-between">
                 <div className="text-sm font-medium text-muted-foreground">
                   Live-Vorschau
@@ -411,9 +431,16 @@ export function ListingPrecheck({
                   Original-PDF
                 </a>
               </div>
-              <div className="h-[calc(100%-2rem)] min-h-[600px] overflow-y-auto rounded-lg border bg-white">
+              <div
+                className="min-h-[600px] overflow-y-auto rounded-lg border bg-white"
+                style={{
+                  height: "calc(100% - 2rem)",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
                 <LivePreview data={form} />
               </div>
+            </div>
             </div>
           </div>
         </CardContent>
