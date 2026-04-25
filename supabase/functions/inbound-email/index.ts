@@ -75,41 +75,78 @@ async function geocodeAddress(
 const PORTAL_URL_RE =
   /https?:\/\/(?:www\.)?(immoscout24\.ch|homegate\.ch|flatfox\.ch|casasoft\.com|immostreet\.ch|home\.ch|newhome\.ch)\/[^\s"'<>)]+/i;
 
+const TRACKING_RE = /sendgrid\.net|mailchimp|hubspot|\/ls\/click|click\.[a-z0-9]+\.|u\d+\.ct\.sendgrid/i;
+
+function findPortalUrlIn(s: string): string | null {
+  if (!s) return null;
+  // direkter Match
+  const m = s.match(PORTAL_URL_RE);
+  if (m) return m[0];
+  // URL-decoded versuchen
+  try {
+    const dec = decodeURIComponent(s);
+    const m2 = dec.match(PORTAL_URL_RE);
+    if (m2) return m2[0];
+  } catch { /* ignore */ }
+  // Doppel-decoded (Sendgrid encodet teilweise zweimal)
+  try {
+    const dec2 = decodeURIComponent(decodeURIComponent(s));
+    const m3 = dec2.match(PORTAL_URL_RE);
+    if (m3) return m3[0];
+  } catch { /* ignore */ }
+  return null;
+}
+
 async function unwrapTrackingUrl(url: string | null | undefined): Promise<string | null> {
   if (!url) return null;
-  let current = url;
 
-  if (PORTAL_URL_RE.test(current) && !/sendgrid|mailchimp|hubspot|click\./i.test(current)) {
-    return stripTracking(current);
+  // Schon eine echte Portal-URL?
+  if (PORTAL_URL_RE.test(url) && !TRACKING_RE.test(url)) {
+    return stripTracking(url);
   }
 
+  // 1) Versuch: Portal-URL direkt aus dem Tracking-Wrapper extrahieren (oft als query param eingebettet)
+  const embedded = findPortalUrlIn(url);
+  if (embedded) return stripTracking(embedded);
+
+  // 2) Versuch: Redirects folgen, finalen res.url prüfen
+  let current = url;
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 4000);
+    const t = setTimeout(() => ctrl.abort(), 6000);
     const res = await fetch(current, {
       method: "GET",
       redirect: "follow",
       signal: ctrl.signal,
-      headers: { "User-Agent": "Mozilla/5.0 ImmoRadar/1.0" },
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+      },
     });
-    clearTimeout(t);
-    current = res.url || current;
+    const finalUrl = res.url || current;
+    if (PORTAL_URL_RE.test(finalUrl) && !TRACKING_RE.test(finalUrl)) {
+      clearTimeout(t);
+      return stripTracking(finalUrl);
+    }
+    // 3) Im HTML-Body nach Portal-URL suchen (Meta-Refresh / JS-Redirect)
+    try {
+      const body = await res.text();
+      clearTimeout(t);
+      const found = findPortalUrlIn(body);
+      if (found) return stripTracking(found);
+    } catch {
+      clearTimeout(t);
+    }
+    current = finalUrl;
   } catch (e) {
     console.warn("unwrap fetch failed:", e);
   }
 
-  if (!PORTAL_URL_RE.test(current)) {
-    const decoded = (() => {
-      try {
-        return decodeURIComponent(url);
-      } catch {
-        return url;
-      }
-    })();
-    const m = decoded.match(PORTAL_URL_RE) ?? url.match(PORTAL_URL_RE);
-    if (m) current = m[0];
+  // Wenn am Ende immer noch Tracking-Wrapper -> null zurück (lieber gar keine URL als Müll)
+  if (TRACKING_RE.test(current) || !PORTAL_URL_RE.test(current)) {
+    return null;
   }
-
   return stripTracking(current);
 }
 
@@ -435,11 +472,15 @@ Deno.serve(async (req) => {
     // Tracking-/Click-Wrapper auflösen, bevor wir speichern
     const cleanUrl = await unwrapTrackingUrl(l.url);
 
+    // Nur echte Portal-URLs als primary_url akzeptieren
+    const safePrimaryUrl =
+      cleanUrl && PORTAL_URL_RE.test(cleanUrl) && !TRACKING_RE.test(cleanUrl)
+        ? cleanUrl
+        : null;
+
     // Bilder mit Tracking-Wrapper verwerfen (wären keine echten Bilder)
     const cleanImage =
-      l.image_url && /sendgrid\.net|mailchimp|hubspot|\/ls\/click|click\.[a-z0-9]+\./i.test(l.image_url)
-        ? null
-        : l.image_url ?? null;
+      l.image_url && TRACKING_RE.test(l.image_url) ? null : l.image_url ?? null;
 
     const { data: existing } = await supabase
       .from("listings")
@@ -452,15 +493,17 @@ Deno.serve(async (req) => {
     if (existing) {
       listingId = existing.id;
       const existingIsTracking =
-        existing.primary_url &&
-        /sendgrid|mailchimp|hubspot|click\.|\/ls\/click/i.test(existing.primary_url);
+        existing.primary_url && TRACKING_RE.test(existing.primary_url);
+      // Tracking-URL durch saubere ersetzen, sonst alte behalten, sonst neue setzen
+      const newPrimary = existingIsTracking
+        ? (safePrimaryUrl ?? null)
+        : (existing.primary_url ?? safePrimaryUrl ?? null);
+
       await supabase
         .from("listings")
         .update({
           last_seen_at: new Date().toISOString(),
-          primary_url: existingIsTracking
-            ? (cleanUrl ?? existing.primary_url)
-            : (existing.primary_url ?? cleanUrl ?? null),
+          primary_url: newPrimary,
           image_url: existing.image_url ?? cleanImage,
         })
         .eq("id", listingId);
@@ -480,7 +523,7 @@ Deno.serve(async (req) => {
           latitude: geo?.lat ?? null,
           longitude: geo?.lon ?? null,
           primary_portal: l.portal,
-          primary_url: cleanUrl ?? null,
+          primary_url: safePrimaryUrl,
           image_url: cleanImage,
           fingerprint: fp,
         })
@@ -493,21 +536,24 @@ Deno.serve(async (req) => {
       listingId = created.id;
     }
 
-    const { data: srcExists } = await supabase
-      .from("listing_sources")
-      .select("id")
-      .eq("listing_id", listingId)
-      .eq("portal", l.portal)
-      .eq("url", cleanUrl ?? "")
-      .maybeSingle();
+    // listing_sources nur mit sauberer URL speichern (sonst sehen wir wieder Sendgrid-Links im UI)
+    if (safePrimaryUrl) {
+      const { data: srcExists } = await supabase
+        .from("listing_sources")
+        .select("id")
+        .eq("listing_id", listingId)
+        .eq("portal", l.portal)
+        .eq("url", safePrimaryUrl)
+        .maybeSingle();
 
-    if (!srcExists) {
-      await supabase.from("listing_sources").insert({
-        listing_id: listingId,
-        raw_email_id: rawEmail.id,
-        portal: l.portal,
-        url: cleanUrl ?? null,
-      });
+      if (!srcExists) {
+        await supabase.from("listing_sources").insert({
+          listing_id: listingId,
+          raw_email_id: rawEmail.id,
+          portal: l.portal,
+          url: safePrimaryUrl,
+        });
+      }
     }
 
     createdOrMerged++;
