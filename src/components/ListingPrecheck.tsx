@@ -256,8 +256,12 @@ export function ListingPrecheck({
       {open && (
         <CardContent className="px-3 sm:px-6">
           {/* Web: breiter ausbrechen aus dem max-w-7xl Container */}
-          <div className="xl:relative xl:left-1/2 xl:right-1/2 xl:-mx-[48vw] xl:w-screen xl:max-w-[100vw] xl:px-6 2xl:px-12">
-            <div className="grid gap-6 lg:grid-cols-2 xl:mx-auto xl:max-w-[1800px]">
+          <div
+            className="xl:w-screen xl:max-w-[100vw] xl:px-6 2xl:px-12"
+            style={{ marginLeft: "var(--bleed-x, 0)", marginRight: "var(--bleed-x, 0)" }}
+          >
+            <style>{`@media (min-width:1280px){.precheck-bleed{--bleed-x:calc(50% - 50vw);}}`}</style>
+            <div className="precheck-bleed grid gap-6 lg:grid-cols-2 xl:mx-auto xl:max-w-[1800px]">
             {/* LINKS: Formular */}
             <div className="space-y-8 min-w-0">
               {/* 1. Steckbrief */}
