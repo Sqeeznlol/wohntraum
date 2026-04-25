@@ -110,20 +110,6 @@ const EMPTY: PrecheckData = {
   empfehlung: "", bedingungen: "", ort_datum: "", durchgefuehrt_von: "",
 };
 
-const RATING_LABEL: Record<Rating, string> = {
-  sehr_gut: "Sehr gut", mittel: "Mittel", schwach: "Schwach",
-};
-const ECON_LABEL: Record<EconRating, string> = {
-  attraktiv: "Attraktiv", grenzwertig: "Grenzwertig", nicht_attraktiv: "Nicht attraktiv",
-};
-const RISK_LABEL: Record<RiskLevel, string> = {
-  niedrig: "Niedrig", mittel: "Mittel", hoch: "Hoch",
-};
-const RECO_LABEL: Record<Recommendation, string> = {
-  freigabe: "Freigabe für vertiefte Due Diligence",
-  ablehnung: "Ablehnung",
-  freigabe_bedingt: "Freigabe unter Bedingungen",
-};
 
 function prefillFromListing(l: Listing): Partial<PrecheckData> {
   const today = new Date().toLocaleDateString("de-CH");
@@ -440,14 +426,42 @@ export function ListingPrecheck({
 // Live Preview – mimics PDF look
 // ============================================================================
 
+// PDF brand colors
+const NAVY = "#1F2A6B";
+
 function LivePreview({ data: d }: { data: PrecheckData }) {
   return (
-    <div className="mx-auto max-w-[800px] space-y-5 p-8 font-serif text-[13px] leading-relaxed text-black">
-      <div className="border-b-2 border-black pb-2">
-        <h1 className="text-xl font-bold">Vorprüfung – Bauprojekt / Grundstück</h1>
+    <div
+      className="mx-auto max-w-[800px] bg-white p-10 text-[13px] leading-[1.55] text-black"
+      style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif" }}
+    >
+      {/* Header band */}
+      <div
+        className="-mx-10 -mt-10 mb-8 h-3"
+        style={{ backgroundColor: NAVY }}
+      />
+
+      {/* Title */}
+      <div className="mb-6">
+        <h1
+          className="text-[26px] font-extrabold tracking-wide"
+          style={{ color: NAVY }}
+        >
+          VORPRÜFUNG
+        </h1>
+        <div className="text-[16px] font-bold text-black">
+          Bauprojekt / Grundstück
+        </div>
       </div>
 
-      <PrevSection title="1. Projekt-Steckbrief">
+      <div className="mb-8 text-[13px]">
+        <span className="italic underline">Ziel:</span>{" "}
+        <span className="italic">
+          Entscheidungsgrundlage für VR – Freigabe für die Due Diligence
+        </span>
+      </div>
+
+      <PrevSection num="1." title="PROJEKT-STECKBRIEF">
         <PrevRow label="Projektname" value={d.projektname} />
         <PrevRow label="Adresse" value={d.adresse} />
         <PrevRow label="PLZ, Ortschaft" value={d.plz_ort} />
@@ -461,66 +475,92 @@ function LivePreview({ data: d }: { data: PrecheckData }) {
         <PrevRow label="Datum" value={d.datum} />
       </PrevSection>
 
-      <PrevSection title="2. Strategische Passung">
+      <PrevSection num="2." title="STRATEGISCHE PASSUNG">
         <PrevCheck label="Standort passt zur Unternehmensstrategie" checked={d.s_standort} />
         <PrevCheck label="Nutzung passt zu Kernkompetenz" checked={d.s_nutzung} />
         <PrevCheck label="Projektgrösse passend zur Unternehmensgrösse" checked={d.s_groesse} />
         <PrevCheck label="Kein Klumpenrisiko im Portfolio / Auftragsbuch" checked={d.s_klumpen} />
         <PrevCheck label="Region im definierten Marktgebiet" checked={d.s_marktgebiet} />
-        <PrevRow label="Strategische Bewertung" value={d.strategie_bewertung ? RATING_LABEL[d.strategie_bewertung] : ""} />
-        <PrevRow label="Begründung" value={d.strategie_begruendung} multiline />
+
+        <PrevSubLabel>Strategische Bewertung:</PrevSubLabel>
+        <PrevCheck label="Sehr gut" checked={d.strategie_bewertung === "sehr_gut"} />
+        <PrevCheck label="Mittel" checked={d.strategie_bewertung === "mittel"} />
+        <PrevCheck label="Schwach" checked={d.strategie_bewertung === "schwach"} />
+
+        <PrevSubLabel>Begründung:</PrevSubLabel>
+        <PrevFreeText value={d.strategie_begruendung} />
       </PrevSection>
 
-      <PrevSection title="3. Baurechtliche Grobprüfung">
+      <PrevSection num="3." title="BAURECHTLICHE GROBPRÜFUNG">
         <PrevCheck label="Bauzone bestätigt" checked={d.b_bauzone} />
         <PrevCheck label="Erschliessung grundsätzlich vorhanden" checked={d.b_erschliessung} />
         <PrevCheck label="Keine offensichtlichen Nutzungseinschränkungen" checked={d.b_keine_einschr} />
         <PrevCheck label="Keine offensichtlichen Schutzauflagen" checked={d.b_keine_schutz} />
         <PrevCheck label="Grobe Ausnützung plausibel" checked={d.b_ausnuetzung} />
-        <PrevRow label="Erwartete realisierbare NF / BGF" value={d.erwartete_nf} multiline />
-        <PrevRow label="Baurechtliches Risiko" value={d.baurecht_risiko ? RISK_LABEL[d.baurecht_risiko] : ""} />
+
+        <PrevSubLabel>Erwartete realisierbare NF / BGF:</PrevSubLabel>
+        <PrevFreeText value={d.erwartete_nf} />
+
+        <PrevSubLabel>Baurechtliches Risiko:</PrevSubLabel>
+        <PrevCheck label="Niedrig" checked={d.baurecht_risiko === "niedrig"} />
+        <PrevCheck label="Mittel" checked={d.baurecht_risiko === "mittel"} />
+        <PrevCheck label="Hoch" checked={d.baurecht_risiko === "hoch"} />
       </PrevSection>
 
-      <PrevSection title="4. Technische Grobprüfung">
+      <PrevSection num="4." title="TECHNISCHE GROBPRÜFUNG">
         <PrevCheck label="Hanglage / komplexe Topografie?" checked={d.t_hanglage} />
         <PrevCheck label="Hinweise auf schlechte Bodenverhältnisse?" checked={d.t_boden} />
         <PrevCheck label="Altlastenverdacht?" checked={d.t_altlasten} />
         <PrevCheck label="Abbruchkosten relevant?" checked={d.t_abbruch} />
-        <PrevRow label="Technisches Risiko" value={d.technik_risiko ? RISK_LABEL[d.technik_risiko] : ""} />
+
+        <PrevSubLabel>Technisches Risiko:</PrevSubLabel>
+        <PrevCheck label="Niedrig" checked={d.technik_risiko === "niedrig"} />
+        <PrevCheck label="Mittel" checked={d.technik_risiko === "mittel"} />
+        <PrevCheck label="Hoch" checked={d.technik_risiko === "hoch"} />
       </PrevSection>
 
-      <PrevSection title="5. Wirtschaftliche Plausibilisierung">
+      <PrevSection num="5." title="WIRTSCHAFTLICHE PLAUSIBILISIERUNG (QUICK-CHECK)">
         <PrevRow label="Erwartete NF" value={d.w_erwartete_nf} />
         <PrevRow label="Landpreis pro m² NF" value={d.w_landpreis} />
         <PrevRow label="Gesch. Baukosten pro m² NF" value={d.w_baukosten} />
-        <PrevRow label="Totalinvestition" value={d.w_totalinvest} />
+        <PrevRow label="Totalinvestition (Schätzung)" value={d.w_totalinvest} />
         <PrevRow label="Erwarteter Mietertrag" value={d.w_mietertrag} />
         <PrevRow label="Erwartete Zielrendite" value={d.w_zielrendite} />
         <PrevRow label="Erwarteter Verkaufspreis (m²)" value={d.w_verkaufspreis} />
         <PrevRow label="Erwarteter Mietzins (m²)" value={d.w_mietzins} />
         <PrevRow label="Erwarteter Verkaufserlös" value={d.w_verkaufserloes} />
         <PrevRow label="Erwarteter Gewinn" value={d.w_gewinn} />
+
+        <PrevSubLabel>Szenario-Abwägung:</PrevSubLabel>
         <PrevCheck label="Baukosten +10% noch tragbar" checked={d.w_baukosten_plus10} />
         <PrevCheck label="Verkaufspreise -5% noch tragbar" checked={d.w_verkauf_minus5} />
-        <PrevRow label="Wirtschaftliche Bewertung" value={d.wirtschaft_bewertung ? ECON_LABEL[d.wirtschaft_bewertung] : ""} />
+
+        <PrevSubLabel>Wirtschaftliche Bewertung:</PrevSubLabel>
+        <PrevCheck label="Attraktiv" checked={d.wirtschaft_bewertung === "attraktiv"} />
+        <PrevCheck label="Grenzwertig" checked={d.wirtschaft_bewertung === "grenzwertig"} />
+        <PrevCheck label="Nicht attraktiv" checked={d.wirtschaft_bewertung === "nicht_attraktiv"} />
       </PrevSection>
 
-      <PrevSection title="6. Markt-Schnellanalyse">
+      <PrevSection num="6." title="MARKT-SCHNELLANALYSE">
         <PrevCheck label="Mikrostandort positiv" checked={d.m_mikrostandort} />
         <PrevCheck label="Nachfrage nach Nutzung vorhanden" checked={d.m_nachfrage} />
         <PrevCheck label="Vergleichsprojekte erfolgreich" checked={d.m_vergleich} />
         <PrevCheck label="Keine Überangebot-Situation" checked={d.m_kein_ueberangebot} />
-        <PrevRow label="Markt-Risiko" value={d.markt_risiko ? RISK_LABEL[d.markt_risiko] : ""} />
+
+        <PrevSubLabel>Markt-Risiko:</PrevSubLabel>
+        <PrevCheck label="Niedrig" checked={d.markt_risiko === "niedrig"} />
+        <PrevCheck label="Mittel" checked={d.markt_risiko === "mittel"} />
+        <PrevCheck label="Hoch" checked={d.markt_risiko === "hoch"} />
       </PrevSection>
 
-      <PrevSection title="7. Interne Realisierbarkeit">
+      <PrevSection num="7." title="INTERNE REALISIERBARKEIT">
         <PrevCheck label="Projektteam verfügbar" checked={d.i_team} />
         <PrevCheck label="Know-how vorhanden" checked={d.i_knowhow} />
         <PrevCheck label="Keine Überlastung" checked={d.i_keine_ueberlast} />
         <PrevCheck label="Finanzierung grundsätzlich möglich" checked={d.i_finanzierung} />
       </PrevSection>
 
-      <PrevSection title="8. Gesamteinschätzung">
+      <PrevSection num="8." title="GESAMTEINSCHÄTZUNG">
         <PrevRow label="Strategie" value={d.g_strategie} />
         <PrevRow label="Baurecht" value={d.g_baurecht} />
         <PrevRow label="Technik" value={d.g_technik} />
@@ -528,53 +568,114 @@ function LivePreview({ data: d }: { data: PrecheckData }) {
         <PrevRow label="Markt" value={d.g_markt} />
       </PrevSection>
 
-      <PrevSection title="9. Empfehlung an VR">
-        <PrevRow label="Empfehlung" value={d.empfehlung ? RECO_LABEL[d.empfehlung] : ""} />
-        <PrevRow label="Bedingungen" value={d.bedingungen} multiline />
-        <div className="mt-4 border-t border-black pt-3">
-          <PrevRow label="Ort, Datum" value={d.ort_datum} />
-          <PrevRow label="Durchgeführt von" value={d.durchgefuehrt_von} />
+      <PrevSection num="9." title="EMPFEHLUNG AN VR">
+        <PrevCheck label="Freigabe für vertiefte Due Diligence" checked={d.empfehlung === "freigabe"} />
+        <PrevCheck label="Ablehnung" checked={d.empfehlung === "ablehnung"} />
+        <PrevCheck label="Freigabe unter Bedingungen" checked={d.empfehlung === "freigabe_bedingt"} />
+
+        <PrevSubLabel>Bedingungen:</PrevSubLabel>
+        <PrevFreeText value={d.bedingungen} />
+
+        <div className="mt-6 space-y-1">
+          <div className="text-[12px]">
+            Diese Vorprüfung wurde durchgeführt und geleitet von:
+          </div>
+          <div className="pt-3">
+            <PrevRow label="Ort, Datum" value={d.ort_datum} />
+            <PrevRow label="Durchgeführt von" value={d.durchgefuehrt_von} />
+          </div>
         </div>
       </PrevSection>
     </div>
   );
 }
 
-function PrevSection({ title, children }: { title: string; children: React.ReactNode }) {
+function PrevSection({
+  num,
+  title,
+  children,
+}: {
+  num: string;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <section className="space-y-1.5">
-      <h2 className="border-b border-black/60 pb-1 text-[14px] font-bold uppercase tracking-wide">
-        {title}
-      </h2>
-      <div className="space-y-1 pt-1">{children}</div>
+    <section className="mb-7">
+      <div className="mb-2 flex items-baseline gap-3">
+        <span className="font-bold" style={{ color: NAVY }}>
+          {num}
+        </span>
+        <h2
+          className="text-[15px] font-bold tracking-wide"
+          style={{ color: NAVY }}
+        >
+          {title}
+        </h2>
+      </div>
+      <div className="space-y-0">{children}</div>
     </section>
   );
 }
 
-function PrevRow({ label, value, multiline }: { label: string; value: string; multiline?: boolean }) {
+function PrevSubLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className={multiline ? "py-1" : "flex gap-3 py-0.5"}>
-      <div className={multiline ? "font-semibold" : "min-w-[180px] font-semibold"}>
-        {label}:
+    <div className="mt-3 mb-1 text-[12px] underline">{children}</div>
+  );
+}
+
+function PrevRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      className="flex items-end gap-3 py-[3px]"
+      style={{
+        backgroundImage:
+          "linear-gradient(to right, rgba(0,0,0,0.35) 33%, rgba(255,255,255,0) 0%)",
+        backgroundPosition: "bottom",
+        backgroundSize: "4px 1px",
+        backgroundRepeat: "repeat-x",
+      }}
+    >
+      <div className="min-w-[200px] text-[12.5px] text-black">{label}:</div>
+      <div
+        className={`flex-1 text-[12.5px] font-bold ${value ? "" : "opacity-30"}`}
+        style={{ color: value ? NAVY : "#000" }}
+      >
+        {value || "\u00A0"}
       </div>
-      <div className={`whitespace-pre-wrap ${value ? "" : "text-black/30"}`}>
-        {value || "—"}
-      </div>
+    </div>
+  );
+}
+
+function PrevFreeText({ value }: { value: string }) {
+  return (
+    <div
+      className={`min-h-[22px] whitespace-pre-wrap py-[3px] text-[12.5px] font-bold ${
+        value ? "" : "opacity-30"
+      }`}
+      style={{
+        color: value ? NAVY : "#000",
+        backgroundImage:
+          "linear-gradient(to right, rgba(0,0,0,0.35) 33%, rgba(255,255,255,0) 0%)",
+        backgroundPosition: "bottom",
+        backgroundSize: "4px 1px",
+        backgroundRepeat: "repeat-x",
+      }}
+    >
+      {value || "\u00A0"}
     </div>
   );
 }
 
 function PrevCheck({ label, checked }: { label: string; checked: boolean }) {
   return (
-    <div className="flex items-center gap-2 py-0.5">
+    <div className="flex items-center gap-3 py-[2px] pl-2">
       <span
-        className={`inline-flex h-4 w-4 items-center justify-center border border-black text-[11px] leading-none ${
-          checked ? "bg-black text-white" : "bg-white"
-        }`}
+        className="inline-flex h-[14px] w-[14px] flex-none items-center justify-center border border-black text-[12px] font-bold leading-none"
+        style={{ color: "#000" }}
       >
-        {checked ? "✓" : ""}
+        {checked ? "✕" : ""}
       </span>
-      <span>{label}</span>
+      <span className="text-[12.5px]">{label}</span>
     </div>
   );
 }
