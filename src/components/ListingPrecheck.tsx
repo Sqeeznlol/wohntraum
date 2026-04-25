@@ -399,7 +399,10 @@ export function ListingPrecheck({
             </div>
 
             {/* RECHTS: Live-Vorschau wie PDF */}
-            <div className="lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
+            <div
+              className="min-w-0 lg:sticky lg:top-4"
+              style={{ height: "calc(100dvh - 2rem)" }}
+            >
               <div className="mb-2 flex items-center justify-between">
                 <div className="text-sm font-medium text-muted-foreground">
                   Live-Vorschau
@@ -413,9 +416,16 @@ export function ListingPrecheck({
                   Original-PDF
                 </a>
               </div>
-              <div className="h-[calc(100%-2rem)] min-h-[600px] overflow-y-auto rounded-lg border bg-white">
+              <div
+                className="min-h-[600px] overflow-y-auto rounded-lg border bg-white"
+                style={{
+                  height: "calc(100% - 2rem)",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
                 <LivePreview data={form} />
               </div>
+            </div>
             </div>
           </div>
         </CardContent>
