@@ -119,6 +119,30 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_prechecks: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          listing_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          listing_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          listing_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       listing_sources: {
         Row: {
           created_at: string
