@@ -110,20 +110,6 @@ const EMPTY: PrecheckData = {
   empfehlung: "", bedingungen: "", ort_datum: "", durchgefuehrt_von: "",
 };
 
-const RATING_LABEL: Record<Rating, string> = {
-  sehr_gut: "Sehr gut", mittel: "Mittel", schwach: "Schwach",
-};
-const ECON_LABEL: Record<EconRating, string> = {
-  attraktiv: "Attraktiv", grenzwertig: "Grenzwertig", nicht_attraktiv: "Nicht attraktiv",
-};
-const RISK_LABEL: Record<RiskLevel, string> = {
-  niedrig: "Niedrig", mittel: "Mittel", hoch: "Hoch",
-};
-const RECO_LABEL: Record<Recommendation, string> = {
-  freigabe: "Freigabe für vertiefte Due Diligence",
-  ablehnung: "Ablehnung",
-  freigabe_bedingt: "Freigabe unter Bedingungen",
-};
 
 function prefillFromListing(l: Listing): Partial<PrecheckData> {
   const today = new Date().toLocaleDateString("de-CH");
