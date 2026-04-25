@@ -9,9 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { PdfPreview } from "@/components/PdfPreview";
 import { toast } from "sonner";
-import { Save, FileCheck2 } from "lucide-react";
+import { Save, FileCheck2, ChevronDown, ChevronUp } from "lucide-react";
 import type { Listing } from "@/lib/db-types";
 
 type RiskLevel = "niedrig" | "mittel" | "hoch";
@@ -111,6 +110,21 @@ const EMPTY: PrecheckData = {
   empfehlung: "", bedingungen: "", ort_datum: "", durchgefuehrt_von: "",
 };
 
+const RATING_LABEL: Record<Rating, string> = {
+  sehr_gut: "Sehr gut", mittel: "Mittel", schwach: "Schwach",
+};
+const ECON_LABEL: Record<EconRating, string> = {
+  attraktiv: "Attraktiv", grenzwertig: "Grenzwertig", nicht_attraktiv: "Nicht attraktiv",
+};
+const RISK_LABEL: Record<RiskLevel, string> = {
+  niedrig: "Niedrig", mittel: "Mittel", hoch: "Hoch",
+};
+const RECO_LABEL: Record<Recommendation, string> = {
+  freigabe: "Freigabe für vertiefte Due Diligence",
+  ablehnung: "Ablehnung",
+  freigabe_bedingt: "Freigabe unter Bedingungen",
+};
+
 function prefillFromListing(l: Listing): Partial<PrecheckData> {
   const today = new Date().toLocaleDateString("de-CH");
   return {
@@ -137,6 +151,7 @@ export function ListingPrecheck({
   listing: Listing;
 }) {
   const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
 
   const { data: row, isLoading } = useQuery({
     queryKey: ["listing-precheck", listingId],
@@ -149,6 +164,7 @@ export function ListingPrecheck({
       if (error) throw error;
       return data;
     },
+    enabled: open,
   });
 
   const [form, setForm] = useState<PrecheckData>(EMPTY);
@@ -156,7 +172,7 @@ export function ListingPrecheck({
 
   // Hydrate once after fetch: existing data > prefill from listing
   useEffect(() => {
-    if (isLoading || hydrated) return;
+    if (!open || isLoading || hydrated) return;
     const prefill = prefillFromListing(listing);
     if (row?.data) {
       setForm({ ...EMPTY, ...prefill, ...(row.data as Partial<PrecheckData>) });
@@ -164,7 +180,7 @@ export function ListingPrecheck({
       setForm({ ...EMPTY, ...prefill });
     }
     setHydrated(true);
-  }, [isLoading, row, listing, hydrated]);
+  }, [open, isLoading, row, listing, hydrated]);
 
   const set = <K extends keyof PrecheckData>(k: K, v: PrecheckData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -196,193 +212,375 @@ export function ListingPrecheck({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Fehler beim Speichern"),
   });
 
-  const pdfUrl = useMemo(() => "/vorpruefung-vorlage.pdf", []);
+  // Compact summary for the collapsed state
+  const filledCount = useMemo(() => {
+    if (!hydrated) return 0;
+    return Object.values(form).filter((v) =>
+      typeof v === "boolean" ? v : typeof v === "string" ? v.trim().length > 0 : false
+    ).length;
+  }, [form, hydrated]);
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+      <CardHeader
+        className="flex cursor-pointer flex-row items-center justify-between gap-3 space-y-0 hover:bg-muted/40"
+        onClick={() => setOpen((o) => !o)}
+      >
         <CardTitle className="flex items-center gap-2 text-lg">
           <FileCheck2 className="h-5 w-5" />
           Vorprüfung – Bauprojekt / Grundstück
+          {row?.id && !open && (
+            <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-normal text-primary">
+              gespeichert
+            </span>
+          )}
         </CardTitle>
-        <Button
-          onClick={() => save.mutate()}
-          disabled={save.isPending}
-          size="sm"
-        >
-          <Save className="mr-2 h-4 w-4" />
-          {save.isPending ? "Speichert…" : "Speichern"}
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* LINKS: Formular */}
-          <div className="space-y-8">
-            {/* 1. Steckbrief */}
-            <Section title="1. Projekt-Steckbrief">
-              <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
-              <Field label="Adresse" value={form.adresse} onChange={(v) => set("adresse", v)} />
-              <Field label="PLZ, Ortschaft" value={form.plz_ort} onChange={(v) => set("plz_ort", v)} />
-              <Field label="Kanton" value={form.kanton} onChange={(v) => set("kanton", v)} />
-              <Field label="Parzellen-Nr." value={form.parzellen_nr} onChange={(v) => set("parzellen_nr", v)} />
-              <Field label="Verkäufer" value={form.verkaeufer} onChange={(v) => set("verkaeufer", v)} />
-              <Field label="Kaufpreis / Richtpreis" value={form.kaufpreis} onChange={(v) => set("kaufpreis", v)} />
-              <Field label="Grundstücksfläche" value={form.grundstuecksflaeche} onChange={(v) => set("grundstuecksflaeche", v)} />
-              <Field label="Geplante Nutzung" value={form.geplante_nutzung} onChange={(v) => set("geplante_nutzung", v)} />
-              <Field label="Projektverantwortlicher" value={form.projektverantwortlicher} onChange={(v) => set("projektverantwortlicher", v)} />
-              <Field label="Datum" value={form.datum} onChange={(v) => set("datum", v)} />
-            </Section>
-
-            {/* 2. Strategie */}
-            <Section title="2. Strategische Passung">
-              <CheckRow label="Standort passt zur Unternehmensstrategie" checked={form.s_standort} onChange={(v) => set("s_standort", v)} />
-              <CheckRow label="Nutzung passt zu Kernkompetenz" checked={form.s_nutzung} onChange={(v) => set("s_nutzung", v)} />
-              <CheckRow label="Projektgrösse passend zur Unternehmensgrösse" checked={form.s_groesse} onChange={(v) => set("s_groesse", v)} />
-              <CheckRow label="Kein Klumpenrisiko im Portfolio / Auftragsbuch" checked={form.s_klumpen} onChange={(v) => set("s_klumpen", v)} />
-              <CheckRow label="Region im definierten Marktgebiet" checked={form.s_marktgebiet} onChange={(v) => set("s_marktgebiet", v)} />
-              <RadioRow
-                label="Strategische Bewertung"
-                value={form.strategie_bewertung}
-                onChange={(v) => set("strategie_bewertung", v as Rating)}
-                options={[
-                  { value: "sehr_gut", label: "Sehr gut" },
-                  { value: "mittel", label: "Mittel" },
-                  { value: "schwach", label: "Schwach" },
-                ]}
-              />
-              <TextField label="Begründung" value={form.strategie_begruendung} onChange={(v) => set("strategie_begruendung", v)} rows={3} />
-            </Section>
-
-            {/* 3. Baurecht */}
-            <Section title="3. Baurechtliche Grobprüfung">
-              <CheckRow label="Bauzone bestätigt" checked={form.b_bauzone} onChange={(v) => set("b_bauzone", v)} />
-              <CheckRow label="Erschliessung grundsätzlich vorhanden" checked={form.b_erschliessung} onChange={(v) => set("b_erschliessung", v)} />
-              <CheckRow label="Keine offensichtlichen Nutzungseinschränkungen" checked={form.b_keine_einschr} onChange={(v) => set("b_keine_einschr", v)} />
-              <CheckRow label="Keine offensichtlichen Schutzauflagen" checked={form.b_keine_schutz} onChange={(v) => set("b_keine_schutz", v)} />
-              <CheckRow label="Grobe Ausnützung plausibel" checked={form.b_ausnuetzung} onChange={(v) => set("b_ausnuetzung", v)} />
-              <TextField label="Erwartete realisierbare NF / BGF" value={form.erwartete_nf} onChange={(v) => set("erwartete_nf", v)} rows={2} />
-              <RiskRow label="Baurechtliches Risiko" value={form.baurecht_risiko} onChange={(v) => set("baurecht_risiko", v)} />
-            </Section>
-
-            {/* 4. Technik */}
-            <Section title="4. Technische Grobprüfung">
-              <CheckRow label="Hanglage / komplexe Topografie?" checked={form.t_hanglage} onChange={(v) => set("t_hanglage", v)} />
-              <CheckRow label="Hinweise auf schlechte Bodenverhältnisse?" checked={form.t_boden} onChange={(v) => set("t_boden", v)} />
-              <CheckRow label="Altlastenverdacht?" checked={form.t_altlasten} onChange={(v) => set("t_altlasten", v)} />
-              <CheckRow label="Abbruchkosten relevant?" checked={form.t_abbruch} onChange={(v) => set("t_abbruch", v)} />
-              <RiskRow label="Technisches Risiko" value={form.technik_risiko} onChange={(v) => set("technik_risiko", v)} />
-            </Section>
-
-            {/* 5. Wirtschaft */}
-            <Section title="5. Wirtschaftliche Plausibilisierung (Quick-Check)">
-              <Field label="Erwartete NF" value={form.w_erwartete_nf} onChange={(v) => set("w_erwartete_nf", v)} />
-              <Field label="Landpreis pro m² NF" value={form.w_landpreis} onChange={(v) => set("w_landpreis", v)} />
-              <Field label="Gesch. Baukosten pro m² NF" value={form.w_baukosten} onChange={(v) => set("w_baukosten", v)} />
-              <Field label="Totalinvestition (Schätzung)" value={form.w_totalinvest} onChange={(v) => set("w_totalinvest", v)} />
-              <Field label="Erwarteter Mietertrag" value={form.w_mietertrag} onChange={(v) => set("w_mietertrag", v)} />
-              <Field label="Erwartete Zielrendite" value={form.w_zielrendite} onChange={(v) => set("w_zielrendite", v)} />
-              <Field label="Erwarteter Verkaufspreis (m²)" value={form.w_verkaufspreis} onChange={(v) => set("w_verkaufspreis", v)} />
-              <Field label="Erwarteter Mietzins (m²)" value={form.w_mietzins} onChange={(v) => set("w_mietzins", v)} />
-              <Field label="Erwarteter Verkaufserlös" value={form.w_verkaufserloes} onChange={(v) => set("w_verkaufserloes", v)} />
-              <Field label="Erwarteter Gewinn" value={form.w_gewinn} onChange={(v) => set("w_gewinn", v)} />
-              <CheckRow label="Baukosten +10% noch tragbar" checked={form.w_baukosten_plus10} onChange={(v) => set("w_baukosten_plus10", v)} />
-              <CheckRow label="Verkaufspreise -5% noch tragbar" checked={form.w_verkauf_minus5} onChange={(v) => set("w_verkauf_minus5", v)} />
-              <RadioRow
-                label="Wirtschaftliche Bewertung"
-                value={form.wirtschaft_bewertung}
-                onChange={(v) => set("wirtschaft_bewertung", v as EconRating)}
-                options={[
-                  { value: "attraktiv", label: "Attraktiv" },
-                  { value: "grenzwertig", label: "Grenzwertig" },
-                  { value: "nicht_attraktiv", label: "Nicht attraktiv" },
-                ]}
-              />
-            </Section>
-
-            {/* 6. Markt */}
-            <Section title="6. Markt-Schnellanalyse">
-              <CheckRow label="Mikrostandort positiv" checked={form.m_mikrostandort} onChange={(v) => set("m_mikrostandort", v)} />
-              <CheckRow label="Nachfrage nach Nutzung vorhanden" checked={form.m_nachfrage} onChange={(v) => set("m_nachfrage", v)} />
-              <CheckRow label="Vergleichsprojekte erfolgreich" checked={form.m_vergleich} onChange={(v) => set("m_vergleich", v)} />
-              <CheckRow label="Keine Überangebot-Situation" checked={form.m_kein_ueberangebot} onChange={(v) => set("m_kein_ueberangebot", v)} />
-              <RiskRow label="Markt-Risiko" value={form.markt_risiko} onChange={(v) => set("markt_risiko", v)} />
-            </Section>
-
-            {/* 7. Interne */}
-            <Section title="7. Interne Realisierbarkeit">
-              <CheckRow label="Projektteam verfügbar" checked={form.i_team} onChange={(v) => set("i_team", v)} />
-              <CheckRow label="Know-how vorhanden" checked={form.i_knowhow} onChange={(v) => set("i_knowhow", v)} />
-              <CheckRow label="Keine Überlastung" checked={form.i_keine_ueberlast} onChange={(v) => set("i_keine_ueberlast", v)} />
-              <CheckRow label="Finanzierung grundsätzlich möglich" checked={form.i_finanzierung} onChange={(v) => set("i_finanzierung", v)} />
-            </Section>
-
-            {/* 8. Gesamteinschätzung */}
-            <Section title="8. Gesamteinschätzung">
-              <Field label="Strategie" value={form.g_strategie} onChange={(v) => set("g_strategie", v)} />
-              <Field label="Baurecht" value={form.g_baurecht} onChange={(v) => set("g_baurecht", v)} />
-              <Field label="Technik" value={form.g_technik} onChange={(v) => set("g_technik", v)} />
-              <Field label="Wirtschaft" value={form.g_wirtschaft} onChange={(v) => set("g_wirtschaft", v)} />
-              <Field label="Markt" value={form.g_markt} onChange={(v) => set("g_markt", v)} />
-            </Section>
-
-            {/* 9. Empfehlung */}
-            <Section title="9. Empfehlung an VR">
-              <RadioRow
-                label="Empfehlung"
-                value={form.empfehlung}
-                onChange={(v) => set("empfehlung", v as Recommendation)}
-                options={[
-                  { value: "freigabe", label: "Freigabe für vertiefte Due Diligence" },
-                  { value: "ablehnung", label: "Ablehnung" },
-                  { value: "freigabe_bedingt", label: "Freigabe unter Bedingungen" },
-                ]}
-              />
-              <TextField label="Bedingungen" value={form.bedingungen} onChange={(v) => set("bedingungen", v)} rows={4} />
-              <Separator />
-              <Field label="Ort, Datum" value={form.ort_datum} onChange={(v) => set("ort_datum", v)} />
-              <Field label="Durchgeführt von" value={form.durchgefuehrt_von} onChange={(v) => set("durchgefuehrt_von", v)} />
-            </Section>
-
-            <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur">
-              <Button
-                onClick={() => save.mutate()}
-                disabled={save.isPending}
-                className="w-full"
-                size="lg"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                {save.isPending ? "Speichert…" : "Vorprüfung speichern"}
-              </Button>
-            </div>
-          </div>
-
-          {/* RECHTS: PDF-Vorlage */}
-          <div className="lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="text-sm font-medium text-muted-foreground">
-                Original-Vorlage
-              </div>
-              <a
-                href={pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline"
-              >
-                In neuem Tab öffnen
-              </a>
-            </div>
-            <div className="h-[calc(100%-2rem)] min-h-[600px] overflow-hidden rounded-lg border bg-muted">
-              <PdfPreview src={pdfUrl} className="h-full w-full" />
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          {open && (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                save.mutate();
+              }}
+              disabled={save.isPending}
+              size="sm"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {save.isPending ? "Speichert…" : "Speichern"}
+            </Button>
+          )}
+          {open ? (
+            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          )}
         </div>
-      </CardContent>
+      </CardHeader>
+
+      {!open && (
+        <CardContent className="pt-0">
+          <p className="text-sm text-muted-foreground">
+            {row?.id
+              ? `${filledCount > 0 ? filledCount : "Mehrere"} Felder ausgefüllt. Klicken zum Bearbeiten.`
+              : "Klicken, um die Vorprüfung auszufüllen. Inserat-Daten werden automatisch übernommen."}
+          </p>
+        </CardContent>
+      )}
+
+      {open && (
+        <CardContent>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* LINKS: Formular */}
+            <div className="space-y-8">
+              {/* 1. Steckbrief */}
+              <Section title="1. Projekt-Steckbrief">
+                <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
+                <Field label="Adresse" value={form.adresse} onChange={(v) => set("adresse", v)} />
+                <Field label="PLZ, Ortschaft" value={form.plz_ort} onChange={(v) => set("plz_ort", v)} />
+                <Field label="Kanton" value={form.kanton} onChange={(v) => set("kanton", v)} />
+                <Field label="Parzellen-Nr." value={form.parzellen_nr} onChange={(v) => set("parzellen_nr", v)} />
+                <Field label="Verkäufer" value={form.verkaeufer} onChange={(v) => set("verkaeufer", v)} />
+                <Field label="Kaufpreis / Richtpreis" value={form.kaufpreis} onChange={(v) => set("kaufpreis", v)} />
+                <Field label="Grundstücksfläche" value={form.grundstuecksflaeche} onChange={(v) => set("grundstuecksflaeche", v)} />
+                <Field label="Geplante Nutzung" value={form.geplante_nutzung} onChange={(v) => set("geplante_nutzung", v)} />
+                <Field label="Projektverantwortlicher" value={form.projektverantwortlicher} onChange={(v) => set("projektverantwortlicher", v)} />
+                <Field label="Datum" value={form.datum} onChange={(v) => set("datum", v)} />
+              </Section>
+
+              {/* 2. Strategie */}
+              <Section title="2. Strategische Passung">
+                <CheckRow label="Standort passt zur Unternehmensstrategie" checked={form.s_standort} onChange={(v) => set("s_standort", v)} />
+                <CheckRow label="Nutzung passt zu Kernkompetenz" checked={form.s_nutzung} onChange={(v) => set("s_nutzung", v)} />
+                <CheckRow label="Projektgrösse passend zur Unternehmensgrösse" checked={form.s_groesse} onChange={(v) => set("s_groesse", v)} />
+                <CheckRow label="Kein Klumpenrisiko im Portfolio / Auftragsbuch" checked={form.s_klumpen} onChange={(v) => set("s_klumpen", v)} />
+                <CheckRow label="Region im definierten Marktgebiet" checked={form.s_marktgebiet} onChange={(v) => set("s_marktgebiet", v)} />
+                <RadioRow
+                  label="Strategische Bewertung"
+                  value={form.strategie_bewertung}
+                  onChange={(v) => set("strategie_bewertung", v as Rating)}
+                  options={[
+                    { value: "sehr_gut", label: "Sehr gut" },
+                    { value: "mittel", label: "Mittel" },
+                    { value: "schwach", label: "Schwach" },
+                  ]}
+                />
+                <TextField label="Begründung" value={form.strategie_begruendung} onChange={(v) => set("strategie_begruendung", v)} rows={3} />
+              </Section>
+
+              {/* 3. Baurecht */}
+              <Section title="3. Baurechtliche Grobprüfung">
+                <CheckRow label="Bauzone bestätigt" checked={form.b_bauzone} onChange={(v) => set("b_bauzone", v)} />
+                <CheckRow label="Erschliessung grundsätzlich vorhanden" checked={form.b_erschliessung} onChange={(v) => set("b_erschliessung", v)} />
+                <CheckRow label="Keine offensichtlichen Nutzungseinschränkungen" checked={form.b_keine_einschr} onChange={(v) => set("b_keine_einschr", v)} />
+                <CheckRow label="Keine offensichtlichen Schutzauflagen" checked={form.b_keine_schutz} onChange={(v) => set("b_keine_schutz", v)} />
+                <CheckRow label="Grobe Ausnützung plausibel" checked={form.b_ausnuetzung} onChange={(v) => set("b_ausnuetzung", v)} />
+                <TextField label="Erwartete realisierbare NF / BGF" value={form.erwartete_nf} onChange={(v) => set("erwartete_nf", v)} rows={2} />
+                <RiskRow label="Baurechtliches Risiko" value={form.baurecht_risiko} onChange={(v) => set("baurecht_risiko", v)} />
+              </Section>
+
+              {/* 4. Technik */}
+              <Section title="4. Technische Grobprüfung">
+                <CheckRow label="Hanglage / komplexe Topografie?" checked={form.t_hanglage} onChange={(v) => set("t_hanglage", v)} />
+                <CheckRow label="Hinweise auf schlechte Bodenverhältnisse?" checked={form.t_boden} onChange={(v) => set("t_boden", v)} />
+                <CheckRow label="Altlastenverdacht?" checked={form.t_altlasten} onChange={(v) => set("t_altlasten", v)} />
+                <CheckRow label="Abbruchkosten relevant?" checked={form.t_abbruch} onChange={(v) => set("t_abbruch", v)} />
+                <RiskRow label="Technisches Risiko" value={form.technik_risiko} onChange={(v) => set("technik_risiko", v)} />
+              </Section>
+
+              {/* 5. Wirtschaft */}
+              <Section title="5. Wirtschaftliche Plausibilisierung (Quick-Check)">
+                <Field label="Erwartete NF" value={form.w_erwartete_nf} onChange={(v) => set("w_erwartete_nf", v)} />
+                <Field label="Landpreis pro m² NF" value={form.w_landpreis} onChange={(v) => set("w_landpreis", v)} />
+                <Field label="Gesch. Baukosten pro m² NF" value={form.w_baukosten} onChange={(v) => set("w_baukosten", v)} />
+                <Field label="Totalinvestition (Schätzung)" value={form.w_totalinvest} onChange={(v) => set("w_totalinvest", v)} />
+                <Field label="Erwarteter Mietertrag" value={form.w_mietertrag} onChange={(v) => set("w_mietertrag", v)} />
+                <Field label="Erwartete Zielrendite" value={form.w_zielrendite} onChange={(v) => set("w_zielrendite", v)} />
+                <Field label="Erwarteter Verkaufspreis (m²)" value={form.w_verkaufspreis} onChange={(v) => set("w_verkaufspreis", v)} />
+                <Field label="Erwarteter Mietzins (m²)" value={form.w_mietzins} onChange={(v) => set("w_mietzins", v)} />
+                <Field label="Erwarteter Verkaufserlös" value={form.w_verkaufserloes} onChange={(v) => set("w_verkaufserloes", v)} />
+                <Field label="Erwarteter Gewinn" value={form.w_gewinn} onChange={(v) => set("w_gewinn", v)} />
+                <CheckRow label="Baukosten +10% noch tragbar" checked={form.w_baukosten_plus10} onChange={(v) => set("w_baukosten_plus10", v)} />
+                <CheckRow label="Verkaufspreise -5% noch tragbar" checked={form.w_verkauf_minus5} onChange={(v) => set("w_verkauf_minus5", v)} />
+                <RadioRow
+                  label="Wirtschaftliche Bewertung"
+                  value={form.wirtschaft_bewertung}
+                  onChange={(v) => set("wirtschaft_bewertung", v as EconRating)}
+                  options={[
+                    { value: "attraktiv", label: "Attraktiv" },
+                    { value: "grenzwertig", label: "Grenzwertig" },
+                    { value: "nicht_attraktiv", label: "Nicht attraktiv" },
+                  ]}
+                />
+              </Section>
+
+              {/* 6. Markt */}
+              <Section title="6. Markt-Schnellanalyse">
+                <CheckRow label="Mikrostandort positiv" checked={form.m_mikrostandort} onChange={(v) => set("m_mikrostandort", v)} />
+                <CheckRow label="Nachfrage nach Nutzung vorhanden" checked={form.m_nachfrage} onChange={(v) => set("m_nachfrage", v)} />
+                <CheckRow label="Vergleichsprojekte erfolgreich" checked={form.m_vergleich} onChange={(v) => set("m_vergleich", v)} />
+                <CheckRow label="Keine Überangebot-Situation" checked={form.m_kein_ueberangebot} onChange={(v) => set("m_kein_ueberangebot", v)} />
+                <RiskRow label="Markt-Risiko" value={form.markt_risiko} onChange={(v) => set("markt_risiko", v)} />
+              </Section>
+
+              {/* 7. Interne */}
+              <Section title="7. Interne Realisierbarkeit">
+                <CheckRow label="Projektteam verfügbar" checked={form.i_team} onChange={(v) => set("i_team", v)} />
+                <CheckRow label="Know-how vorhanden" checked={form.i_knowhow} onChange={(v) => set("i_knowhow", v)} />
+                <CheckRow label="Keine Überlastung" checked={form.i_keine_ueberlast} onChange={(v) => set("i_keine_ueberlast", v)} />
+                <CheckRow label="Finanzierung grundsätzlich möglich" checked={form.i_finanzierung} onChange={(v) => set("i_finanzierung", v)} />
+              </Section>
+
+              {/* 8. Gesamteinschätzung */}
+              <Section title="8. Gesamteinschätzung">
+                <Field label="Strategie" value={form.g_strategie} onChange={(v) => set("g_strategie", v)} />
+                <Field label="Baurecht" value={form.g_baurecht} onChange={(v) => set("g_baurecht", v)} />
+                <Field label="Technik" value={form.g_technik} onChange={(v) => set("g_technik", v)} />
+                <Field label="Wirtschaft" value={form.g_wirtschaft} onChange={(v) => set("g_wirtschaft", v)} />
+                <Field label="Markt" value={form.g_markt} onChange={(v) => set("g_markt", v)} />
+              </Section>
+
+              {/* 9. Empfehlung */}
+              <Section title="9. Empfehlung an VR">
+                <RadioRow
+                  label="Empfehlung"
+                  value={form.empfehlung}
+                  onChange={(v) => set("empfehlung", v as Recommendation)}
+                  options={[
+                    { value: "freigabe", label: "Freigabe für vertiefte Due Diligence" },
+                    { value: "ablehnung", label: "Ablehnung" },
+                    { value: "freigabe_bedingt", label: "Freigabe unter Bedingungen" },
+                  ]}
+                />
+                <TextField label="Bedingungen" value={form.bedingungen} onChange={(v) => set("bedingungen", v)} rows={4} />
+                <Separator />
+                <Field label="Ort, Datum" value={form.ort_datum} onChange={(v) => set("ort_datum", v)} />
+                <Field label="Durchgeführt von" value={form.durchgefuehrt_von} onChange={(v) => set("durchgefuehrt_von", v)} />
+              </Section>
+
+              <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur">
+                <Button
+                  onClick={() => save.mutate()}
+                  disabled={save.isPending}
+                  className="w-full"
+                  size="lg"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {save.isPending ? "Speichert…" : "Vorprüfung speichern"}
+                </Button>
+              </div>
+            </div>
+
+            {/* RECHTS: Live-Vorschau wie PDF */}
+            <div className="lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-sm font-medium text-muted-foreground">
+                  Live-Vorschau
+                </div>
+                <a
+                  href="/vorpruefung-vorlage.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Original-PDF
+                </a>
+              </div>
+              <div className="h-[calc(100%-2rem)] min-h-[600px] overflow-y-auto rounded-lg border bg-white">
+                <LivePreview data={form} />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 }
 
 // ============================================================================
-// Subcomponents
+// Live Preview – mimics PDF look
+// ============================================================================
+
+function LivePreview({ data: d }: { data: PrecheckData }) {
+  return (
+    <div className="mx-auto max-w-[800px] space-y-5 p-8 font-serif text-[13px] leading-relaxed text-black">
+      <div className="border-b-2 border-black pb-2">
+        <h1 className="text-xl font-bold">Vorprüfung – Bauprojekt / Grundstück</h1>
+      </div>
+
+      <PrevSection title="1. Projekt-Steckbrief">
+        <PrevRow label="Projektname" value={d.projektname} />
+        <PrevRow label="Adresse" value={d.adresse} />
+        <PrevRow label="PLZ, Ortschaft" value={d.plz_ort} />
+        <PrevRow label="Kanton" value={d.kanton} />
+        <PrevRow label="Parzellen-Nr." value={d.parzellen_nr} />
+        <PrevRow label="Verkäufer" value={d.verkaeufer} />
+        <PrevRow label="Kaufpreis / Richtpreis" value={d.kaufpreis} />
+        <PrevRow label="Grundstücksfläche" value={d.grundstuecksflaeche} />
+        <PrevRow label="Geplante Nutzung" value={d.geplante_nutzung} />
+        <PrevRow label="Projektverantwortlicher" value={d.projektverantwortlicher} />
+        <PrevRow label="Datum" value={d.datum} />
+      </PrevSection>
+
+      <PrevSection title="2. Strategische Passung">
+        <PrevCheck label="Standort passt zur Unternehmensstrategie" checked={d.s_standort} />
+        <PrevCheck label="Nutzung passt zu Kernkompetenz" checked={d.s_nutzung} />
+        <PrevCheck label="Projektgrösse passend zur Unternehmensgrösse" checked={d.s_groesse} />
+        <PrevCheck label="Kein Klumpenrisiko im Portfolio / Auftragsbuch" checked={d.s_klumpen} />
+        <PrevCheck label="Region im definierten Marktgebiet" checked={d.s_marktgebiet} />
+        <PrevRow label="Strategische Bewertung" value={d.strategie_bewertung ? RATING_LABEL[d.strategie_bewertung] : ""} />
+        <PrevRow label="Begründung" value={d.strategie_begruendung} multiline />
+      </PrevSection>
+
+      <PrevSection title="3. Baurechtliche Grobprüfung">
+        <PrevCheck label="Bauzone bestätigt" checked={d.b_bauzone} />
+        <PrevCheck label="Erschliessung grundsätzlich vorhanden" checked={d.b_erschliessung} />
+        <PrevCheck label="Keine offensichtlichen Nutzungseinschränkungen" checked={d.b_keine_einschr} />
+        <PrevCheck label="Keine offensichtlichen Schutzauflagen" checked={d.b_keine_schutz} />
+        <PrevCheck label="Grobe Ausnützung plausibel" checked={d.b_ausnuetzung} />
+        <PrevRow label="Erwartete realisierbare NF / BGF" value={d.erwartete_nf} multiline />
+        <PrevRow label="Baurechtliches Risiko" value={d.baurecht_risiko ? RISK_LABEL[d.baurecht_risiko] : ""} />
+      </PrevSection>
+
+      <PrevSection title="4. Technische Grobprüfung">
+        <PrevCheck label="Hanglage / komplexe Topografie?" checked={d.t_hanglage} />
+        <PrevCheck label="Hinweise auf schlechte Bodenverhältnisse?" checked={d.t_boden} />
+        <PrevCheck label="Altlastenverdacht?" checked={d.t_altlasten} />
+        <PrevCheck label="Abbruchkosten relevant?" checked={d.t_abbruch} />
+        <PrevRow label="Technisches Risiko" value={d.technik_risiko ? RISK_LABEL[d.technik_risiko] : ""} />
+      </PrevSection>
+
+      <PrevSection title="5. Wirtschaftliche Plausibilisierung">
+        <PrevRow label="Erwartete NF" value={d.w_erwartete_nf} />
+        <PrevRow label="Landpreis pro m² NF" value={d.w_landpreis} />
+        <PrevRow label="Gesch. Baukosten pro m² NF" value={d.w_baukosten} />
+        <PrevRow label="Totalinvestition" value={d.w_totalinvest} />
+        <PrevRow label="Erwarteter Mietertrag" value={d.w_mietertrag} />
+        <PrevRow label="Erwartete Zielrendite" value={d.w_zielrendite} />
+        <PrevRow label="Erwarteter Verkaufspreis (m²)" value={d.w_verkaufspreis} />
+        <PrevRow label="Erwarteter Mietzins (m²)" value={d.w_mietzins} />
+        <PrevRow label="Erwarteter Verkaufserlös" value={d.w_verkaufserloes} />
+        <PrevRow label="Erwarteter Gewinn" value={d.w_gewinn} />
+        <PrevCheck label="Baukosten +10% noch tragbar" checked={d.w_baukosten_plus10} />
+        <PrevCheck label="Verkaufspreise -5% noch tragbar" checked={d.w_verkauf_minus5} />
+        <PrevRow label="Wirtschaftliche Bewertung" value={d.wirtschaft_bewertung ? ECON_LABEL[d.wirtschaft_bewertung] : ""} />
+      </PrevSection>
+
+      <PrevSection title="6. Markt-Schnellanalyse">
+        <PrevCheck label="Mikrostandort positiv" checked={d.m_mikrostandort} />
+        <PrevCheck label="Nachfrage nach Nutzung vorhanden" checked={d.m_nachfrage} />
+        <PrevCheck label="Vergleichsprojekte erfolgreich" checked={d.m_vergleich} />
+        <PrevCheck label="Keine Überangebot-Situation" checked={d.m_kein_ueberangebot} />
+        <PrevRow label="Markt-Risiko" value={d.markt_risiko ? RISK_LABEL[d.markt_risiko] : ""} />
+      </PrevSection>
+
+      <PrevSection title="7. Interne Realisierbarkeit">
+        <PrevCheck label="Projektteam verfügbar" checked={d.i_team} />
+        <PrevCheck label="Know-how vorhanden" checked={d.i_knowhow} />
+        <PrevCheck label="Keine Überlastung" checked={d.i_keine_ueberlast} />
+        <PrevCheck label="Finanzierung grundsätzlich möglich" checked={d.i_finanzierung} />
+      </PrevSection>
+
+      <PrevSection title="8. Gesamteinschätzung">
+        <PrevRow label="Strategie" value={d.g_strategie} />
+        <PrevRow label="Baurecht" value={d.g_baurecht} />
+        <PrevRow label="Technik" value={d.g_technik} />
+        <PrevRow label="Wirtschaft" value={d.g_wirtschaft} />
+        <PrevRow label="Markt" value={d.g_markt} />
+      </PrevSection>
+
+      <PrevSection title="9. Empfehlung an VR">
+        <PrevRow label="Empfehlung" value={d.empfehlung ? RECO_LABEL[d.empfehlung] : ""} />
+        <PrevRow label="Bedingungen" value={d.bedingungen} multiline />
+        <div className="mt-4 border-t border-black pt-3">
+          <PrevRow label="Ort, Datum" value={d.ort_datum} />
+          <PrevRow label="Durchgeführt von" value={d.durchgefuehrt_von} />
+        </div>
+      </PrevSection>
+    </div>
+  );
+}
+
+function PrevSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-1.5">
+      <h2 className="border-b border-black/60 pb-1 text-[14px] font-bold uppercase tracking-wide">
+        {title}
+      </h2>
+      <div className="space-y-1 pt-1">{children}</div>
+    </section>
+  );
+}
+
+function PrevRow({ label, value, multiline }: { label: string; value: string; multiline?: boolean }) {
+  return (
+    <div className={multiline ? "py-1" : "flex gap-3 py-0.5"}>
+      <div className={multiline ? "font-semibold" : "min-w-[180px] font-semibold"}>
+        {label}:
+      </div>
+      <div className={`whitespace-pre-wrap ${value ? "" : "text-black/30"}`}>
+        {value || "—"}
+      </div>
+    </div>
+  );
+}
+
+function PrevCheck({ label, checked }: { label: string; checked: boolean }) {
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <span
+        className={`inline-flex h-4 w-4 items-center justify-center border border-black text-[11px] leading-none ${
+          checked ? "bg-black text-white" : "bg-white"
+        }`}
+      >
+        {checked ? "✓" : ""}
+      </span>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+// ============================================================================
+// Form subcomponents
 // ============================================================================
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
