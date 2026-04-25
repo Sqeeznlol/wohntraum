@@ -472,11 +472,15 @@ Deno.serve(async (req) => {
     // Tracking-/Click-Wrapper auflösen, bevor wir speichern
     const cleanUrl = await unwrapTrackingUrl(l.url);
 
+    // Nur echte Portal-URLs als primary_url akzeptieren
+    const safePrimaryUrl =
+      cleanUrl && PORTAL_URL_RE.test(cleanUrl) && !TRACKING_RE.test(cleanUrl)
+        ? cleanUrl
+        : null;
+
     // Bilder mit Tracking-Wrapper verwerfen (wären keine echten Bilder)
     const cleanImage =
-      l.image_url && /sendgrid\.net|mailchimp|hubspot|\/ls\/click|click\.[a-z0-9]+\./i.test(l.image_url)
-        ? null
-        : l.image_url ?? null;
+      l.image_url && TRACKING_RE.test(l.image_url) ? null : l.image_url ?? null;
 
     const { data: existing } = await supabase
       .from("listings")
@@ -489,15 +493,17 @@ Deno.serve(async (req) => {
     if (existing) {
       listingId = existing.id;
       const existingIsTracking =
-        existing.primary_url &&
-        /sendgrid|mailchimp|hubspot|click\.|\/ls\/click/i.test(existing.primary_url);
+        existing.primary_url && TRACKING_RE.test(existing.primary_url);
+      // Tracking-URL durch saubere ersetzen, sonst alte behalten, sonst neue setzen
+      const newPrimary = existingIsTracking
+        ? (safePrimaryUrl ?? null)
+        : (existing.primary_url ?? safePrimaryUrl ?? null);
+
       await supabase
         .from("listings")
         .update({
           last_seen_at: new Date().toISOString(),
-          primary_url: existingIsTracking
-            ? (cleanUrl ?? existing.primary_url)
-            : (existing.primary_url ?? cleanUrl ?? null),
+          primary_url: newPrimary,
           image_url: existing.image_url ?? cleanImage,
         })
         .eq("id", listingId);
@@ -517,7 +523,7 @@ Deno.serve(async (req) => {
           latitude: geo?.lat ?? null,
           longitude: geo?.lon ?? null,
           primary_portal: l.portal,
-          primary_url: cleanUrl ?? null,
+          primary_url: safePrimaryUrl,
           image_url: cleanImage,
           fingerprint: fp,
         })
@@ -530,21 +536,24 @@ Deno.serve(async (req) => {
       listingId = created.id;
     }
 
-    const { data: srcExists } = await supabase
-      .from("listing_sources")
-      .select("id")
-      .eq("listing_id", listingId)
-      .eq("portal", l.portal)
-      .eq("url", cleanUrl ?? "")
-      .maybeSingle();
+    // listing_sources nur mit sauberer URL speichern (sonst sehen wir wieder Sendgrid-Links im UI)
+    if (safePrimaryUrl) {
+      const { data: srcExists } = await supabase
+        .from("listing_sources")
+        .select("id")
+        .eq("listing_id", listingId)
+        .eq("portal", l.portal)
+        .eq("url", safePrimaryUrl)
+        .maybeSingle();
 
-    if (!srcExists) {
-      await supabase.from("listing_sources").insert({
-        listing_id: listingId,
-        raw_email_id: rawEmail.id,
-        portal: l.portal,
-        url: cleanUrl ?? null,
-      });
+      if (!srcExists) {
+        await supabase.from("listing_sources").insert({
+          listing_id: listingId,
+          raw_email_id: rawEmail.id,
+          portal: l.portal,
+          url: safePrimaryUrl,
+        });
+      }
     }
 
     createdOrMerged++;
