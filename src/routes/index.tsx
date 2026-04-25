@@ -97,7 +97,30 @@ function ListingsPage() {
         ? await query.not("archived_at", "is", null)
         : await query.is("archived_at", null);
       if (error) throw error;
-      return data as Listing[];
+      const rows = data as Listing[];
+
+      // Fallback-Bilder: lade erstes listing_images-Bild je Inserat,
+      // falls image_url leer ist (z. B. nach Tracking-Wrapper-Cleanup).
+      const missing = rows.filter((l) => !l.image_url).map((l) => l.id);
+      if (missing.length > 0) {
+        const { data: imgs } = await supabase
+          .from("listing_images" as never)
+          .select("listing_id, url, sort_order")
+          .in("listing_id", missing)
+          .order("sort_order", { ascending: true });
+        const firstByListing = new Map<string, string>();
+        for (const img of (imgs ?? []) as Array<{ listing_id: string; url: string }>) {
+          if (!firstByListing.has(img.listing_id)) {
+            firstByListing.set(img.listing_id, img.url);
+          }
+        }
+        for (const l of rows) {
+          if (!l.image_url && firstByListing.has(l.id)) {
+            l.image_url = firstByListing.get(l.id) ?? null;
+          }
+        }
+      }
+      return rows;
     },
   });
 
