@@ -254,10 +254,12 @@ export function ListingPrecheck({
       )}
 
       {open && (
-        <CardContent>
-          <div className="grid gap-6 lg:grid-cols-2">
+        <CardContent className="px-3 sm:px-6">
+          {/* Web: breiter ausbrechen aus dem max-w-7xl Container */}
+          <div className="xl:relative xl:left-1/2 xl:right-1/2 xl:-mx-[48vw] xl:w-screen xl:max-w-[100vw] xl:px-6 2xl:px-12">
+            <div className="grid gap-6 lg:grid-cols-2 xl:mx-auto xl:max-w-[1800px]">
             {/* LINKS: Formular */}
-            <div className="space-y-8">
+            <div className="space-y-8 min-w-0">
               {/* 1. Steckbrief */}
               <Section title="1. Projekt-Steckbrief">
                 <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
