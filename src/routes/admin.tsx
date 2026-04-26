@@ -274,7 +274,7 @@ function AdminDashboard({
   // Group devices by IP — same router = same group
   const grouped = useMemo(() => {
     const map = new Map<string, Visitor[]>();
-    for (const v of filtered) {
+    for (const v of visibleFiltered) {
       const list = map.get(v.ip_address) ?? [];
       list.push(v);
       map.set(v.ip_address, list);
