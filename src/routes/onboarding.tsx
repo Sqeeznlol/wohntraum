@@ -40,20 +40,17 @@ function formatReceivedAt(receivedAt: string) {
 }
 
 function Redacted({ text }: { text: string }) {
-  // Top-Secret-Stil: schwarzer Balken über dem Text, Original beim Hover sichtbar
+  // Vollständige Schwärzung – Inhalt bleibt immer verdeckt
   return (
     <span
       title="Schwärzung – Inhalt vertraulich"
-      className="group relative inline-block max-w-full align-middle"
+      className="relative inline-block max-w-full align-middle"
     >
       <span className="invisible block truncate font-mono text-xs">{text}</span>
       <span
         aria-hidden
-        className="absolute inset-0 block rounded-sm bg-black transition-opacity duration-150 group-hover:opacity-0"
+        className="absolute inset-0 block rounded-sm bg-black"
       />
-      <span className="pointer-events-none absolute inset-0 hidden truncate font-mono text-xs text-foreground group-hover:block">
-        {text}
-      </span>
     </span>
   );
 }
