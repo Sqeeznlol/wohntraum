@@ -732,26 +732,26 @@ function PipelineCard({
 function StageIndicator({ current }: { current: PipelineStage }) {
   const idx = STAGES.findIndex((s) => s.key === current);
   return (
-    <div className="flex items-center gap-1 border-t border-border/70 bg-muted/30 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+    <div className="flex items-center gap-1 border-t-[0.5px] border-hairline bg-white/40 px-3.5 py-2 text-[9px] uppercase tracking-[0.22em] text-steel">
       {STAGES.map((s, i) => (
         <div key={s.key} className="flex items-center gap-1">
           <span
-            className={`flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold ${
+            className={`flex h-3.5 w-3.5 items-center justify-center rounded-[2px] text-[8px] font-semibold ${
               i < idx
-                ? "bg-foreground/20 text-foreground"
+                ? "bg-sapphire/15 text-sapphire"
                 : i === idx
-                ? "bg-foreground text-background"
-                : "bg-muted text-muted-foreground"
+                ? "bg-sapphire text-white"
+                : "bg-muted text-steel/60"
             }`}
           >
-            {i < idx ? <Check className="h-2.5 w-2.5" /> : i + 1}
+            {i < idx ? <Check className="h-2 w-2" /> : i + 1}
           </span>
           {i < STAGES.length - 1 && (
-            <ChevronRight className="h-2.5 w-2.5 text-muted-foreground/50" />
+            <ChevronRight className="h-2 w-2 text-steel/40" />
           )}
         </div>
       ))}
-      <span className="ml-auto text-foreground">{STAGES[idx]?.label}</span>
+      <span className="ml-auto font-medium text-sapphire">{STAGES[idx]?.label}</span>
     </div>
   );
 }
