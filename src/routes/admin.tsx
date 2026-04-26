@@ -176,8 +176,15 @@ function AdminDashboard({
       if (error) throw error;
       return (data ?? []) as unknown as Visitor[];
     },
-    refetchInterval: 15_000,
+    refetchInterval: 5_000,
   });
+
+  // Tick every second so the "live" cutoff stays fresh between refetches
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1_000);
+    return () => clearInterval(id);
+  }, []);
 
   const block = useMutation({
     mutationFn: async ({ id, blocked }: { id: string; blocked: boolean }) => {
