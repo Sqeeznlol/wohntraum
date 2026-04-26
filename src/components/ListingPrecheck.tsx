@@ -308,33 +308,35 @@ function PrecheckBody({
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      {/* Hero / progress */}
-      <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-background to-background p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <FileCheck2 className="h-5 w-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold">Vorprüfung Bauprojekt</div>
-            <div className="text-xs text-muted-foreground">
-              Schritt {SECTION_IDS.indexOf(activeSection) + 1} von {SECTION_IDS.length} · {SECTION_TITLES[activeSection]}
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      {/* LEFT: Editor */}
+      <div className="space-y-4 min-w-0">
+        {/* Hero / progress */}
+        <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-background to-background p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <FileCheck2 className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold">Vorprüfung Bauprojekt</div>
+              <div className="text-xs text-muted-foreground">
+                Schritt {SECTION_IDS.indexOf(activeSection) + 1} von {SECTION_IDS.length} · {SECTION_TITLES[activeSection]}
+              </div>
+            </div>
+            <div className="hidden text-right sm:block">
+              <div className="text-lg font-bold tabular-nums">{progressPct}%</div>
             </div>
           </div>
-          <div className="hidden text-right sm:block">
-            <div className="text-lg font-bold tabular-nums">{progressPct}%</div>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{ width: `${progressPct}%` }}
+            />
           </div>
         </div>
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-300"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
-      </div>
 
-      {/* Sections */}
-      <div className="space-y-2">
+        {/* Sections */}
+        <div className="space-y-2">
         <Accordion id="1" activeId={activeSection} onToggle={setActiveSection}>
           <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
             <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
@@ -400,7 +402,7 @@ function PrecheckBody({
             <Field label="Erwartete Zielrendite" value={form.w_zielrendite} onChange={(v) => set("w_zielrendite", v)} />
             <Field label="Erwarteter Verkaufspreis (m²)" value={form.w_verkaufspreis} onChange={(v) => set("w_verkaufspreis", v)} />
             <Field label="Erwarteter Mietzins (m²)" value={form.w_mietzins} onChange={(v) => set("w_mietzins", v)} />
-            <Field label="Erwarteter Verkaufserlös" value={form.w_verkaufserloes} onChange={(v) => set("w_verkaufserloes", v)} />
+            <Field label="Erwarteter Verkaufserlös" value={form.w_verkaufserloes} onChange={(v) => set("w_verkauf serloes", v)} />
             <Field label="Erwarteter Gewinn" value={form.w_gewinn} onChange={(v) => set("w_gewinn", v)} />
           </div>
           <CheckRow label="Baukosten +10% noch tragbar" checked={form.w_baukosten_plus10} onChange={(v) => set("w_baukosten_plus10", v)} />
@@ -487,7 +489,7 @@ function PrecheckBody({
         </Button>
       </div>
 
-      <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur space-y-2">
         <Button
           onClick={() => save.mutate()}
           disabled={save.isPending}
@@ -497,6 +499,27 @@ function PrecheckBody({
           <Save className="mr-2 h-4 w-4" />
           {save.isPending ? "Speichert…" : "Vorprüfung speichern"}
         </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" size="sm" onClick={() => downloadAsWord(form)}>
+            <FileText className="mr-2 h-4 w-4" /> Als Word (.doc)
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => downloadAsPdf(form)}>
+            <Download className="mr-2 h-4 w-4" /> Als PDF
+          </Button>
+        </div>
+      </div>
+      </div>
+
+      {/* RIGHT: live preview of currently active section */}
+      <div className="min-w-0">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Live-Vorschau · Abschnitt {activeSection}
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-xl border bg-white shadow-sm lg:sticky lg:top-4">
+          <LiveSectionPreview sectionId={activeSection} data={form} />
+        </div>
       </div>
     </div>
   );
