@@ -440,6 +440,72 @@ export type Database = {
         }
         Relationships: []
       }
+      visitor_log: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          custom_label: string | null
+          device_type: string | null
+          first_seen_at: string
+          hostname: string | null
+          id: string
+          ip_address: string
+          is_blocked: boolean
+          language: string | null
+          last_seen_at: string
+          os: string | null
+          path: string | null
+          referrer: string | null
+          updated_at: string
+          user_agent: string | null
+          visit_count: number
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          custom_label?: string | null
+          device_type?: string | null
+          first_seen_at?: string
+          hostname?: string | null
+          id?: string
+          ip_address: string
+          is_blocked?: boolean
+          language?: string | null
+          last_seen_at?: string
+          os?: string | null
+          path?: string | null
+          referrer?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          visit_count?: number
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          custom_label?: string | null
+          device_type?: string | null
+          first_seen_at?: string
+          hostname?: string | null
+          id?: string
+          ip_address?: string
+          is_blocked?: boolean
+          language?: string | null
+          last_seen_at?: string
+          os?: string | null
+          path?: string | null
+          referrer?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          visit_count?: number
+        }
+        Relationships: []
+      }
       zh_postal_codes: {
         Row: {
           postal_code: string
