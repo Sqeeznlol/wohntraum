@@ -105,7 +105,7 @@ function Machine({ pool }: { pool: Listing[] }) {
             pool={pool}
             target={results[i]}
             spinning={spinning}
-            stopDelay={i * 400}
+            reelIndex={i}
           />
         ))}
       </div>
