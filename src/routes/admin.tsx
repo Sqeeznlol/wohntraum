@@ -640,3 +640,232 @@ function StatCard({
     </Card>
   );
 }
+
+// ============= Activity Timeline (Tagebuch pro IP) =============
+interface ActivityRow {
+  id: string;
+  ip_address: string;
+  event_type: string;
+  event_label: string | null;
+  path: string | null;
+  listing_id: string | null;
+  target_id: string | null;
+  duration_ms: number | null;
+  metadata: Record<string, unknown> | null;
+  session_id: string | null;
+  created_at: string;
+}
+
+function eventIcon(type: string) {
+  if (type === "page_view") return Eye;
+  if (type === "page_leave") return ArrowUpRight;
+  if (type === "button_click") return MousePointerClick;
+  if (type === "link_click") return MousePointerClick;
+  if (type === "input_change") return Pencil;
+  if (type === "listing_view") return FileText;
+  return Activity;
+}
+
+function eventColor(type: string) {
+  if (type === "page_view") return "text-blue-600 dark:text-blue-400";
+  if (type === "page_leave") return "text-muted-foreground";
+  if (type === "button_click" || type === "link_click")
+    return "text-purple-600 dark:text-purple-400";
+  if (type === "input_change") return "text-amber-600 dark:text-amber-400";
+  if (type === "listing_view") return "text-emerald-600 dark:text-emerald-400";
+  return "text-foreground";
+}
+
+function fmtDuration(ms: number | null) {
+  if (!ms || ms < 0) return null;
+  if (ms < 1000) return `${ms}ms`;
+  const s = Math.round(ms / 100) / 10;
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const rest = Math.round(s % 60);
+  return `${m}m ${rest}s`;
+}
+
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleString("de-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function ActivityTimeline({ ip }: { ip: string }) {
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: activities, isLoading } = useQuery({
+    queryKey: ["visitor_activity", ip],
+    enabled: open,
+    refetchInterval: open ? 5000 : false,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("visitor_activity")
+        .select("*")
+        .eq("ip_address", ip)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []) as unknown as ActivityRow[];
+    },
+  });
+
+  const clearActivity = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("visitor_activity")
+        .delete()
+        .eq("ip_address", ip);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Aktivität gelöscht");
+      queryClient.invalidateQueries({ queryKey: ["visitor_activity", ip] });
+    },
+  });
+
+  const summary = useMemo(() => {
+    if (!activities) return null;
+    const byType = new Map<string, number>();
+    let totalTime = 0;
+    for (const a of activities) {
+      byType.set(a.event_type, (byType.get(a.event_type) ?? 0) + 1);
+      if (a.event_type === "page_leave" && a.duration_ms) totalTime += a.duration_ms;
+    }
+    return { total: activities.length, byType, totalTime };
+  }, [activities]);
+
+  return (
+    <div className="border-t bg-muted/10">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/30"
+      >
+        <span className="inline-flex items-center gap-2">
+          {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          <Activity className="h-3.5 w-3.5" />
+          Aktivitäts-Tagebuch
+          {summary && (
+            <Badge variant="outline" className="text-[10px] tabular-nums">
+              {summary.total} Events
+            </Badge>
+          )}
+        </span>
+        {open && summary && summary.totalTime > 0 && (
+          <span className="text-[10px] tabular-nums">
+            Gesamt-Verweildauer: {fmtDuration(summary.totalTime)}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="space-y-3 px-4 py-3">
+          {isLoading ? (
+            <p className="text-xs text-muted-foreground">Lade Aktivität…</p>
+          ) : !activities || activities.length === 0 ? (
+            <p className="text-xs italic text-muted-foreground">
+              Keine Aktivität aufgezeichnet.
+            </p>
+          ) : (
+            <>
+              {/* Summary chips */}
+              {summary && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[...summary.byType.entries()]
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([t, n]) => (
+                      <Badge
+                        key={t}
+                        variant="secondary"
+                        className="text-[10px] tabular-nums"
+                      >
+                        {t} · {n}
+                      </Badge>
+                    ))}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto h-6 px-2 text-[10px]"
+                    onClick={() => {
+                      if (confirm("Komplettes Tagebuch dieser IP löschen?"))
+                        clearActivity.mutate();
+                    }}
+                  >
+                    <Trash2 className="mr-1 h-3 w-3" />
+                    Tagebuch löschen
+                  </Button>
+                </div>
+              )}
+
+              {/* Timeline */}
+              <ol className="relative space-y-1.5 border-l-2 border-muted pl-4">
+                {activities.map((a) => {
+                  const Icon = eventIcon(a.event_type);
+                  const color = eventColor(a.event_type);
+                  const meta = a.metadata ?? {};
+                  const value =
+                    typeof meta === "object" && meta && "value" in meta
+                      ? String((meta as Record<string, unknown>).value)
+                      : null;
+                  const dur = fmtDuration(a.duration_ms);
+                  return (
+                    <li key={a.id} className="relative">
+                      <span
+                        className={`absolute -left-[21px] top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-background bg-card ${color}`}
+                      >
+                        <Icon className="h-2.5 w-2.5" />
+                      </span>
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
+                        <span className={`font-medium ${color}`}>{a.event_type}</span>
+                        {a.event_label && (
+                          <span className="truncate text-foreground/90">
+                            {a.event_label}
+                          </span>
+                        )}
+                        {a.path && (
+                          <span className="font-mono text-[10px] text-muted-foreground">
+                            {a.path}
+                          </span>
+                        )}
+                        {a.listing_id && (
+                          <a
+                            href={`/listings/${a.listing_id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[10px] text-primary underline-offset-2 hover:underline"
+                          >
+                            Inserat ↗
+                          </a>
+                        )}
+                        {dur && (
+                          <Badge variant="outline" className="text-[10px] tabular-nums">
+                            {dur}
+                          </Badge>
+                        )}
+                        <span className="ml-auto text-[10px] tabular-nums text-muted-foreground">
+                          {fmtTime(a.created_at)}
+                        </span>
+                      </div>
+                      {value && (
+                        <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground/80">
+                          „{value}"
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
