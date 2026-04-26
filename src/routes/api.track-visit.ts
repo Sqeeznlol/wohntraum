@@ -108,6 +108,51 @@ async function reverseDns(ip: string): Promise<string | null> {
   }
 }
 
+// ============= ISO country code -> full German name =============
+const COUNTRY_DE: Record<string, string> = {
+  CH: "Schweiz", DE: "Deutschland", AT: "Österreich", FR: "Frankreich",
+  IT: "Italien", LI: "Liechtenstein", US: "USA", GB: "Vereinigtes Königreich",
+  NL: "Niederlande", BE: "Belgien", ES: "Spanien", PT: "Portugal",
+  PL: "Polen", CZ: "Tschechien", SE: "Schweden", NO: "Norwegen",
+  DK: "Dänemark", FI: "Finnland", IE: "Irland", LU: "Luxemburg",
+  TR: "Türkei", RU: "Russland", UA: "Ukraine", CN: "China", JP: "Japan",
+  IN: "Indien", BR: "Brasilien", CA: "Kanada", AU: "Australien",
+};
+function expandCountry(c: string | null | undefined): string | null {
+  if (!c) return null;
+  const up = c.toUpperCase();
+  if (up.length === 2 && COUNTRY_DE[up]) return COUNTRY_DE[up];
+  return c;
+}
+
+// ============= Reverse geocode coords -> street address =============
+async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&accept-language=de`,
+      { headers: { "User-Agent": "WohntraumVisitorTracker/1.0" } },
+    );
+    if (!r.ok) return null;
+    const j = (await r.json()) as {
+      address?: {
+        road?: string;
+        house_number?: string;
+        suburb?: string;
+        neighbourhood?: string;
+      };
+      display_name?: string;
+    };
+    const a = j.address || {};
+    const parts = [
+      [a.road, a.house_number].filter(Boolean).join(" "),
+      a.suburb || a.neighbourhood,
+    ].filter(Boolean);
+    return parts.length ? parts.join(", ") : null;
+  } catch {
+    return null;
+  }
+}
+
 // ============= Geo lookup (richer) =============
 async function geoLookup(ip: string): Promise<{
   country: string | null;
