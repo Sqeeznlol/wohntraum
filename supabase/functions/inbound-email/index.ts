@@ -648,6 +648,48 @@ Deno.serve(async (req) => {
       }
     }
 
+    // FREE: Bilder direkt vom Portal scrapen (0 Credits) und in listing_images ablegen.
+    // Das ersetzt den manuellen "Bilder importieren"-Klick für Homegate/Flatfox/etc.
+    if (safePrimaryUrl) {
+      try {
+        const scraped = await scrapeImagesFree(safePrimaryUrl);
+        if (scraped.length > 0) {
+          // bestehende Bilder dieser Listing-ID laden, um Duplikate zu vermeiden
+          const { data: existingImgs } = await supabase
+            .from("listing_images")
+            .select("url, sort_order")
+            .eq("listing_id", listingId);
+          const existingSet = new Set(
+            (existingImgs ?? []).map((r: { url: string }) => r.url),
+          );
+          const startSort =
+            (existingImgs ?? []).reduce(
+              (m: number, r: { sort_order: number | null }) =>
+                Math.max(m, r.sort_order ?? 0),
+              -1,
+            ) + 1;
+          const fresh = scraped.filter((u) => !existingSet.has(u));
+          if (fresh.length > 0) {
+            const rows = fresh.map((u, i) => ({
+              listing_id: listingId,
+              url: u,
+              sort_order: startSort + i,
+            }));
+            await supabase.from("listing_images").insert(rows);
+          }
+          // image_url setzen, falls noch leer
+          if (!cleanImage && fresh[0]) {
+            await supabase
+              .from("listings")
+              .update({ image_url: fresh[0] })
+              .eq("id", listingId);
+          }
+        }
+      } catch (e) {
+        console.warn("free image scrape failed:", e);
+      }
+    }
+
     createdOrMerged++;
   }
 
