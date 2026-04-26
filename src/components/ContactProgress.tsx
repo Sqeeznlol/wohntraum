@@ -299,16 +299,23 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
               </div>
             );
           })}
-          {customMilestones.map((m) => (
-            <div
-              key={m.id}
-              className={cn(
-                "h-2 flex-1 rounded-full",
-                m.done ? "bg-primary" : "bg-primary/20",
-              )}
-              title={m.label}
-            />
-          ))}
+          {customMilestones.map((m) => {
+            const st = statusOf(m);
+            return (
+              <div
+                key={m.id}
+                className={cn(
+                  "h-2 flex-1 rounded-full",
+                  st === "erledigt"
+                    ? "bg-primary"
+                    : st === "in_bearbeitung"
+                    ? "bg-amber-400"
+                    : "bg-primary/20",
+                )}
+                title={`${m.label} · ${st === "in_bearbeitung" ? "in Bearbeitung" : st}`}
+              />
+            );
+          })}
         </div>
         <div className="mt-1.5 flex items-center justify-between">
           <span className="text-[11px] font-medium text-foreground">
