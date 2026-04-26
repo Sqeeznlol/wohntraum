@@ -183,6 +183,7 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
         id: crypto.randomUUID(),
         label: trimmed,
         ts: new Date().toISOString(),
+        status: "offen",
         done: false,
       };
       const nextSteps: StepLog = {
