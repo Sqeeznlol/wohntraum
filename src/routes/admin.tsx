@@ -299,12 +299,68 @@ function AdminDashboard({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <StatCard label="Live jetzt" value={stats.live} live />
         <StatCard label="Geräte gesamt" value={stats.total} />
         <StatCard label="Eindeutige IPs" value={stats.uniqueIps} />
         <StatCard label="Heute aktiv" value={stats.today} accent />
         <StatCard label="Blockiert" value={stats.blocked} danger />
       </div>
+
+      {/* Live now — devices active in last 60s */}
+      {liveDevices.length > 0 && (
+        <Card className="border-emerald-500/40 bg-emerald-500/5">
+          <div className="flex items-center justify-between border-b border-emerald-500/20 px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">
+                Live auf der Seite
+              </span>
+              <Badge variant="outline" className="border-emerald-500/40 text-[10px] tabular-nums text-emerald-700 dark:text-emerald-400">
+                {liveDevices.length}
+              </Badge>
+            </div>
+            <span className="text-[10px] text-muted-foreground">aktiv in den letzten 60s</span>
+          </div>
+          <div className="divide-y divide-emerald-500/10">
+            {liveDevices.map((v) => {
+              const Icon = deviceIcon(v.device_type);
+              const displayName =
+                v.custom_label ||
+                v.device_name ||
+                `${v.device_type ?? "Gerät"} · ${v.browser ?? ""}`.trim();
+              const secondsAgo = Math.max(0, Math.floor((now - new Date(v.last_seen_at).getTime()) / 1000));
+              return (
+                <div key={v.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                    <Icon className="h-4 w-4" />
+                    <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-semibold">{displayName}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">{v.ip_address}</span>
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
+                      <span>{v.os ?? "—"} · {v.browser ?? "—"}</span>
+                      {(v.city || v.country) && (
+                        <span>{[v.city, v.country].filter(Boolean).join(", ")}</span>
+                      )}
+                      {v.path && <span className="font-mono truncate">{v.path}</span>}
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[10px] tabular-nums text-emerald-700 dark:text-emerald-400">
+                    {secondsAgo < 5 ? "jetzt" : `vor ${secondsAgo}s`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {/* Search + refresh */}
       <div className="flex items-center gap-2">
