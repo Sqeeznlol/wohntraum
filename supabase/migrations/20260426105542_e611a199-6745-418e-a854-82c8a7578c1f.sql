@@ -1,0 +1,1 @@
+ALTER TABLE public.visitor_log ADD COLUMN IF NOT EXISTS address text;

@@ -50,6 +50,7 @@ interface Visitor {
   isp: string | null;
   latitude: number | null;
   longitude: number | null;
+  address: string | null;
   language: string | null;
   referrer: string | null;
   path: string | null;
@@ -346,8 +347,16 @@ function AdminDashboard({
                     </div>
                     <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
                       <span>{v.os ?? "—"} · {v.browser ?? "—"}</span>
-                      {(v.city || v.country) && (
-                        <span>{[v.city, v.country].filter(Boolean).join(", ")}</span>
+                      {(v.address || v.city || v.country) && (
+                        <span>
+                          {[
+                            v.address,
+                            [v.postal, v.city].filter(Boolean).join(" "),
+                            v.country,
+                          ]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </span>
                       )}
                       {v.path && <span className="font-mono truncate">{v.path}</span>}
                     </div>
@@ -425,12 +434,22 @@ function AdminDashboard({
                     )}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                    {(meta?.city || meta?.region || meta?.country) && (
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {[meta?.city, meta?.postal, meta?.region, meta?.country]
-                          .filter(Boolean)
-                          .join(", ")}
+                    {(meta?.city || meta?.region || meta?.country || meta?.address) && (
+                      <span className="inline-flex items-start gap-1">
+                        <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
+                        <span>
+                          {meta?.address && (
+                            <span className="font-medium text-foreground/80">{meta.address}</span>
+                          )}
+                          {meta?.address && (meta?.city || meta?.postal || meta?.country) && <br />}
+                          {[
+                            [meta?.postal, meta?.city].filter(Boolean).join(" "),
+                            meta?.region,
+                            meta?.country,
+                          ]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </span>
                       </span>
                     )}
                     {meta?.isp && (

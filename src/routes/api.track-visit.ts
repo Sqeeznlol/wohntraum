@@ -108,6 +108,51 @@ async function reverseDns(ip: string): Promise<string | null> {
   }
 }
 
+// ============= ISO country code -> full German name =============
+const COUNTRY_DE: Record<string, string> = {
+  CH: "Schweiz", DE: "Deutschland", AT: "Österreich", FR: "Frankreich",
+  IT: "Italien", LI: "Liechtenstein", US: "USA", GB: "Vereinigtes Königreich",
+  NL: "Niederlande", BE: "Belgien", ES: "Spanien", PT: "Portugal",
+  PL: "Polen", CZ: "Tschechien", SE: "Schweden", NO: "Norwegen",
+  DK: "Dänemark", FI: "Finnland", IE: "Irland", LU: "Luxemburg",
+  TR: "Türkei", RU: "Russland", UA: "Ukraine", CN: "China", JP: "Japan",
+  IN: "Indien", BR: "Brasilien", CA: "Kanada", AU: "Australien",
+};
+function expandCountry(c: string | null | undefined): string | null {
+  if (!c) return null;
+  const up = c.toUpperCase();
+  if (up.length === 2 && COUNTRY_DE[up]) return COUNTRY_DE[up];
+  return c;
+}
+
+// ============= Reverse geocode coords -> street address =============
+async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&accept-language=de`,
+      { headers: { "User-Agent": "WohntraumVisitorTracker/1.0" } },
+    );
+    if (!r.ok) return null;
+    const j = (await r.json()) as {
+      address?: {
+        road?: string;
+        house_number?: string;
+        suburb?: string;
+        neighbourhood?: string;
+      };
+      display_name?: string;
+    };
+    const a = j.address || {};
+    const parts = [
+      [a.road, a.house_number].filter(Boolean).join(" "),
+      a.suburb || a.neighbourhood,
+    ].filter(Boolean);
+    return parts.length ? parts.join(", ") : null;
+  } catch {
+    return null;
+  }
+}
+
 // ============= Geo lookup (richer) =============
 async function geoLookup(ip: string): Promise<{
   country: string | null;
@@ -226,7 +271,7 @@ export const Route = createFileRoute("/api/track-visit")({
           const { data: existing } = await supabase
             .from("visitor_log")
             .select(
-              "id, visit_count, is_blocked, hostname, country, region, city, postal, isp, latitude, longitude",
+              "id, visit_count, is_blocked, hostname, country, region, city, postal, isp, latitude, longitude, address",
             )
             .eq("ip_address", ip)
             .eq("user_agent", ua)
@@ -240,16 +285,19 @@ export const Route = createFileRoute("/api/track-visit")({
           }
 
           let hostname = existing?.hostname ?? null;
-          let country = existing?.country ?? cfCountry;
-          let region = existing?.region ?? cfRegion;
-          let city = existing?.city ?? cfCity;
+          let country = existing?.country ?? null;
+          let region = existing?.region ?? null;
+          let city = existing?.city ?? null;
           let postal = existing?.postal ?? null;
           let isp = existing?.isp ?? null;
           let latitude = existing?.latitude ?? null;
           let longitude = existing?.longitude ?? null;
+          let address = (existing as { address?: string | null } | null)?.address ?? null;
 
-          if (!existing) {
-            hostname = await reverseDns(ip);
+          // Always enrich missing geo fields (also for existing rows that were saved with only "CH")
+          const needsGeo =
+            !city || !postal || !region || !isp || latitude == null || longitude == null;
+          if (needsGeo) {
             const geo = await geoLookup(ip);
             country = country || geo.country;
             region = region || geo.region;
@@ -258,13 +306,21 @@ export const Route = createFileRoute("/api/track-visit")({
             isp = isp || geo.isp;
             latitude = latitude ?? geo.latitude;
             longitude = longitude ?? geo.longitude;
+          }
+          // Always store full country name (Schweiz instead of CH)
+          country = expandCountry(country) || expandCountry(cfCountry);
 
-            // If the reverse-DNS hostname looks like an ISP (e.g. cablecom, swisscom),
-            // use that as ISP fallback.
-            if (!isp && hostname) {
-              const m = hostname.match(/(swisscom|sunrise|salt|cablecom|init7|upc|green)/i);
-              if (m) isp = m[1];
-            }
+          if (!hostname) hostname = await reverseDns(ip);
+
+          // ISP fallback from hostname
+          if (!isp && hostname) {
+            const m = hostname.match(/(swisscom|sunrise|salt|cablecom|init7|upc|green)/i);
+            if (m) isp = m[1];
+          }
+
+          // Reverse-geocode coords to street address (only if we don't have one yet)
+          if (!address && latitude != null && longitude != null) {
+            address = await reverseGeocode(latitude, longitude);
           }
 
           if (existing) {
@@ -278,6 +334,15 @@ export const Route = createFileRoute("/api/track-visit")({
                 browser: parsed.browser,
                 device_type: parsed.device,
                 device_name: parsed.deviceName || parsed.device,
+                hostname,
+                country,
+                region,
+                city,
+                postal,
+                isp,
+                latitude,
+                longitude,
+                address,
                 language: body.language ?? null,
                 referrer: body.referrer ?? null,
                 path: body.path ?? null,
@@ -299,6 +364,7 @@ export const Route = createFileRoute("/api/track-visit")({
               isp,
               latitude,
               longitude,
+              address,
               language: body.language ?? null,
               referrer: body.referrer ?? null,
               path: body.path ?? null,

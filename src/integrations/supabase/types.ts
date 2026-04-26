@@ -442,6 +442,7 @@ export type Database = {
       }
       visitor_log: {
         Row: {
+          address: string | null
           browser: string | null
           city: string | null
           country: string | null
@@ -469,6 +470,7 @@ export type Database = {
           visit_count: number
         }
         Insert: {
+          address?: string | null
           browser?: string | null
           city?: string | null
           country?: string | null
@@ -496,6 +498,7 @@ export type Database = {
           visit_count?: number
         }
         Update: {
+          address?: string | null
           browser?: string | null
           city?: string | null
           country?: string | null
