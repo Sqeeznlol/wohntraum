@@ -169,7 +169,7 @@ function AdminDashboard({
       const { error } = await supabase
         .from("visitor_log" as never)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ is_blocked: blocked } as any)
+        .update({ is_blocked: blocked } as never)
         .eq("id", id);
       if (error) throw error;
     },
@@ -184,7 +184,7 @@ function AdminDashboard({
       const { error } = await supabase
         .from("visitor_log" as never)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ custom_label: label } as any)
+        .update({ custom_label: label } as never)
         .eq("id", id);
       if (error) throw error;
     },
