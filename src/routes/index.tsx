@@ -561,31 +561,33 @@ function PipelineCard({
       transition={{ type: "spring", stiffness: 280, damping: 28 }}
       className="group relative"
     >
-      <Card className="overflow-hidden border-border/70 bg-card transition-shadow hover:shadow-card">
+      <Card className="overflow-hidden rounded-[6px] border-[0.5px] border-hairline bg-white shadow-[0_1px_2px_rgba(8,29,66,0.03)] transition-all hover:border-sapphire/20 hover:shadow-[0_4px_24px_-8px_rgba(8,29,66,0.10)] gap-0 py-0">
         <Link to="/listings/$id" params={{ id: listing.id }} className="block">
           <div className="relative aspect-[16/10] overflow-hidden bg-muted">
             {listing.image_url ? (
               <img
                 src={listing.image_url}
                 alt={listing.title}
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+              <div className="flex h-full w-full items-center justify-center text-xs text-steel">
                 Kein Bild
               </div>
             )}
+            {/* Hairline inner outline */}
+            <div className="pointer-events-none absolute inset-0 outline outline-1 -outline-offset-1 outline-black/5" />
             {/* Top-left badges */}
-            <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+            <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1">
               <Badge
                 variant="secondary"
-                className="border-0 bg-background/90 text-[10px] font-medium uppercase tracking-wider text-foreground backdrop-blur-sm"
+                className="rounded-[2px] border-[0.5px] border-hairline bg-white/90 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-[0.18em] text-sapphire backdrop-blur-md"
               >
                 {PORTAL_LABELS[listing.primary_portal] ?? listing.primary_portal}
               </Badge>
               {isArchived && (
-                <Badge className="border-0 bg-muted/95 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <Badge className="rounded-[2px] border-0 bg-black/70 px-1.5 py-0 text-[9px] uppercase tracking-[0.18em] text-white backdrop-blur-md">
                   Archiv
                 </Badge>
               )}
@@ -597,38 +599,32 @@ function PipelineCard({
                 e.stopPropagation();
                 onToggleFav();
               }}
-              className="absolute right-3 top-3 rounded-full bg-background/90 p-2 backdrop-blur-sm transition-transform active:scale-90"
+              className="absolute right-2.5 top-2.5 rounded-[3px] border-[0.5px] border-hairline bg-white/90 p-1.5 backdrop-blur-md transition-transform active:scale-90"
               aria-label="Favorit"
             >
               {listing.is_favorite ? (
-                <Star className="h-3.5 w-3.5 fill-accent text-accent" />
+                <Star className="h-3 w-3 fill-sapphire text-sapphire" />
               ) : (
-                <Star className="h-3.5 w-3.5 text-muted-foreground" />
+                <Star className="h-3 w-3 text-steel" />
               )}
             </button>
-            {/* Price overlay */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 text-white">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.18em] opacity-80">
-                    {formatCHF(listing.price_chf ? Number(listing.price_chf) : null)} ·{" "}
-                    {formatSqm(listing.area_sqm ? Number(listing.area_sqm) : null)}
-                  </div>
-                </div>
-                <div className="font-serif-display text-2xl leading-none tabular-nums">
-                  {formatPricePerSqm(ppsm)}
-                </div>
-              </div>
-            </div>
           </div>
 
-          <CardContent className="space-y-2 p-4">
-            <h3 className="line-clamp-2 font-serif-display text-base leading-tight">
-              {listing.title}
-            </h3>
-            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <CardContent className="space-y-3 p-3.5">
+            {/* Title + price */}
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="line-clamp-2 flex-1 text-sm font-medium leading-tight text-foreground">
+                {listing.title}
+              </h3>
+              <p className="font-serif-display whitespace-nowrap text-base tabular-nums text-sapphire">
+                {formatCHF(listing.price_chf ? Number(listing.price_chf) : null)}
+              </p>
+            </div>
+
+            {/* Location */}
+            <div className="flex items-center justify-between gap-2 text-[11px] text-steel">
               {listing.city ? (
-                <div className="flex min-w-0 items-center gap-1">
+                <div className="flex min-w-0 items-center gap-1 font-light tracking-wide">
                   <MapPin className="h-3 w-3 shrink-0" />
                   <span className="truncate">
                     {listing.postal_code} {listing.city}
@@ -638,18 +634,46 @@ function PipelineCard({
                 <span />
               )}
               <div
-                className="flex shrink-0 items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium tabular-nums"
+                className="flex shrink-0 items-center gap-1 text-[10px] font-light tabular-nums"
                 title={formatExactTime(listing.first_seen_at)}
               >
                 <Clock className="h-2.5 w-2.5" />
                 {formatDateTime(listing.first_seen_at)}
               </div>
             </div>
+
+            {/* Metric grid — hairline separated */}
+            <div className="grid grid-cols-3 gap-2 border-t-[0.5px] border-hairline pt-2.5">
+              <div>
+                <p className="mb-0.5 text-[8px] font-medium uppercase tracking-[0.22em] text-steel">
+                  Fläche
+                </p>
+                <p className="text-xs font-medium tabular-nums text-foreground">
+                  {formatSqm(listing.area_sqm ? Number(listing.area_sqm) : null)}
+                </p>
+              </div>
+              <div>
+                <p className="mb-0.5 text-[8px] font-medium uppercase tracking-[0.22em] text-steel">
+                  CHF/m²
+                </p>
+                <p className="text-xs font-medium tabular-nums text-foreground">
+                  {formatPricePerSqm(ppsm)}
+                </p>
+              </div>
+              <div>
+                <p className="mb-0.5 text-[8px] font-medium uppercase tracking-[0.22em] text-steel">
+                  Stage
+                </p>
+                <p className="text-xs font-medium text-foreground">
+                  {STAGES.find((s) => s.key === stage)?.short ?? "—"}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Link>
 
-        {/* Quick action bar — the heart of the pipeline */}
-        <div className="flex items-stretch gap-1.5 border-t border-border/70 bg-card p-2">
+        {/* Quick action bar — hairline & sapphire */}
+        <div className="flex items-stretch gap-1.5 border-t-[0.5px] border-hairline bg-white/40 p-2">
           {actions.map((a) => {
             const Icon = a.icon;
             return (
@@ -657,14 +681,18 @@ function PipelineCard({
                 key={a.key}
                 variant={a.variant}
                 size="sm"
-                className="h-10 flex-1 rounded-lg text-xs font-medium"
+                className={`h-8 flex-1 rounded-[3px] text-[11px] font-medium ${
+                  a.variant === "default"
+                    ? "bg-sapphire text-white hover:bg-sapphire-light"
+                    : "border-[0.5px] border-hairline bg-white text-sapphire hover:bg-white/80"
+                }`}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onSetStatus(a.key);
                 }}
               >
-                <Icon className="mr-1 h-3.5 w-3.5" />
+                <Icon className="mr-1 h-3 w-3" />
                 {a.label}
               </Button>
             );
@@ -672,7 +700,7 @@ function PipelineCard({
           <Button
             variant="ghost"
             size="sm"
-            className="h-10 w-10 shrink-0 rounded-lg p-0"
+            className="h-8 w-8 shrink-0 rounded-[3px] p-0 text-steel hover:text-sapphire"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -681,9 +709,9 @@ function PipelineCard({
             aria-label={isArchived ? "Wiederherstellen" : "Archivieren"}
           >
             {isArchived ? (
-              <ArchiveRestore className="h-4 w-4" />
+              <ArchiveRestore className="h-3.5 w-3.5" />
             ) : (
-              <Archive className="h-4 w-4" />
+              <Archive className="h-3.5 w-3.5" />
             )}
           </Button>
         </div>
