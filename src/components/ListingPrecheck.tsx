@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, FileCheck2, ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
+import { Save, FileCheck2, ChevronDown, ChevronUp, ChevronRight, Download, FileText } from "lucide-react";
 import type { Listing } from "@/lib/db-types";
 
 type RiskLevel = "niedrig" | "mittel" | "hoch";
