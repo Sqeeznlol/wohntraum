@@ -121,24 +121,27 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <VisitTracker />
       <div className="min-h-screen bg-background pb-[env(safe-area-inset-bottom)]">
-        <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-5">
-            <Link to="/" className="flex items-baseline gap-2">
-              <span className="font-serif-display text-xl md:text-2xl">Immo Radar</span>
-              <span className="hidden text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:inline">
-                Schweiz
+        {/* Apple-style fixed glass nav */}
+        <header className="sticky top-0 z-40 border-b-[0.5px] border-hairline bg-background/70 backdrop-blur-2xl">
+          <div className="mx-auto flex h-12 max-w-[1600px] items-center justify-between px-4 md:px-6">
+            <Link to="/" className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sapphire">
+                Immo Radar
+              </span>
+              <span className="hidden text-[9px] uppercase tracking-[0.28em] text-steel sm:inline">
+                · CH
               </span>
             </Link>
-            <nav className="flex items-center gap-4 text-sm md:gap-7">
+            <nav className="flex items-center gap-1 text-xs md:gap-2">
               {navItems.map(({ to, label, exact }) => (
                 <Link
                   key={to}
                   to={to}
                   activeOptions={exact ? { exact: true } : undefined}
-                  className="relative py-1 text-xs text-muted-foreground transition-colors hover:text-foreground md:text-sm"
+                  className="rounded-[3px] px-3 py-1.5 text-[11px] font-medium text-steel transition-colors hover:text-sapphire md:text-xs"
                   activeProps={{
                     className:
-                      "relative py-1 text-xs md:text-sm text-foreground after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:bg-foreground",
+                      "rounded-[3px] px-3 py-1.5 text-[11px] md:text-xs font-medium text-sapphire bg-white/60 border-[0.5px] border-hairline",
                   }}
                 >
                   {label}
@@ -147,7 +150,7 @@ function RootComponent() {
             </nav>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-10">
+        <main className="mx-auto max-w-[1600px] px-4 py-8 md:px-6 md:py-12">
           <Outlet />
         </main>
         <Toaster />

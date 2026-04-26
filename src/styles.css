@@ -54,37 +54,37 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 
-  /* Warm off-white canvas */
-  --background: oklch(0.985 0.005 90);
-  --foreground: oklch(0.22 0.015 80);
+  /* Sapphire Glass — cool platinum canvas */
+  --background: oklch(0.965 0.003 250);
+  --foreground: oklch(0.18 0.04 265);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.015 80);
+  --card-foreground: oklch(0.18 0.04 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.015 80);
+  --popover-foreground: oklch(0.18 0.04 265);
 
-  /* Deep ink primary */
-  --primary: oklch(0.28 0.02 75);
-  --primary-foreground: oklch(0.985 0.005 90);
+  /* Deep sapphire primary */
+  --primary: oklch(0.22 0.08 265);
+  --primary-foreground: oklch(0.98 0.005 250);
 
-  --secondary: oklch(0.95 0.01 85);
-  --secondary-foreground: oklch(0.28 0.02 75);
+  --secondary: oklch(0.95 0.005 250);
+  --secondary-foreground: oklch(0.22 0.08 265);
 
-  --muted: oklch(0.95 0.01 85);
-  --muted-foreground: oklch(0.5 0.015 80);
+  --muted: oklch(0.93 0.006 250);
+  --muted-foreground: oklch(0.55 0.02 255);
 
-  /* Sage / olive accent */
-  --accent: oklch(0.55 0.06 135);
-  --accent-foreground: oklch(0.985 0.005 90);
+  /* Sapphire-light accent */
+  --accent: oklch(0.38 0.12 265);
+  --accent-foreground: oklch(0.98 0.005 250);
 
   --destructive: oklch(0.55 0.18 25);
   --destructive-foreground: oklch(0.985 0.005 90);
 
-  --border: oklch(0.9 0.01 85);
-  --input: oklch(0.9 0.01 85);
-  --ring: oklch(0.55 0.06 135 / 50%);
+  --border: oklch(0.88 0.006 250);
+  --input: oklch(0.9 0.006 250);
+  --ring: oklch(0.38 0.12 265 / 50%);
 
   --chart-1: oklch(0.55 0.06 135);
   --chart-2: oklch(0.65 0.08 60);
@@ -101,10 +101,20 @@
   --sidebar-border: oklch(0.9 0.01 85);
   --sidebar-ring: oklch(0.55 0.06 135 / 50%);
 
-  /* Custom design tokens */
-  --gradient-hero: linear-gradient(180deg, oklch(0.97 0.012 88), oklch(0.985 0.005 90));
-  --shadow-soft: 0 1px 2px oklch(0.22 0.015 80 / 0.04), 0 8px 24px -12px oklch(0.22 0.015 80 / 0.12);
-  --shadow-card: 0 1px 2px oklch(0.22 0.015 80 / 0.05), 0 12px 32px -16px oklch(0.22 0.015 80 / 0.18);
+  /* Sapphire tokens */
+  --sapphire: oklch(0.22 0.08 265);
+  --sapphire-light: oklch(0.38 0.12 265);
+  --steel: oklch(0.6 0.02 255);
+  --platinum: oklch(0.965 0.003 250);
+  --glass-surface: color-mix(in srgb, white 75%, transparent);
+  --glass-border: color-mix(in srgb, white 50%, transparent);
+  --hairline: color-mix(in srgb, oklch(0.18 0.04 265) 8%, transparent);
+
+  --gradient-hero: linear-gradient(180deg, oklch(0.97 0.005 250), oklch(0.965 0.003 250));
+  --gradient-sapphire: linear-gradient(135deg, oklch(0.38 0.12 265), oklch(0.22 0.08 265));
+  --shadow-soft: 0 1px 2px oklch(0.18 0.04 265 / 0.04), 0 8px 24px -12px oklch(0.18 0.04 265 / 0.10);
+  --shadow-card: 0 1px 2px oklch(0.18 0.04 265 / 0.04), 0 4px 16px -8px oklch(0.18 0.04 265 / 0.08);
+  --shadow-glass: 0 1px 0 inset color-mix(in srgb, white 80%, transparent), 0 8px 32px -12px oklch(0.18 0.04 265 / 0.12);
   --font-serif: "Cormorant Garamond", "Playfair Display", ui-serif, Georgia, serif;
 }
 
@@ -162,15 +172,23 @@
     font-weight: 500;
     letter-spacing: -0.02em;
   }
-  .shadow-soft {
-    box-shadow: var(--shadow-soft);
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-glass { box-shadow: var(--shadow-glass); }
+  .bg-hero { background: var(--gradient-hero); }
+  .bg-sapphire-gradient { background: var(--gradient-sapphire); }
+  .text-sapphire { color: var(--sapphire); }
+  .text-sapphire-light { color: var(--sapphire-light); }
+  .text-steel { color: var(--steel); }
+  .bg-sapphire { background-color: var(--sapphire); }
+  .border-hairline { border-color: var(--hairline); }
+  .glass-surface {
+    background-color: var(--glass-surface);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 0.5px solid var(--glass-border);
   }
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
-  .bg-hero {
-    background: var(--gradient-hero);
-  }
+  .tracking-eyebrow { letter-spacing: 0.25em; text-transform: uppercase; }
   .scrollbar-none {
     scrollbar-width: none;
     -ms-overflow-style: none;
