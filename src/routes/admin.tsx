@@ -574,21 +574,35 @@ function StatCard({
   value,
   accent,
   danger,
+  live,
 }: {
   label: string;
   value: number;
   accent?: boolean;
   danger?: boolean;
+  live?: boolean;
 }) {
   return (
-    <Card>
+    <Card className={live ? "border-emerald-500/40 bg-emerald-500/5" : ""}>
       <CardContent className="p-4">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          {live && (
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+          )}
           {label}
         </div>
         <div
           className={`mt-1 font-serif-display text-3xl tabular-nums ${
-            danger ? "text-destructive" : accent ? "text-accent" : ""
+            danger
+              ? "text-destructive"
+              : live
+                ? "text-emerald-600 dark:text-emerald-400"
+                : accent
+                  ? "text-accent"
+                  : ""
           }`}
         >
           {value}
