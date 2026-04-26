@@ -24,6 +24,14 @@ import {
   Wifi,
   MapPin,
   Building2,
+  ChevronDown,
+  ChevronRight,
+  Activity,
+  MousePointerClick,
+  Eye,
+  FileText,
+  Pencil,
+  ArrowUpRight,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
