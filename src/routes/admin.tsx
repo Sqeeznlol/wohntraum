@@ -348,7 +348,7 @@ function AdminDashboard({
                         )}
                         <Input
                           defaultValue={v.custom_label ?? ""}
-                          placeholder={'Label setzen (z. B. „mein iPhone")'}
+                          placeholder="Label setzen (z. B. mein iPhone)"
                           className="mt-2 h-7 text-xs"
                           onBlur={(e) => {
                             const val = e.target.value;

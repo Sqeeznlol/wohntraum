@@ -337,17 +337,21 @@ function PrecheckBody({
           activeId={activeSection}
           onToggle={setActiveSection}
         >
-          <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
-          <Field label="Adresse" value={form.adresse} onChange={(v) => set("adresse", v)} />
-          <Field label="PLZ, Ortschaft" value={form.plz_ort} onChange={(v) => set("plz_ort", v)} />
-          <Field label="Kanton" value={form.kanton} onChange={(v) => set("kanton", v)} />
-          <Field label="Parzellen-Nr." value={form.parzellen_nr} onChange={(v) => set("parzellen_nr", v)} />
-          <Field label="Verkäufer" value={form.verkaeufer} onChange={(v) => set("verkaeufer", v)} />
-          <Field label="Kaufpreis / Richtpreis" value={form.kaufpreis} onChange={(v) => set("kaufpreis", v)} />
-          <Field label="Grundstücksfläche" value={form.grundstuecksflaeche} onChange={(v) => set("grundstuecksflaeche", v)} />
-          <Field label="Geplante Nutzung" value={form.geplante_nutzung} onChange={(v) => set("geplante_nutzung", v)} />
-          <Field label="Projektverantwortlicher" value={form.projektverantwortlicher} onChange={(v) => set("projektverantwortlicher", v)} />
-          <Field label="Datum" value={form.datum} onChange={(v) => set("datum", v)} />
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+            <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
+            <Field label="Adresse" value={form.adresse} onChange={(v) => set("adresse", v)} />
+            <Field label="PLZ, Ortschaft" value={form.plz_ort} onChange={(v) => set("plz_ort", v)} />
+            <Field label="Kanton" value={form.kanton} onChange={(v) => set("kanton", v)} />
+            <Field label="Parzellen-Nr." value={form.parzellen_nr} onChange={(v) => set("parzellen_nr", v)} />
+            <Field label="Verkäufer" value={form.verkaeufer} onChange={(v) => set("verkaeufer", v)} />
+            <Field label="Kaufpreis / Richtpreis" value={form.kaufpreis} onChange={(v) => set("kaufpreis", v)} />
+            <Field label="Grundstücksfläche" value={form.grundstuecksflaeche} onChange={(v) => set("grundstuecksflaeche", v)} />
+            <div className="sm:col-span-2">
+              <Field label="Geplante Nutzung" value={form.geplante_nutzung} onChange={(v) => set("geplante_nutzung", v)} />
+            </div>
+            <Field label="Projektverantwortlicher" value={form.projektverantwortlicher} onChange={(v) => set("projektverantwortlicher", v)} />
+            <Field label="Datum" value={form.datum} onChange={(v) => set("datum", v)} />
+          </div>
         </Accordion>
 
         <Accordion id="2" activeId={activeSection} onToggle={setActiveSection}>
@@ -866,11 +870,11 @@ function Field({
 }) {
   return (
     <div className="grid gap-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</Label>
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-background text-base font-medium"
+        className="h-9 bg-background text-sm font-medium"
       />
     </div>
   );

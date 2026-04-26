@@ -1,8 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { Check, Mail, MessageCircle, FileText, CalendarClock, CalendarCheck, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Check,
+  Mail,
+  MessageCircle,
+  FileText,
+  CalendarClock,
+  CalendarCheck,
+  Loader2,
+  Plus,
+  Trash2,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ContactStepKey =
@@ -25,7 +36,18 @@ const STEPS: ReadonlyArray<{
   { key: "viewing_confirmed", label: "Termin bestätigt", short: "Bestätigt", icon: CalendarCheck },
 ];
 
-type StepLog = Partial<Record<ContactStepKey, string>>; // ISO timestamps
+const CUSTOM_KEY = "__custom__";
+
+type StepLog = Partial<Record<ContactStepKey, string>> & {
+  [CUSTOM_KEY]?: CustomMilestone[];
+};
+
+type CustomMilestone = {
+  id: string;
+  label: string;
+  ts: string; // ISO
+  done: boolean;
+};
 
 type ProgressRow = {
   id: string;
@@ -58,6 +80,10 @@ function fmtDate(iso: string | undefined): string {
   });
 }
 
+function getCustom(steps: StepLog | undefined): CustomMilestone[] {
+  return (steps?.[CUSTOM_KEY] as CustomMilestone[] | undefined) ?? [];
+}
+
 export function ContactProgress({ listingId, compact = false }: { listingId: string; compact?: boolean }) {
   const qc = useQueryClient();
 
@@ -81,38 +107,97 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
     return i >= 0 ? i : 0;
   }, [progress]);
 
+  const customMilestones = useMemo(
+    () => getCustom(progress?.steps),
+    [progress?.steps],
+  );
+
+  const upsertSteps = async (
+    nextSteps: StepLog,
+    nextCurrent?: ContactStepKey,
+  ) => {
+    if (progress) {
+      const patch: Record<string, unknown> = { steps: nextSteps };
+      if (nextCurrent) patch.current_step = nextCurrent;
+      const { error } = await supabase
+        .from("listing_contact_progress" as any)
+        .update(patch)
+        .eq("listing_id", listingId);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("listing_contact_progress" as any)
+        .insert({
+          listing_id: listingId,
+          current_step: nextCurrent ?? "message_sent",
+          steps: nextSteps,
+        });
+      if (error) throw error;
+    }
+  };
+
   const setStep = useMutation({
     mutationFn: async (stepKey: ContactStepKey) => {
       const now = new Date().toISOString();
       const existingSteps = (progress?.steps ?? {}) as StepLog;
       const nextSteps: StepLog = { ...existingSteps };
-      // Mark all steps up to and including stepKey
       const targetIdx = STEPS.findIndex((s) => s.key === stepKey);
       for (let i = 0; i <= targetIdx; i++) {
         const k = STEPS[i].key;
         if (!nextSteps[k]) nextSteps[k] = now;
       }
-      // Remove later steps if user goes back
       for (let i = targetIdx + 1; i < STEPS.length; i++) {
         delete nextSteps[STEPS[i].key];
       }
-
-      if (progress) {
-        const { error } = await supabase
-          .from("listing_contact_progress" as any)
-          .update({ current_step: stepKey, steps: nextSteps })
-          .eq("listing_id", listingId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("listing_contact_progress" as any)
-          .insert({ listing_id: listingId, current_step: stepKey, steps: nextSteps });
-        if (error) throw error;
-      }
+      await upsertSteps(nextSteps, stepKey);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contact-progress", listingId] });
     },
+  });
+
+  const addCustom = useMutation({
+    mutationFn: async (label: string) => {
+      const trimmed = label.trim();
+      if (!trimmed) return;
+      const existingSteps = (progress?.steps ?? {}) as StepLog;
+      const list = getCustom(existingSteps);
+      const next: CustomMilestone = {
+        id: crypto.randomUUID(),
+        label: trimmed,
+        ts: new Date().toISOString(),
+        done: false,
+      };
+      const nextSteps: StepLog = {
+        ...existingSteps,
+        [CUSTOM_KEY]: [...list, next],
+      };
+      await upsertSteps(nextSteps);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contact-progress", listingId] }),
+  });
+
+  const updateCustom = useMutation({
+    mutationFn: async (patch: { id: string; changes: Partial<CustomMilestone> }) => {
+      const existingSteps = (progress?.steps ?? {}) as StepLog;
+      const list = getCustom(existingSteps);
+      const nextList = list.map((m) =>
+        m.id === patch.id ? { ...m, ...patch.changes } : m,
+      );
+      const nextSteps: StepLog = { ...existingSteps, [CUSTOM_KEY]: nextList };
+      await upsertSteps(nextSteps);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contact-progress", listingId] }),
+  });
+
+  const deleteCustom = useMutation({
+    mutationFn: async (id: string) => {
+      const existingSteps = (progress?.steps ?? {}) as StepLog;
+      const list = getCustom(existingSteps).filter((m) => m.id !== id);
+      const nextSteps: StepLog = { ...existingSteps, [CUSTOM_KEY]: list };
+      await upsertSteps(nextSteps);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contact-progress", listingId] }),
   });
 
   const [noteDraft, setNoteDraft] = useState<string>("");
@@ -138,10 +223,13 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contact-progress", listingId] }),
   });
 
-  const completedCount = progress
+  const completedBuiltin = progress
     ? STEPS.filter((s) => (progress.steps as StepLog)[s.key]).length
     : 0;
-  const pct = (completedCount / STEPS.length) * 100;
+  const completedCustom = customMilestones.filter((m) => m.done).length;
+  const totalSteps = STEPS.length + customMilestones.length;
+  const completedTotal = completedBuiltin + completedCustom;
+  const pct = totalSteps > 0 ? (completedTotal / totalSteps) * 100 : 0;
 
   if (compact) {
     return (
@@ -151,10 +239,9 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
             Kontakt-Fortschritt
           </span>
           <span className="text-[10px] tabular-nums text-muted-foreground">
-            {completedCount}/{STEPS.length}
+            {completedTotal}/{totalSteps}
           </span>
         </div>
-        {/* Stepper dots */}
         <div className="flex items-center gap-1.5">
           {STEPS.map((s, i) => {
             const done = progress ? !!(progress.steps as StepLog)[s.key] : false;
@@ -183,6 +270,16 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
               </div>
             );
           })}
+          {customMilestones.map((m) => (
+            <div
+              key={m.id}
+              className={cn(
+                "h-2 flex-1 rounded-full",
+                m.done ? "bg-primary" : "bg-primary/20",
+              )}
+              title={m.label}
+            />
+          ))}
         </div>
         <div className="mt-1.5 flex items-center justify-between">
           <span className="text-[11px] font-medium text-foreground">
@@ -198,7 +295,6 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
     );
   }
 
-  // Full view (used on detail page)
   return (
     <div className="rounded-2xl border border-border/70 bg-card shadow-soft">
       <div className="flex items-center justify-between gap-4 border-b border-border/70 px-5 py-4">
@@ -214,7 +310,7 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
               Fortschritt
             </div>
             <div className="text-sm font-semibold tabular-nums">
-              {completedCount}/{STEPS.length}
+              {completedTotal}/{totalSteps}
             </div>
           </div>
           <div className="relative h-10 w-10">
@@ -241,9 +337,7 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
         </div>
       </div>
 
-      {/* Vertical timeline */}
       <ol className="relative px-5 py-5">
-        {/* connector */}
         <div className="absolute left-[36px] top-8 bottom-8 w-px bg-border" aria-hidden />
         {STEPS.map((s, i) => {
           const Icon = s.icon;
@@ -290,7 +384,7 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
                     </span>
                     {ts && (
                       <span className="text-[10px] tabular-nums text-muted-foreground">
-                        {fmtDate(ts)}
+                        {fmtDate(ts as string)}
                       </span>
                     )}
                   </div>
@@ -302,20 +396,86 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
                         : "text-muted-foreground/70",
                     )}
                   >
-                    {done
-                      ? "erledigt"
-                      : active
-                      ? "aktueller Schritt"
-                      : "ausstehend"}
+                    {done ? "erledigt" : active ? "aktueller Schritt" : "ausstehend"}
                   </span>
                 </button>
               </div>
             </li>
           );
         })}
+
+        {/* Custom milestones */}
+        <AnimatePresence initial={false}>
+          {customMilestones.map((m) => (
+            <motion.li
+              key={m.id}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="relative flex items-start gap-4 py-2.5"
+            >
+              <button
+                onClick={() =>
+                  updateCustom.mutate({
+                    id: m.id,
+                    changes: { done: !m.done, ts: !m.done ? new Date().toISOString() : m.ts },
+                  })
+                }
+                className={cn(
+                  "relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed transition-all",
+                  m.done
+                    ? "border-primary bg-primary text-primary-foreground shadow-soft"
+                    : "border-primary/50 bg-background text-primary hover:bg-primary/5",
+                )}
+                aria-label={m.label}
+              >
+                {m.done ? <Check className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+              </button>
+              <div className="min-w-0 flex-1 pt-1">
+                <div className="flex items-center justify-between gap-2">
+                  <input
+                    defaultValue={m.label}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v && v !== m.label) {
+                        updateCustom.mutate({ id: m.id, changes: { label: v } });
+                      } else if (!v) {
+                        e.target.value = m.label;
+                      }
+                    }}
+                    className={cn(
+                      "min-w-0 flex-1 truncate border-b border-transparent bg-transparent text-sm font-medium outline-none transition-colors hover:border-border focus:border-primary",
+                      m.done ? "text-foreground line-through opacity-70" : "text-foreground",
+                    )}
+                  />
+                  <span className="text-[10px] tabular-nums text-muted-foreground">
+                    {fmtDate(m.ts)}
+                  </span>
+                  <button
+                    onClick={() => deleteCustom.mutate(m.id)}
+                    className="text-muted-foreground/50 hover:text-destructive"
+                    aria-label="Schritt entfernen"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <span className="text-[11px] text-muted-foreground/70">
+                  {m.done ? "erledigt" : "individuell · klicke zum Abhaken"}
+                </span>
+              </div>
+            </motion.li>
+          ))}
+        </AnimatePresence>
+
+        {/* Add custom step */}
+        <li className="relative flex items-start gap-4 py-2.5">
+          <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-border bg-background text-muted-foreground">
+            <Plus className="h-4 w-4" />
+          </div>
+          <AddCustomInput onAdd={(label) => addCustom.mutate(label)} />
+        </li>
       </ol>
 
-      {/* Note */}
       <div className="border-t border-border/70 px-5 py-4">
         <label className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Notiz zum Kontakt
@@ -331,6 +491,39 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
           className="mt-2 w-full resize-none rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
         />
       </div>
+    </div>
+  );
+}
+
+function AddCustomInput({ onAdd }: { onAdd: (label: string) => void }) {
+  const [value, setValue] = useState("");
+  const submit = () => {
+    const v = value.trim();
+    if (!v) return;
+    onAdd(v);
+    setValue("");
+  };
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-2 pt-1">
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            submit();
+          }
+        }}
+        placeholder="Eigenen Schritt hinzufügen … (z. B. Besichtigung notiert)"
+        className="min-w-0 flex-1 border-b border-border bg-transparent py-1 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-foreground"
+      />
+      <button
+        onClick={submit}
+        disabled={!value.trim()}
+        className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Hinzufügen
+      </button>
     </div>
   );
 }
