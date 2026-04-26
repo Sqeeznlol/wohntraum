@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -255,28 +255,7 @@ export function ListingPrecheck({
 
       {open && (
         <CardContent className="px-3 sm:px-6">
-          <div className="precheck-bleed">
-            <style>{`
-              .precheck-bleed { width: 100%; }
-              @media (min-width: 1280px) {
-                .precheck-bleed {
-                  width: 100vw;
-                  margin-left: calc(50% - 50vw);
-                  margin-right: calc(50% - 50vw);
-                  padding-left: 1.5rem;
-                  padding-right: 1.5rem;
-                }
-              }
-              @media (min-width: 1536px) {
-                .precheck-bleed { padding-left: 3rem; padding-right: 3rem; }
-              }
-            `}</style>
-            <PrecheckBody
-              form={form}
-              set={set}
-              save={save}
-            />
-          </div>
+          <PrecheckBody form={form} set={set} save={save} />
         </CardContent>
       )}
     </Card>
@@ -311,32 +290,52 @@ function PrecheckBody({
   set: <K extends keyof PrecheckData>(k: K, v: PrecheckData[K]) => void;
   save: ReturnType<typeof useMutation<void, Error, void, unknown>>;
 }) {
-  // Accordion state — only one open at a time keeps the page short
   const [activeSection, setActiveSection] = useState<SectionId>("1");
-  const previewScrollRef = useRef<HTMLDivElement>(null);
 
-  // When active section changes, scroll preview to matching anchor
-  useEffect(() => {
-    const container = previewScrollRef.current;
-    if (!container) return;
-    const target = container.querySelector<HTMLElement>(
-      `[data-prev-section="${activeSection}"]`,
-    );
-    if (target) {
-      const offset = target.offsetTop - 12;
-      container.scrollTo({ top: offset, behavior: "smooth" });
-    }
+  // Progress: count of sections that have at least one filled value
+  const progressPct = useMemo(() => {
+    const idx = SECTION_IDS.indexOf(activeSection) + 1;
+    return Math.round((idx / SECTION_IDS.length) * 100);
   }, [activeSection]);
 
+  const goPrev = () => {
+    const idx = SECTION_IDS.indexOf(activeSection);
+    if (idx > 0) setActiveSection(SECTION_IDS[idx - 1]);
+  };
+  const goNext = () => {
+    const idx = SECTION_IDS.indexOf(activeSection);
+    if (idx < SECTION_IDS.length - 1) setActiveSection(SECTION_IDS[idx + 1]);
+  };
+
   return (
-    <div className="grid gap-6 lg:grid-cols-2 xl:mx-auto xl:max-w-[1800px]">
-      {/* LEFT: form (accordion) */}
-      <div className="space-y-2 min-w-0">
-        <Accordion
-          id="1"
-          activeId={activeSection}
-          onToggle={setActiveSection}
-        >
+    <div className="mx-auto max-w-3xl space-y-4">
+      {/* Hero / progress */}
+      <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-background to-background p-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <FileCheck2 className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold">Vorprüfung Bauprojekt</div>
+            <div className="text-xs text-muted-foreground">
+              Schritt {SECTION_IDS.indexOf(activeSection) + 1} von {SECTION_IDS.length} · {SECTION_TITLES[activeSection]}
+            </div>
+          </div>
+          <div className="hidden text-right sm:block">
+            <div className="text-lg font-bold tabular-nums">{progressPct}%</div>
+          </div>
+        </div>
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Sections */}
+      <div className="space-y-2">
+        <Accordion id="1" activeId={activeSection} onToggle={setActiveSection}>
           <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
             <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
             <Field label="Adresse" value={form.adresse} onChange={(v) => set("adresse", v)} />
@@ -392,16 +391,18 @@ function PrecheckBody({
         </Accordion>
 
         <Accordion id="5" activeId={activeSection} onToggle={setActiveSection}>
-          <Field label="Erwartete NF" value={form.w_erwartete_nf} onChange={(v) => set("w_erwartete_nf", v)} />
-          <Field label="Landpreis pro m² NF" value={form.w_landpreis} onChange={(v) => set("w_landpreis", v)} />
-          <Field label="Gesch. Baukosten pro m² NF" value={form.w_baukosten} onChange={(v) => set("w_baukosten", v)} />
-          <Field label="Totalinvestition (Schätzung)" value={form.w_totalinvest} onChange={(v) => set("w_totalinvest", v)} />
-          <Field label="Erwarteter Mietertrag" value={form.w_mietertrag} onChange={(v) => set("w_mietertrag", v)} />
-          <Field label="Erwartete Zielrendite" value={form.w_zielrendite} onChange={(v) => set("w_zielrendite", v)} />
-          <Field label="Erwarteter Verkaufspreis (m²)" value={form.w_verkaufspreis} onChange={(v) => set("w_verkaufspreis", v)} />
-          <Field label="Erwarteter Mietzins (m²)" value={form.w_mietzins} onChange={(v) => set("w_mietzins", v)} />
-          <Field label="Erwarteter Verkaufserlös" value={form.w_verkaufserloes} onChange={(v) => set("w_verkaufserloes", v)} />
-          <Field label="Erwarteter Gewinn" value={form.w_gewinn} onChange={(v) => set("w_gewinn", v)} />
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+            <Field label="Erwartete NF" value={form.w_erwartete_nf} onChange={(v) => set("w_erwartete_nf", v)} />
+            <Field label="Landpreis pro m² NF" value={form.w_landpreis} onChange={(v) => set("w_landpreis", v)} />
+            <Field label="Gesch. Baukosten pro m² NF" value={form.w_baukosten} onChange={(v) => set("w_baukosten", v)} />
+            <Field label="Totalinvestition (Schätzung)" value={form.w_totalinvest} onChange={(v) => set("w_totalinvest", v)} />
+            <Field label="Erwarteter Mietertrag" value={form.w_mietertrag} onChange={(v) => set("w_mietertrag", v)} />
+            <Field label="Erwartete Zielrendite" value={form.w_zielrendite} onChange={(v) => set("w_zielrendite", v)} />
+            <Field label="Erwarteter Verkaufspreis (m²)" value={form.w_verkaufspreis} onChange={(v) => set("w_verkaufspreis", v)} />
+            <Field label="Erwarteter Mietzins (m²)" value={form.w_mietzins} onChange={(v) => set("w_mietzins", v)} />
+            <Field label="Erwarteter Verkaufserlös" value={form.w_verkaufserloes} onChange={(v) => set("w_verkaufserloes", v)} />
+            <Field label="Erwarteter Gewinn" value={form.w_gewinn} onChange={(v) => set("w_gewinn", v)} />
+          </div>
           <CheckRow label="Baukosten +10% noch tragbar" checked={form.w_baukosten_plus10} onChange={(v) => set("w_baukosten_plus10", v)} />
           <CheckRow label="Verkaufspreise -5% noch tragbar" checked={form.w_verkauf_minus5} onChange={(v) => set("w_verkauf_minus5", v)} />
           <RadioRow
@@ -432,11 +433,15 @@ function PrecheckBody({
         </Accordion>
 
         <Accordion id="8" activeId={activeSection} onToggle={setActiveSection}>
-          <Field label="Strategie" value={form.g_strategie} onChange={(v) => set("g_strategie", v)} />
-          <Field label="Baurecht" value={form.g_baurecht} onChange={(v) => set("g_baurecht", v)} />
-          <Field label="Technik" value={form.g_technik} onChange={(v) => set("g_technik", v)} />
-          <Field label="Wirtschaft" value={form.g_wirtschaft} onChange={(v) => set("g_wirtschaft", v)} />
-          <Field label="Markt" value={form.g_markt} onChange={(v) => set("g_markt", v)} />
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+            <Field label="Strategie" value={form.g_strategie} onChange={(v) => set("g_strategie", v)} />
+            <Field label="Baurecht" value={form.g_baurecht} onChange={(v) => set("g_baurecht", v)} />
+            <Field label="Technik" value={form.g_technik} onChange={(v) => set("g_technik", v)} />
+            <Field label="Wirtschaft" value={form.g_wirtschaft} onChange={(v) => set("g_wirtschaft", v)} />
+            <div className="sm:col-span-2">
+              <Field label="Markt" value={form.g_markt} onChange={(v) => set("g_markt", v)} />
+            </div>
+          </div>
         </Accordion>
 
         <Accordion id="9" activeId={activeSection} onToggle={setActiveSection}>
@@ -452,84 +457,46 @@ function PrecheckBody({
           />
           <TextField label="Bedingungen" value={form.bedingungen} onChange={(v) => set("bedingungen", v)} rows={4} />
           <Separator />
-          <Field label="Ort, Datum" value={form.ort_datum} onChange={(v) => set("ort_datum", v)} />
-          <Field label="Durchgeführt von" value={form.durchgefuehrt_von} onChange={(v) => set("durchgefuehrt_von", v)} />
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+            <Field label="Ort, Datum" value={form.ort_datum} onChange={(v) => set("ort_datum", v)} />
+            <Field label="Durchgeführt von" value={form.durchgefuehrt_von} onChange={(v) => set("durchgefuehrt_von", v)} />
+          </div>
         </Accordion>
-
-        {/* Section nav prev/next */}
-        <div className="flex items-center justify-between gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={SECTION_IDS.indexOf(activeSection) === 0}
-            onClick={() => {
-              const idx = SECTION_IDS.indexOf(activeSection);
-              if (idx > 0) setActiveSection(SECTION_IDS[idx - 1]);
-            }}
-          >
-            ← Zurück
-          </Button>
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {SECTION_IDS.indexOf(activeSection) + 1} / {SECTION_IDS.length}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={SECTION_IDS.indexOf(activeSection) === SECTION_IDS.length - 1}
-            onClick={() => {
-              const idx = SECTION_IDS.indexOf(activeSection);
-              if (idx < SECTION_IDS.length - 1) setActiveSection(SECTION_IDS[idx + 1]);
-            }}
-          >
-            Weiter →
-          </Button>
-        </div>
-
-        <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur">
-          <Button
-            onClick={() => save.mutate()}
-            disabled={save.isPending}
-            className="w-full"
-            size="lg"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {save.isPending ? "Speichert…" : "Vorprüfung speichern"}
-          </Button>
-        </div>
       </div>
 
-      {/* RIGHT: Live preview, scrolls in sync with active section */}
-      <div
-        className="min-w-0 lg:sticky lg:top-4"
-        style={{ height: "calc(100dvh - 2rem)" }}
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <div className="text-sm font-medium text-muted-foreground">
-            Live-Vorschau
-            <span className="ml-2 text-xs text-foreground">
-              · {activeSection}. {SECTION_TITLES[activeSection]}
-            </span>
-          </div>
-          <a
-            href="/vorpruefung-vorlage.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline"
-          >
-            Original-PDF
-          </a>
-        </div>
-        <div
-          ref={previewScrollRef}
-          className="min-h-[600px] overflow-y-auto rounded-lg border bg-white"
-          style={{
-            height: "calc(100% - 2rem)",
-            WebkitOverflowScrolling: "touch",
-            scrollBehavior: "smooth",
-          }}
+      {/* Section nav prev/next */}
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={SECTION_IDS.indexOf(activeSection) === 0}
+          onClick={goPrev}
         >
-          <LivePreview data={form} />
-        </div>
+          ← Zurück
+        </Button>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {SECTION_IDS.indexOf(activeSection) + 1} / {SECTION_IDS.length}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={SECTION_IDS.indexOf(activeSection) === SECTION_IDS.length - 1}
+          onClick={goNext}
+        >
+          Weiter →
+        </Button>
+      </div>
+
+      <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur">
+        <Button
+          onClick={() => save.mutate()}
+          disabled={save.isPending}
+          className="w-full"
+          size="lg"
+        >
+          <Save className="mr-2 h-4 w-4" />
+          {save.isPending ? "Speichert…" : "Vorprüfung speichern"}
+        </Button>
       </div>
     </div>
   );
@@ -587,277 +554,14 @@ function Accordion({
   );
 }
 
-// ============================================================================
-// Live Preview – mimics PDF look
-// ============================================================================
+// (Live PDF preview removed – use the form above)
 
-// PDF brand colors
-const NAVY = "#1F2A6B";
-
-function LivePreview({ data: d }: { data: PrecheckData }) {
-  return (
-    <div
-      className="mx-auto max-w-[800px] bg-white p-10 text-[13px] leading-[1.55] text-black"
-      style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif" }}
-    >
-      {/* Header band */}
-      <div
-        className="-mx-10 -mt-10 mb-8 h-3"
-        style={{ backgroundColor: NAVY }}
-      />
-
-      {/* Title */}
-      <div className="mb-6">
-        <h1
-          className="text-[26px] font-extrabold tracking-wide"
-          style={{ color: NAVY }}
-        >
-          VORPRÜFUNG
-        </h1>
-        <div className="text-[16px] font-bold text-black">
-          Bauprojekt / Grundstück
-        </div>
-      </div>
-
-      <div className="mb-8 text-[13px]">
-        <span className="italic underline">Ziel:</span>{" "}
-        <span className="italic">
-          Entscheidungsgrundlage für VR – Freigabe für die Due Diligence
-        </span>
-      </div>
-
-      <PrevSection num="1." title="PROJEKT-STECKBRIEF">
-        <PrevRow label="Projektname" value={d.projektname} />
-        <PrevRow label="Adresse" value={d.adresse} />
-        <PrevRow label="PLZ, Ortschaft" value={d.plz_ort} />
-        <PrevRow label="Kanton" value={d.kanton} />
-        <PrevRow label="Parzellen-Nr." value={d.parzellen_nr} />
-        <PrevRow label="Verkäufer" value={d.verkaeufer} />
-        <PrevRow label="Kaufpreis / Richtpreis" value={d.kaufpreis} />
-        <PrevRow label="Grundstücksfläche" value={d.grundstuecksflaeche} />
-        <PrevRow label="Geplante Nutzung" value={d.geplante_nutzung} />
-        <PrevRow label="Projektverantwortlicher" value={d.projektverantwortlicher} />
-        <PrevRow label="Datum" value={d.datum} />
-      </PrevSection>
-
-      <PrevSection num="2." title="STRATEGISCHE PASSUNG">
-        <PrevCheck label="Standort passt zur Unternehmensstrategie" checked={d.s_standort} />
-        <PrevCheck label="Nutzung passt zu Kernkompetenz" checked={d.s_nutzung} />
-        <PrevCheck label="Projektgrösse passend zur Unternehmensgrösse" checked={d.s_groesse} />
-        <PrevCheck label="Kein Klumpenrisiko im Portfolio / Auftragsbuch" checked={d.s_klumpen} />
-        <PrevCheck label="Region im definierten Marktgebiet" checked={d.s_marktgebiet} />
-
-        <PrevSubLabel>Strategische Bewertung:</PrevSubLabel>
-        <PrevCheck label="Sehr gut" checked={d.strategie_bewertung === "sehr_gut"} />
-        <PrevCheck label="Mittel" checked={d.strategie_bewertung === "mittel"} />
-        <PrevCheck label="Schwach" checked={d.strategie_bewertung === "schwach"} />
-
-        <PrevSubLabel>Begründung:</PrevSubLabel>
-        <PrevFreeText value={d.strategie_begruendung} />
-      </PrevSection>
-
-      <PrevSection num="3." title="BAURECHTLICHE GROBPRÜFUNG">
-        <PrevCheck label="Bauzone bestätigt" checked={d.b_bauzone} />
-        <PrevCheck label="Erschliessung grundsätzlich vorhanden" checked={d.b_erschliessung} />
-        <PrevCheck label="Keine offensichtlichen Nutzungseinschränkungen" checked={d.b_keine_einschr} />
-        <PrevCheck label="Keine offensichtlichen Schutzauflagen" checked={d.b_keine_schutz} />
-        <PrevCheck label="Grobe Ausnützung plausibel" checked={d.b_ausnuetzung} />
-
-        <PrevSubLabel>Erwartete realisierbare NF / BGF:</PrevSubLabel>
-        <PrevFreeText value={d.erwartete_nf} />
-
-        <PrevSubLabel>Baurechtliches Risiko:</PrevSubLabel>
-        <PrevCheck label="Niedrig" checked={d.baurecht_risiko === "niedrig"} />
-        <PrevCheck label="Mittel" checked={d.baurecht_risiko === "mittel"} />
-        <PrevCheck label="Hoch" checked={d.baurecht_risiko === "hoch"} />
-      </PrevSection>
-
-      <PrevSection num="4." title="TECHNISCHE GROBPRÜFUNG">
-        <PrevCheck label="Hanglage / komplexe Topografie?" checked={d.t_hanglage} />
-        <PrevCheck label="Hinweise auf schlechte Bodenverhältnisse?" checked={d.t_boden} />
-        <PrevCheck label="Altlastenverdacht?" checked={d.t_altlasten} />
-        <PrevCheck label="Abbruchkosten relevant?" checked={d.t_abbruch} />
-
-        <PrevSubLabel>Technisches Risiko:</PrevSubLabel>
-        <PrevCheck label="Niedrig" checked={d.technik_risiko === "niedrig"} />
-        <PrevCheck label="Mittel" checked={d.technik_risiko === "mittel"} />
-        <PrevCheck label="Hoch" checked={d.technik_risiko === "hoch"} />
-      </PrevSection>
-
-      <PrevSection num="5." title="WIRTSCHAFTLICHE PLAUSIBILISIERUNG (QUICK-CHECK)">
-        <PrevRow label="Erwartete NF" value={d.w_erwartete_nf} />
-        <PrevRow label="Landpreis pro m² NF" value={d.w_landpreis} />
-        <PrevRow label="Gesch. Baukosten pro m² NF" value={d.w_baukosten} />
-        <PrevRow label="Totalinvestition (Schätzung)" value={d.w_totalinvest} />
-        <PrevRow label="Erwarteter Mietertrag" value={d.w_mietertrag} />
-        <PrevRow label="Erwartete Zielrendite" value={d.w_zielrendite} />
-        <PrevRow label="Erwarteter Verkaufspreis (m²)" value={d.w_verkaufspreis} />
-        <PrevRow label="Erwarteter Mietzins (m²)" value={d.w_mietzins} />
-        <PrevRow label="Erwarteter Verkaufserlös" value={d.w_verkaufserloes} />
-        <PrevRow label="Erwarteter Gewinn" value={d.w_gewinn} />
-
-        <PrevSubLabel>Szenario-Abwägung:</PrevSubLabel>
-        <PrevCheck label="Baukosten +10% noch tragbar" checked={d.w_baukosten_plus10} />
-        <PrevCheck label="Verkaufspreise -5% noch tragbar" checked={d.w_verkauf_minus5} />
-
-        <PrevSubLabel>Wirtschaftliche Bewertung:</PrevSubLabel>
-        <PrevCheck label="Attraktiv" checked={d.wirtschaft_bewertung === "attraktiv"} />
-        <PrevCheck label="Grenzwertig" checked={d.wirtschaft_bewertung === "grenzwertig"} />
-        <PrevCheck label="Nicht attraktiv" checked={d.wirtschaft_bewertung === "nicht_attraktiv"} />
-      </PrevSection>
-
-      <PrevSection num="6." title="MARKT-SCHNELLANALYSE">
-        <PrevCheck label="Mikrostandort positiv" checked={d.m_mikrostandort} />
-        <PrevCheck label="Nachfrage nach Nutzung vorhanden" checked={d.m_nachfrage} />
-        <PrevCheck label="Vergleichsprojekte erfolgreich" checked={d.m_vergleich} />
-        <PrevCheck label="Keine Überangebot-Situation" checked={d.m_kein_ueberangebot} />
-
-        <PrevSubLabel>Markt-Risiko:</PrevSubLabel>
-        <PrevCheck label="Niedrig" checked={d.markt_risiko === "niedrig"} />
-        <PrevCheck label="Mittel" checked={d.markt_risiko === "mittel"} />
-        <PrevCheck label="Hoch" checked={d.markt_risiko === "hoch"} />
-      </PrevSection>
-
-      <PrevSection num="7." title="INTERNE REALISIERBARKEIT">
-        <PrevCheck label="Projektteam verfügbar" checked={d.i_team} />
-        <PrevCheck label="Know-how vorhanden" checked={d.i_knowhow} />
-        <PrevCheck label="Keine Überlastung" checked={d.i_keine_ueberlast} />
-        <PrevCheck label="Finanzierung grundsätzlich möglich" checked={d.i_finanzierung} />
-      </PrevSection>
-
-      <PrevSection num="8." title="GESAMTEINSCHÄTZUNG">
-        <PrevRow label="Strategie" value={d.g_strategie} />
-        <PrevRow label="Baurecht" value={d.g_baurecht} />
-        <PrevRow label="Technik" value={d.g_technik} />
-        <PrevRow label="Wirtschaft" value={d.g_wirtschaft} />
-        <PrevRow label="Markt" value={d.g_markt} />
-      </PrevSection>
-
-      <PrevSection num="9." title="EMPFEHLUNG AN VR">
-        <PrevCheck label="Freigabe für vertiefte Due Diligence" checked={d.empfehlung === "freigabe"} />
-        <PrevCheck label="Ablehnung" checked={d.empfehlung === "ablehnung"} />
-        <PrevCheck label="Freigabe unter Bedingungen" checked={d.empfehlung === "freigabe_bedingt"} />
-
-        <PrevSubLabel>Bedingungen:</PrevSubLabel>
-        <PrevFreeText value={d.bedingungen} />
-
-        <div className="mt-6 space-y-1">
-          <div className="text-[12px]">
-            Diese Vorprüfung wurde durchgeführt und geleitet von:
-          </div>
-          <div className="pt-3">
-            <PrevRow label="Ort, Datum" value={d.ort_datum} />
-            <PrevRow label="Durchgeführt von" value={d.durchgefuehrt_von} />
-          </div>
-        </div>
-      </PrevSection>
-    </div>
-  );
-}
-
-function PrevSection({
-  num,
-  title,
-  children,
-}: {
-  num: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  const sectionId = num.replace(".", "");
-  return (
-    <section className="mb-7" data-prev-section={sectionId}>
-      <div className="mb-2 flex items-baseline gap-3">
-        <span className="font-bold" style={{ color: NAVY }}>
-          {num}
-        </span>
-        <h2
-          className="text-[15px] font-bold tracking-wide"
-          style={{ color: NAVY }}
-        >
-          {title}
-        </h2>
-      </div>
-      <div className="space-y-0">{children}</div>
-    </section>
-  );
-}
-
-function PrevSubLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mt-3 mb-1 text-[12px] underline">{children}</div>
-  );
-}
-
-function PrevRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      className="flex items-end gap-3 py-[3px]"
-      style={{
-        backgroundImage:
-          "linear-gradient(to right, rgba(0,0,0,0.35) 33%, rgba(255,255,255,0) 0%)",
-        backgroundPosition: "bottom",
-        backgroundSize: "4px 1px",
-        backgroundRepeat: "repeat-x",
-      }}
-    >
-      <div className="min-w-[200px] text-[12.5px] text-black">{label}:</div>
-      <div
-        className={`flex-1 text-[12.5px] font-bold ${value ? "" : "opacity-30"}`}
-        style={{ color: value ? NAVY : "#000" }}
-      >
-        {value || "\u00A0"}
-      </div>
-    </div>
-  );
-}
-
-function PrevFreeText({ value }: { value: string }) {
-  return (
-    <div
-      className={`min-h-[22px] whitespace-pre-wrap py-[3px] text-[12.5px] font-bold ${
-        value ? "" : "opacity-30"
-      }`}
-      style={{
-        color: value ? NAVY : "#000",
-        backgroundImage:
-          "linear-gradient(to right, rgba(0,0,0,0.35) 33%, rgba(255,255,255,0) 0%)",
-        backgroundPosition: "bottom",
-        backgroundSize: "4px 1px",
-        backgroundRepeat: "repeat-x",
-      }}
-    >
-      {value || "\u00A0"}
-    </div>
-  );
-}
-
-function PrevCheck({ label, checked }: { label: string; checked: boolean }) {
-  return (
-    <div className="flex items-center gap-3 py-[2px] pl-2">
-      <span
-        className="inline-flex h-[14px] w-[14px] flex-none items-center justify-center border border-black text-[12px] font-bold leading-none"
-        style={{ color: "#000" }}
-      >
-        {checked ? "✕" : ""}
-      </span>
-      <span className="text-[12.5px]">{label}</span>
-    </div>
-  );
-}
 
 // ============================================================================
 // Form subcomponents
 // ============================================================================
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-3">
-      <h3 className="text-base font-semibold tracking-tight">{title}</h3>
-      <div className="space-y-3 rounded-lg border bg-card/50 p-4">{children}</div>
-    </section>
-  );
-}
+
 
 function Field({
   label,
