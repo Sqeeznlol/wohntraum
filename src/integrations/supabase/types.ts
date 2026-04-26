@@ -440,6 +440,51 @@ export type Database = {
         }
         Relationships: []
       }
+      visitor_activity: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          event_label: string | null
+          event_type: string
+          id: string
+          ip_address: string
+          listing_id: string | null
+          metadata: Json | null
+          path: string | null
+          session_id: string | null
+          target_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          event_label?: string | null
+          event_type: string
+          id?: string
+          ip_address: string
+          listing_id?: string | null
+          metadata?: Json | null
+          path?: string | null
+          session_id?: string | null
+          target_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          event_label?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string
+          listing_id?: string | null
+          metadata?: Json | null
+          path?: string | null
+          session_id?: string | null
+          target_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       visitor_log: {
         Row: {
           address: string | null
