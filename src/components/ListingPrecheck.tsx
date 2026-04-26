@@ -760,8 +760,9 @@ function PrevSection({
   title: string;
   children: React.ReactNode;
 }) {
+  const sectionId = num.replace(".", "");
   return (
-    <section className="mb-7">
+    <section className="mb-7" data-prev-section={sectionId}>
       <div className="mb-2 flex items-baseline gap-3">
         <span className="font-bold" style={{ color: NAVY }}>
           {num}
