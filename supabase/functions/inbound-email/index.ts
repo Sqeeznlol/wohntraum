@@ -558,6 +558,31 @@ Deno.serve(async (req) => {
     });
   }
 
+  // ─── STRICT SUBJECT FILTER ───────────────────────────────────────────────
+  // Nur Mails mit "Neue Treffer" im Betreff verarbeiten.
+  // Alles andere (Empfehlungen, Newsletter, Account-Mails) wird verworfen.
+  if (!isNeueTrefferSubject(subject)) {
+    console.log(`Skipped (not 'Neue Treffer'): "${subject}"`);
+    await supabase
+      .from("raw_emails")
+      .update({
+        status: "failed",
+        error_message: "skipped: subject is not 'Neue Treffer'",
+        listings_extracted: 0,
+      })
+      .eq("id", rawEmail.id);
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        skipped: true,
+        reason: "subject_filter",
+        subject,
+        raw_email_id: rawEmail.id,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
   const defaultPortal = detectPortal(from, html);
 
   let listings: ExtractedListing[] = [];
