@@ -2,6 +2,7 @@ import { Link, Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { initActivityTracker } from "@/lib/activity-tracker";
 
 import appCss from "../styles.css?url";
 import leafletCss from "leaflet/dist/leaflet.css?url";
@@ -89,16 +90,22 @@ function VisitTracker() {
   const [tracked, setTracked] = useState(false);
   if (typeof window !== "undefined" && !tracked) {
     setTracked(true);
-    // Fire-and-forget; ignore errors
-    fetch("/api/track-visit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        path: window.location.pathname,
-        referrer: document.referrer || null,
-        language: navigator.language || null,
-      }),
-    }).catch(() => {});
+    // Don't track admin viewing their own dashboard
+    const isAdmin = window.location.pathname.startsWith("/admin");
+    if (!isAdmin) {
+      // Fire-and-forget visit log
+      fetch("/api/track-visit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: window.location.pathname,
+          referrer: document.referrer || null,
+          language: navigator.language || null,
+        }),
+      }).catch(() => {});
+      // Detailed activity tracking (clicks, scrolls, page views, inputs)
+      initActivityTracker();
+    }
   }
   return null;
 }
