@@ -259,6 +259,17 @@ function AdminDashboard({
       .sort((a, b) => b.lastSeen - a.lastSeen);
   }, [filtered]);
 
+  // Devices active in the last 60s = "live on the site right now"
+  const LIVE_WINDOW_MS = 60_000;
+  const liveDevices = useMemo(() => {
+    if (!visitors) return [];
+    return visitors
+      .filter((v) => !v.is_blocked && now - new Date(v.last_seen_at).getTime() < LIVE_WINDOW_MS)
+      .sort(
+        (a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime(),
+      );
+  }, [visitors, now]);
+
   const stats = useMemo(() => {
     const total = visitors?.length ?? 0;
     const blocked = visitors?.filter((v) => v.is_blocked).length ?? 0;
@@ -266,8 +277,8 @@ function AdminDashboard({
       (v) => new Date(v.last_seen_at).toDateString() === new Date().toDateString(),
     ).length ?? 0;
     const uniqueIps = new Set(visitors?.map((v) => v.ip_address)).size;
-    return { total, blocked, today, uniqueIps };
-  }, [visitors]);
+    return { total, blocked, today, uniqueIps, live: liveDevices.length };
+  }, [visitors, liveDevices]);
 
   return (
     <div className="space-y-6">
