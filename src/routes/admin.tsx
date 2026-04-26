@@ -281,8 +281,9 @@ function AdminDashboard({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Gesamt" value={stats.total} />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard label="Geräte gesamt" value={stats.total} />
+        <StatCard label="Eindeutige IPs" value={stats.uniqueIps} />
         <StatCard label="Heute aktiv" value={stats.today} accent />
         <StatCard label="Blockiert" value={stats.blocked} danger />
       </div>
