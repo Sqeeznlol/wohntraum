@@ -253,10 +253,12 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
   const completedBuiltin = progress
     ? STEPS.filter((s) => (progress.steps as StepLog)[s.key]).length
     : 0;
-  const completedCustom = customMilestones.filter((m) => m.done).length;
+  const completedCustom = customMilestones.filter((m) => statusOf(m) === "erledigt").length;
+  const inProgressCustom = customMilestones.filter((m) => statusOf(m) === "in_bearbeitung").length;
   const totalSteps = STEPS.length + customMilestones.length;
   const completedTotal = completedBuiltin + completedCustom;
-  const pct = totalSteps > 0 ? (completedTotal / totalSteps) * 100 : 0;
+  // Count "in Bearbeitung" as half progress
+  const pct = totalSteps > 0 ? ((completedTotal + inProgressCustom * 0.5) / totalSteps) * 100 : 0;
 
   if (compact) {
     return (
