@@ -221,71 +221,86 @@ function ListingsPage() {
   }, [listings]);
 
   return (
-    <div className="space-y-5 md:space-y-8">
-      {/* Compact hero */}
-      <section className="space-y-3">
-        <div className="flex items-end justify-between gap-4">
+    <div className="space-y-10 md:space-y-14">
+      {/* Editorial Header — Marktintelligenz */}
+      <section>
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-              Pipeline · Schweiz
-            </span>
-            <h1 className="mt-1 font-serif-display text-3xl leading-[1.05] sm:text-5xl">
-              Mein Weg zum
-              <br className="sm:hidden" />
-              <span className="italic"> GT4 RS.</span>
+            <p className="text-[10px] font-medium tracking-[0.28em] uppercase text-steel">
+              Marktintelligenz
+            </p>
+            <h1 className="mt-2 font-serif-display text-4xl leading-[1.05] sm:text-5xl md:text-6xl bg-gradient-to-b from-sapphire-light to-sapphire bg-clip-text text-transparent">
+              Deal Pipeline
             </h1>
+            <p className="mt-3 max-w-md text-sm font-light text-steel">
+              Aggregierte Suchabos. Präzise CHF/m²-Analyse. Dein Weg zum
+              <span className="italic text-sapphire"> GT4 RS.</span>
+            </p>
           </div>
-          <div className="flex shrink-0 items-center gap-4">
+          <div className="flex gap-8 md:gap-12">
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.22em] text-steel mb-1">
+                Aktive Inserate
+              </p>
+              <p className="font-serif-display text-3xl tabular-nums text-sapphire md:text-4xl">
+                {totalActive}
+              </p>
+            </div>
+            <div className="border-l-[0.5px] border-hairline pl-8 md:pl-12">
+              <p className="text-[9px] uppercase tracking-[0.22em] text-steel mb-1">
+                Median CHF/m²
+              </p>
+              <p className="font-serif-display text-3xl tabular-nums text-sapphire md:text-4xl">
+                {median ? Math.round(median).toLocaleString("de-CH") : "—"}
+              </p>
+            </div>
             <img
               src={porscheImg}
-              alt="Porsche 911 GT4 RS — Motivation"
-              width={120}
-              height={120}
+              alt="Porsche 911 GT4 RS"
               loading="lazy"
-              className="hidden h-16 w-auto drop-shadow-[0_8px_16px_rgba(0,0,0,0.15)] sm:block md:h-20"
-            />
-            <div className="hidden text-right sm:block">
-              <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                Median CHF/m²
-              </div>
-              <div className="font-serif-display text-3xl">
-                {median ? Math.round(median).toLocaleString("de-CH") : "—"}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Search + filter row */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Ort, PLZ, Titel…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-11 rounded-full border-border/70 bg-card pl-9 text-sm shadow-soft"
+              className="hidden h-20 w-auto self-center drop-shadow-[0_8px_16px_rgba(8,29,66,0.18)] lg:block"
             />
           </div>
-          <Button
-            variant={favoritesOnly ? "default" : "outline"}
-            size="icon"
-            className="h-11 w-11 shrink-0 rounded-full"
-            onClick={() => setFavoritesOnly((v) => !v)}
-            aria-label="Nur Favoriten"
-          >
-            <Heart className={`h-4 w-4 ${favoritesOnly ? "fill-current" : ""}`} />
-          </Button>
-          <Button
-            variant={showArchived ? "default" : "outline"}
-            size="icon"
-            className="h-11 w-11 shrink-0 rounded-full"
-            onClick={() => setShowArchived((v) => !v)}
-            aria-label="Archiv anzeigen"
-          >
-            <Archive className="h-4 w-4" />
-          </Button>
         </div>
       </section>
+
+      {/* Filter band — hairline borders, glass chips */}
+      <div className="border-y-[0.5px] border-hairline py-3">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-steel" />
+            <Input
+              placeholder="Adresse, PLZ, Titel suchen…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 rounded-[3px] border-[0.5px] border-hairline bg-white/60 pl-9 text-xs font-light placeholder:text-steel focus-visible:ring-1 focus-visible:ring-sapphire/30"
+            />
+          </div>
+          <div className="mx-2 h-4 w-px bg-hairline shrink-0" />
+          <button
+            onClick={() => setFavoritesOnly((v) => !v)}
+            className={`shrink-0 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
+              favoritesOnly
+                ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                : "border-transparent text-steel hover:bg-white/40"
+            }`}
+          >
+            <Heart className={`mr-1.5 inline h-3 w-3 ${favoritesOnly ? "fill-current" : ""}`} />
+            Favoriten
+          </button>
+          <button
+            onClick={() => setShowArchived((v) => !v)}
+            className={`shrink-0 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
+              showArchived
+                ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                : "border-transparent text-steel hover:bg-white/40"
+            }`}
+          >
+            <Archive className="mr-1.5 inline h-3 w-3" />
+            Archiv
+          </button>
+        </div>
+      </div>
 
       {/* Pitch / Wert-Versprechen */}
       <PitchHero />
@@ -295,9 +310,9 @@ function ListingsPage() {
         <ListingSlotMachine listings={listings} />
       )}
 
-      {/* Pipeline tabs — sticky, scrollable on mobile */}
-      <div className="sticky top-[56px] z-30 -mx-4 border-y border-border/70 bg-background/95 px-4 py-2 backdrop-blur-md md:top-[72px] md:-mx-6 md:px-6">
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-none md:gap-2">
+      {/* Pipeline column tabs — sapphire eyebrow style */}
+      <div className="sticky top-12 z-30 -mx-4 border-b-[0.5px] border-hairline bg-background/80 px-4 py-3 backdrop-blur-2xl md:-mx-6 md:px-6">
+        <div className="flex gap-1 overflow-x-auto scrollbar-none">
           {STAGES.map((s) => {
             const active = stage === s.key;
             const count = counts[s.key] ?? 0;
@@ -306,29 +321,23 @@ function ListingsPage() {
               <button
                 key={s.key}
                 onClick={() => setStage(s.key)}
-                className={`group relative flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-medium uppercase tracking-wider transition-all ${
+                className={`group relative flex shrink-0 items-center gap-2 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
                   active
-                    ? "border-foreground bg-foreground text-background shadow-soft"
-                    : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
+                    ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                    : "border-transparent text-steel hover:bg-white/40"
                 }`}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <Icon className="h-3 w-3" />
                 <span>{s.label}</span>
-                <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
-                    active
-                      ? "bg-background/20 text-background"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
+                <span className="rounded-[2px] font-serif-display text-[11px] tabular-nums text-steel">
                   {count}
                 </span>
               </button>
             );
           })}
         </div>
-        {/* Progress strip */}
-        <div className="mt-2 flex h-1 overflow-hidden rounded-full bg-muted">
+        {/* Hairline progress strip */}
+        <div className="mt-2 flex h-px overflow-hidden bg-hairline">
           {STAGES.map((s) => {
             const v = counts[s.key] ?? 0;
             const pct = totalActive > 0 ? (v / totalActive) * 100 : 0;
@@ -337,9 +346,7 @@ function ListingsPage() {
               <div
                 key={s.key}
                 style={{ width: `${pct}%` }}
-                className={`transition-all ${
-                  isActive ? "bg-accent" : "bg-foreground/40"
-                }`}
+                className={`transition-all ${isActive ? "bg-sapphire-light" : "bg-sapphire/30"}`}
                 title={`${s.label}: ${v}`}
               />
             );
@@ -353,7 +360,7 @@ function ListingsPage() {
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="h-72 animate-pulse rounded-2xl border border-border/70 bg-muted/40"
+              className="h-72 animate-pulse rounded-[6px] border-[0.5px] border-hairline bg-white/40"
             />
           ))}
         </div>
@@ -362,7 +369,7 @@ function ListingsPage() {
       ) : (
         <motion.div
           layout
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+          className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
         >
           <AnimatePresence mode="popLayout">
             {filtered.map((l) => (
