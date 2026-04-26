@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -605,8 +605,8 @@ function TelemetryCounter({
   duration: number;
   suffix?: string;
 }) {
-  const [value, setValue] = React.useState(from);
-  React.useEffect(() => {
+  const [value, setValue] = useState(from);
+  useEffect(() => {
     let raf = 0;
     let start = 0;
     const loop = (t: number) => {
