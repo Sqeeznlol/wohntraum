@@ -1,7 +1,13 @@
 // Inbound Email Webhook
 // Receives forwarded real-estate alert emails, extracts listings via a
 // portal-aware regex parser (NO AI), computes CHF/m², deduplicates, and
-// stores them. AI extraction was removed on user request.
+// stores them.
+//
+// SUBJECT FILTER (strict):
+//   Only emails whose subject contains the phrase "neue treffer" (case-insensitive,
+//   whitespace-tolerant) are processed. All other emails — newsletters,
+//   "Empfohlen für dich", recommendations, account messages, etc. — are
+//   logged but skipped (no listings extracted).
 //
 // POST body (flexible — supports Resend Inbound, generic forwarders):
 // {
@@ -187,6 +193,21 @@ function fingerprintOf(l: ExtractedListing): string {
   return `${addr}|${area}|${price}`;
 }
 
+// Strict subject filter: only "Neue Treffer" alert emails are processed.
+// Excludes: "Empfohlen für dich", "Empfehlungen", newsletters, account mails, etc.
+function isNeueTrefferSubject(subject: string | null | undefined): boolean {
+  if (!subject) return false;
+  const s = subject
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .normalize("NFKC")
+    .trim();
+  // Accept "neue treffer", "neuer treffer", also tolerate punctuation/extra words.
+  // Hard-exclude recommendation phrasing even if "treffer" appears.
+  if (/empfohlen|empfehlung|recommend/.test(s)) return false;
+  return /\bneue[rn]?\s+treffer\b/.test(s);
+}
+
 // ============================================================================
 // Regex-based extraction (replaces the previous AI extractor).
 // ============================================================================
@@ -311,10 +332,16 @@ function extractListings(html: string, defaultPortal: Portal): ExtractedListing[
 
     const parsed = parseListingFromBlock(fullBlock, defaultPortal);
     if (!parsed) continue;
-    // Mindestens Titel ODER Bild ODER Preis – sonst zu schwach
-    if (!parsed.image_url && parsed.price_chf == null && parsed.area_sqm == null) {
-      continue;
-    }
+    // Akzeptiere ein Inserat, sobald wenigstens eine sinnvolle Information da ist.
+    // Bilder sind oft nicht eingebettet — Hauptsache wir haben Titel + (Preis | Fläche | Portal-URL | PLZ).
+    const hasPortalUrl = !!findPortalUrlIn(parsed.url ?? "");
+    const meaningful =
+      parsed.price_chf != null ||
+      parsed.area_sqm != null ||
+      parsed.postal_code != null ||
+      parsed.image_url != null ||
+      hasPortalUrl;
+    if (!meaningful) continue;
     out.push(parsed);
   }
 
@@ -529,6 +556,31 @@ Deno.serve(async (req) => {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  // ─── STRICT SUBJECT FILTER ───────────────────────────────────────────────
+  // Nur Mails mit "Neue Treffer" im Betreff verarbeiten.
+  // Alles andere (Empfehlungen, Newsletter, Account-Mails) wird verworfen.
+  if (!isNeueTrefferSubject(subject)) {
+    console.log(`Skipped (not 'Neue Treffer'): "${subject}"`);
+    await supabase
+      .from("raw_emails")
+      .update({
+        status: "failed",
+        error_message: "skipped: subject is not 'Neue Treffer'",
+        listings_extracted: 0,
+      })
+      .eq("id", rawEmail.id);
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        skipped: true,
+        reason: "subject_filter",
+        subject,
+        raw_email_id: rawEmail.id,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
   const defaultPortal = detectPortal(from, html);
