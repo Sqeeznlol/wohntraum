@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import {
   Map,
   ExternalLink,
-  Building2,
-  Sparkles,
   Loader2,
   Landmark,
   ShieldAlert,
   Layers,
-  AlertTriangle,
   MapPin,
+  Search,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { enrichListingGwr } from "@/utils/gwr.functions";
@@ -38,16 +38,15 @@ export function KatasterPanel({ listing }: Props) {
   const [manualBfs, setManualBfs] = useState("");
   const [manualParcel, setManualParcel] = useState("");
   const [manualMunicipality, setManualMunicipality] = useState("");
-  const [showManual, setShowManual] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
 
-  if (!isZhPostalCode(listing.postal_code) || !listing.address || !listing.city) {
-    return null;
-  }
+  // Panel ist immer da. Wenn keine ZH-PLZ → Hinweis, aber manuelle Eingabe geht trotzdem.
+  const isZh = isZhPostalCode(listing.postal_code);
+  const hasAddress = !!(listing.address && listing.postal_code && listing.city);
 
-  const addr = listing.address;
-  const plz = listing.postal_code!;
-  const city = listing.city;
-  const fallbackQuery = `${addr}, ${plz} ${city}`;
+  const fallbackQuery = hasAddress
+    ? `${listing.address}, ${listing.postal_code} ${listing.city}`
+    : (listing.title ?? "");
 
   const enrich = useMutation({
     mutationFn: async (overrides?: {
@@ -72,18 +71,17 @@ export function KatasterPanel({ listing }: Props) {
       setMissing(res.missing ?? []);
       if (res.ok) {
         toast.success("GIS-Daten geladen");
-        if ((res.missing ?? []).length > 0) setShowManual(true);
         qc.invalidateQueries({ queryKey: ["listing", listing.id] });
         qc.invalidateQueries({ queryKey: ["listings"] });
       } else {
-        toast.error(res.error ?? "Anreicherung fehlgeschlagen");
-        setShowManual(true);
+        toast.error(res.error ?? "Abruf fehlgeschlagen");
+        setManualOpen(true);
       }
     },
     onError: () => {
       setIsEnriching(false);
-      toast.error("Anreicherung fehlgeschlagen");
-      setShowManual(true);
+      toast.error("Abruf fehlgeschlagen");
+      setManualOpen(true);
     },
   });
 
@@ -111,7 +109,7 @@ export function KatasterPanel({ listing }: Props) {
               </span>
             </div>
             <h3 className="mt-1 font-serif-display text-lg leading-tight">
-              Kataster-Anreicherung
+              Kataster & Liegenschaft
             </h3>
             {listing.municipality && (
               <p className="text-xs text-muted-foreground">
@@ -122,110 +120,44 @@ export function KatasterPanel({ listing }: Props) {
             )}
           </div>
           <Badge variant="outline" className="border-accent/40 text-[10px] uppercase">
-            ZH
+            {isZh ? "ZH" : "CH"}
           </Badge>
         </div>
 
-        {/* Re-Enrich Button (auch wenn Daten da sind) */}
-        <Button
-          size="sm"
-          variant={hasGwr ? "ghost" : "outline"}
-          className={hasGwr ? "h-7 w-full text-xs" : "w-full border-accent/40"}
-          onClick={() => enrich.mutate(undefined)}
-          disabled={isEnriching}
-        >
-          {isEnriching ? (
-            <>
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              Lade GIS-Daten…
-            </>
-          ) : (
-            <>
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-              {hasGwr ? "Neu anreichern" : "EGID, Zone & Schutz automatisch laden"}
-            </>
-          )}
-        </Button>
+        {/* Hauptaktion: GIS-Abruf (öffentliche Schweizer GIS-APIs, kein AI) */}
+        {hasAddress && isZh && (
+          <Button
+            size="sm"
+            variant={hasGwr ? "ghost" : "outline"}
+            className={hasGwr ? "h-7 w-full text-xs" : "w-full border-accent/40"}
+            onClick={() => enrich.mutate(undefined)}
+            disabled={isEnriching}
+          >
+            {isEnriching ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Lade GIS-Daten…
+              </>
+            ) : (
+              <>
+                <Search className="mr-1.5 h-3.5 w-3.5" />
+                {hasGwr ? "GIS-Daten neu laden" : "GIS-Daten zu dieser Adresse laden"}
+              </>
+            )}
+          </Button>
+        )}
 
-        {/* Was fehlt + manuelle Eingabe */}
-        {(missing.length > 0 || showManual) && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-3">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
-              <div className="flex-1">
-                <div className="text-xs font-semibold text-destructive">
-                  {missing.length > 0 ? "Diese Daten fehlen noch" : "Manuelle Eingabe"}
-                </div>
-                {missing.length > 0 && (
-                  <div className="mt-0.5 text-[11px] text-muted-foreground">
-                    Konnten nicht automatisch ermittelt werden:{" "}
-                    <span className="font-medium text-foreground">{missing.join(", ")}</span>
-                  </div>
-                )}
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Trage die fehlenden Werte aus dem{" "}
-                  <a
-                    href={gisAddressSearchUrl(listing, fallbackQuery)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent underline"
-                  >
-                    GIS-Browser
-                  </a>{" "}
-                  ein und starte erneut.
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <ManualInput
-                label="EGID"
-                placeholder="z.B. 150404"
-                value={manualEgid}
-                onChange={setManualEgid}
-              />
-              <ManualInput
-                label="BFS-Nr."
-                placeholder="z.B. 261"
-                value={manualBfs}
-                onChange={setManualBfs}
-              />
-              <ManualInput
-                label="Katasternummer"
-                placeholder="z.B. 4889"
-                value={manualParcel}
-                onChange={setManualParcel}
-              />
-              <ManualInput
-                label="Gemeinde"
-                placeholder="z.B. Zürich"
-                value={manualMunicipality}
-                onChange={setManualMunicipality}
-              />
-            </div>
-            <Button
-              size="sm"
-              className="w-full"
-              onClick={runManual}
-              disabled={
-                isEnriching ||
-                (!manualEgid.trim() &&
-                  !manualBfs.trim() &&
-                  !manualParcel.trim() &&
-                  !manualMunicipality.trim())
-              }
-            >
-              {isEnriching ? (
-                <>
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  Lade…
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                  Mit manuellen Werten erneut starten
-                </>
-              )}
-            </Button>
+        {!hasAddress && (
+          <div className="rounded-lg border border-dashed border-border/60 bg-muted/30 p-3 text-[11px] text-muted-foreground">
+            Keine Adresse hinterlegt. Trage unten EGID, BFS-Nr. + Katasternummer manuell
+            ein, um die GIS-Daten zu laden.
+          </div>
+        )}
+
+        {!isZh && (
+          <div className="rounded-lg border border-dashed border-border/60 bg-muted/30 p-3 text-[11px] text-muted-foreground">
+            Liegenschaft ausserhalb Kanton ZH — automatischer GIS-Abruf nur für ZH
+            verfügbar. Manuelle Eingabe ist möglich.
           </div>
         )}
 
@@ -312,6 +244,99 @@ export function KatasterPanel({ listing }: Props) {
           </div>
         )}
 
+        {/* Manuelle Eingabe — immer ausklappbar */}
+        <div className="rounded-lg border border-border/60 bg-background/40">
+          <button
+            type="button"
+            onClick={() => setManualOpen((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 px-3 py-2 text-xs font-medium text-foreground/80 transition-colors hover:bg-muted/30"
+          >
+            <span className="inline-flex items-center gap-2">
+              {manualOpen ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+              Manuell eingeben
+              {missing.length > 0 && (
+                <Badge variant="outline" className="border-destructive/40 text-[9px] text-destructive">
+                  {missing.length} fehlt
+                </Badge>
+              )}
+            </span>
+            <span className="text-[10px] text-muted-foreground">EGID · BFS · Parz.</span>
+          </button>
+          {manualOpen && (
+            <div className="space-y-3 border-t border-border/60 p-3">
+              {missing.length > 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Fehlend: <span className="font-medium text-foreground">{missing.join(", ")}</span>.
+                  {" "}Werte aus dem{" "}
+                  <a
+                    href={gisAddressSearchUrl(listing, fallbackQuery)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent underline"
+                  >
+                    GIS-Browser
+                  </a>{" "}
+                  ablesen und hier eintragen.
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <ManualInput
+                  label="EGID"
+                  placeholder="z.B. 150404"
+                  value={manualEgid}
+                  onChange={setManualEgid}
+                />
+                <ManualInput
+                  label="BFS-Nr."
+                  placeholder="z.B. 261"
+                  value={manualBfs}
+                  onChange={setManualBfs}
+                />
+                <ManualInput
+                  label="Katasternummer"
+                  placeholder="z.B. 4889"
+                  value={manualParcel}
+                  onChange={setManualParcel}
+                />
+                <ManualInput
+                  label="Gemeinde"
+                  placeholder="z.B. Zürich"
+                  value={manualMunicipality}
+                  onChange={setManualMunicipality}
+                />
+              </div>
+              <Button
+                size="sm"
+                className="w-full"
+                onClick={runManual}
+                disabled={
+                  isEnriching ||
+                  (!manualEgid.trim() &&
+                    !manualBfs.trim() &&
+                    !manualParcel.trim() &&
+                    !manualMunicipality.trim())
+                }
+              >
+                {isEnriching ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Lade…
+                  </>
+                ) : (
+                  <>
+                    <Search className="mr-1.5 h-3.5 w-3.5" />
+                    Mit manuellen Werten laden
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+
         {/* GIS-Links */}
         <div className="space-y-1.5">
           <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -338,7 +363,7 @@ export function KatasterPanel({ listing }: Props) {
 
         <p className="text-[10px] leading-relaxed text-muted-foreground">
           Quellen: GWR (geo.admin.ch) · AV WFS, ÖREB, Denkmalschutz, ISOS (maps.zh.ch /
-          wms.zh.ch). Alle Daten kostenlos & ohne Registrierung.
+          wms.zh.ch). Alle Daten kostenlos & ohne Registrierung — keine KI involviert.
         </p>
       </CardContent>
     </Card>
