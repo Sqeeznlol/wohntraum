@@ -406,6 +406,34 @@ function AdminDashboard({
         </Card>
       )}
 
+      {/* Tab switcher: real visitors vs internal/Cloudflare */}
+      <div className="flex flex-wrap items-center gap-1 rounded-full border bg-muted/30 p-1 w-fit">
+        <button
+          type="button"
+          onClick={() => setTab("real")}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+            tab === "real"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Echte Besucher
+          <Badge variant="secondary" className="text-[10px] tabular-nums">{realCount}</Badge>
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("internal")}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+            tab === "internal"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Intern / Cloudflare
+          <Badge variant="outline" className="text-[10px] tabular-nums">{internalCount}</Badge>
+        </button>
+      </div>
+
       {/* Search + refresh */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
