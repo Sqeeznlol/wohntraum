@@ -870,11 +870,11 @@ function Field({
 }) {
   return (
     <div className="grid gap-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</Label>
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-background text-base font-medium"
+        className="h-9 bg-background text-sm font-medium"
       />
     </div>
   );
