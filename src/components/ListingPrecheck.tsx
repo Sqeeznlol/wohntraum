@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, FileCheck2, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, FileCheck2, ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
 import type { Listing } from "@/lib/db-types";
 
 type RiskLevel = "niedrig" | "mittel" | "hoch";
