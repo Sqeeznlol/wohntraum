@@ -65,7 +65,7 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
     queryKey: ["contact-progress", listingId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("listing_contact_progress" as never)
+        .from("listing_contact_progress" as any)
         .select("*")
         .eq("listing_id", listingId)
         .maybeSingle();
@@ -99,13 +99,13 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
 
       if (progress) {
         const { error } = await supabase
-          .from("listing_contact_progress" as never)
+          .from("listing_contact_progress" as any)
           .update({ current_step: stepKey, steps: nextSteps })
           .eq("listing_id", listingId);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("listing_contact_progress" as never)
+          .from("listing_contact_progress" as any)
           .insert({ listing_id: listingId, current_step: stepKey, steps: nextSteps });
         if (error) throw error;
       }
@@ -124,13 +124,13 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
     mutationFn: async (text: string) => {
       if (progress) {
         const { error } = await supabase
-          .from("listing_contact_progress" as never)
+          .from("listing_contact_progress" as any)
           .update({ note: text })
           .eq("listing_id", listingId);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("listing_contact_progress" as never)
+          .from("listing_contact_progress" as any)
           .insert({ listing_id: listingId, current_step: "message_sent", note: text });
         if (error) throw error;
       }
