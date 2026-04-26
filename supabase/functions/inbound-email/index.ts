@@ -193,6 +193,21 @@ function fingerprintOf(l: ExtractedListing): string {
   return `${addr}|${area}|${price}`;
 }
 
+// Strict subject filter: only "Neue Treffer" alert emails are processed.
+// Excludes: "Empfohlen für dich", "Empfehlungen", newsletters, account mails, etc.
+function isNeueTrefferSubject(subject: string | null | undefined): boolean {
+  if (!subject) return false;
+  const s = subject
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .normalize("NFKC")
+    .trim();
+  // Accept "neue treffer", "neuer treffer", also tolerate punctuation/extra words.
+  // Hard-exclude recommendation phrasing even if "treffer" appears.
+  if (/empfohlen|empfehlung|recommend/.test(s)) return false;
+  return /\bneue[rn]?\s+treffer\b/.test(s);
+}
+
 // ============================================================================
 // Regex-based extraction (replaces the previous AI extractor).
 // ============================================================================
