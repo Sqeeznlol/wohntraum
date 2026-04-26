@@ -21,6 +21,9 @@ import {
   Search,
   Trash2,
   RefreshCw,
+  Wifi,
+  MapPin,
+  Building2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
