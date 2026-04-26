@@ -240,6 +240,37 @@ function AdminDashboard({
     );
   }, [visitors, search]);
 
+  // Tab: separate real visitors from internal (Lovable preview / Cloudflare infra)
+  const [tab, setTab] = useState<"real" | "internal">("real");
+
+  const isInternal = (v: Visitor) => {
+    const blob = `${v.hostname ?? ""} ${v.isp ?? ""} ${v.referrer ?? ""}`.toLowerCase();
+    return (
+      blob.includes("lovable.app") ||
+      blob.includes("lovable.dev") ||
+      blob.includes("lovableproject") ||
+      blob.includes("cloudflare") ||
+      blob.includes("cloudfront") ||
+      blob.includes("cf-") ||
+      blob.includes("amazonaws") ||
+      blob.includes("vercel") ||
+      blob.includes("googleusercontent") ||
+      blob.includes("googlebot") ||
+      blob.includes("bingbot")
+    );
+  };
+
+  const visibleFiltered = useMemo(
+    () => filtered.filter((v) => (tab === "internal" ? isInternal(v) : !isInternal(v))),
+    [filtered, tab],
+  );
+
+  const internalCount = useMemo(
+    () => (visitors ?? []).filter(isInternal).length,
+    [visitors],
+  );
+  const realCount = (visitors?.length ?? 0) - internalCount;
+
   // Group devices by IP — same router = same group
   const grouped = useMemo(() => {
     const map = new Map<string, Visitor[]>();
