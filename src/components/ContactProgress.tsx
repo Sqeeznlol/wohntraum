@@ -477,19 +477,60 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
       </ol>
 
       <div className="border-t border-border/70 px-5 py-4">
-        <label className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Notiz zum Kontakt
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            Notiz zum Kontakt
+          </label>
+          <span className="text-[10px] text-muted-foreground">
+            {saveNote.isPending
+              ? "Speichert…"
+              : noteDraft !== (progress?.note ?? "")
+              ? "Ungespeicherte Änderungen"
+              : progress?.note
+              ? "Gespeichert"
+              : ""}
+          </span>
+        </div>
         <textarea
           value={noteDraft}
           onChange={(e) => setNoteDraft(e.target.value)}
           onBlur={() => {
             if (noteDraft !== (progress?.note ?? "")) saveNote.mutate(noteDraft);
           }}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              e.preventDefault();
+              if (noteDraft !== (progress?.note ?? "")) saveNote.mutate(noteDraft);
+            }
+          }}
           placeholder="z. B. Maklerin angerufen, ruft morgen zurück…"
-          rows={2}
-          className="mt-2 w-full resize-none rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
+          rows={3}
+          className="mt-2 w-full resize-y rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
         />
+        <div className="mt-2 flex items-center justify-end gap-2">
+          {noteDraft !== (progress?.note ?? "") && (
+            <button
+              type="button"
+              onClick={() => setNoteDraft(progress?.note ?? "")}
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              Verwerfen
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => saveNote.mutate(noteDraft)}
+            disabled={saveNote.isPending || noteDraft === (progress?.note ?? "")}
+            className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {saveNote.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Check className="h-3 w-3" />
+            )}
+            Speichern
+          </button>
+        </div>
       </div>
     </div>
   );
