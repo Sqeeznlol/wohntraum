@@ -218,6 +218,15 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contact-progress", listingId] }),
   });
 
+  const reorderCustom = useMutation({
+    mutationFn: async (nextOrder: CustomMilestone[]) => {
+      const existingSteps = (progress?.steps ?? {}) as StepLog;
+      const nextSteps: StepLog = { ...existingSteps, [CUSTOM_KEY]: nextOrder };
+      await upsertSteps(nextSteps);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contact-progress", listingId] }),
+  });
+
   const [noteDraft, setNoteDraft] = useState<string>("");
   useEffect(() => {
     setNoteDraft(progress?.note ?? "");
