@@ -255,7 +255,6 @@ export function ListingPrecheck({
 
       {open && (
         <CardContent className="px-3 sm:px-6">
-          {/* Web: aus dem max-w-7xl Container ausbrechen für breiteres Layout */}
           <div className="precheck-bleed">
             <style>{`
               .precheck-bleed { width: 100%; }
@@ -272,180 +271,315 @@ export function ListingPrecheck({
                 .precheck-bleed { padding-left: 3rem; padding-right: 3rem; }
               }
             `}</style>
-            <div className="grid gap-6 lg:grid-cols-2 xl:mx-auto xl:max-w-[1800px]">
-            {/* LINKS: Formular */}
-            <div className="space-y-8 min-w-0">
-              {/* 1. Steckbrief */}
-              <Section title="1. Projekt-Steckbrief">
-                <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
-                <Field label="Adresse" value={form.adresse} onChange={(v) => set("adresse", v)} />
-                <Field label="PLZ, Ortschaft" value={form.plz_ort} onChange={(v) => set("plz_ort", v)} />
-                <Field label="Kanton" value={form.kanton} onChange={(v) => set("kanton", v)} />
-                <Field label="Parzellen-Nr." value={form.parzellen_nr} onChange={(v) => set("parzellen_nr", v)} />
-                <Field label="Verkäufer" value={form.verkaeufer} onChange={(v) => set("verkaeufer", v)} />
-                <Field label="Kaufpreis / Richtpreis" value={form.kaufpreis} onChange={(v) => set("kaufpreis", v)} />
-                <Field label="Grundstücksfläche" value={form.grundstuecksflaeche} onChange={(v) => set("grundstuecksflaeche", v)} />
-                <Field label="Geplante Nutzung" value={form.geplante_nutzung} onChange={(v) => set("geplante_nutzung", v)} />
-                <Field label="Projektverantwortlicher" value={form.projektverantwortlicher} onChange={(v) => set("projektverantwortlicher", v)} />
-                <Field label="Datum" value={form.datum} onChange={(v) => set("datum", v)} />
-              </Section>
-
-              {/* 2. Strategie */}
-              <Section title="2. Strategische Passung">
-                <CheckRow label="Standort passt zur Unternehmensstrategie" checked={form.s_standort} onChange={(v) => set("s_standort", v)} />
-                <CheckRow label="Nutzung passt zu Kernkompetenz" checked={form.s_nutzung} onChange={(v) => set("s_nutzung", v)} />
-                <CheckRow label="Projektgrösse passend zur Unternehmensgrösse" checked={form.s_groesse} onChange={(v) => set("s_groesse", v)} />
-                <CheckRow label="Kein Klumpenrisiko im Portfolio / Auftragsbuch" checked={form.s_klumpen} onChange={(v) => set("s_klumpen", v)} />
-                <CheckRow label="Region im definierten Marktgebiet" checked={form.s_marktgebiet} onChange={(v) => set("s_marktgebiet", v)} />
-                <RadioRow
-                  label="Strategische Bewertung"
-                  value={form.strategie_bewertung}
-                  onChange={(v) => set("strategie_bewertung", v as Rating)}
-                  options={[
-                    { value: "sehr_gut", label: "Sehr gut" },
-                    { value: "mittel", label: "Mittel" },
-                    { value: "schwach", label: "Schwach" },
-                  ]}
-                />
-                <TextField label="Begründung" value={form.strategie_begruendung} onChange={(v) => set("strategie_begruendung", v)} rows={3} />
-              </Section>
-
-              {/* 3. Baurecht */}
-              <Section title="3. Baurechtliche Grobprüfung">
-                <CheckRow label="Bauzone bestätigt" checked={form.b_bauzone} onChange={(v) => set("b_bauzone", v)} />
-                <CheckRow label="Erschliessung grundsätzlich vorhanden" checked={form.b_erschliessung} onChange={(v) => set("b_erschliessung", v)} />
-                <CheckRow label="Keine offensichtlichen Nutzungseinschränkungen" checked={form.b_keine_einschr} onChange={(v) => set("b_keine_einschr", v)} />
-                <CheckRow label="Keine offensichtlichen Schutzauflagen" checked={form.b_keine_schutz} onChange={(v) => set("b_keine_schutz", v)} />
-                <CheckRow label="Grobe Ausnützung plausibel" checked={form.b_ausnuetzung} onChange={(v) => set("b_ausnuetzung", v)} />
-                <TextField label="Erwartete realisierbare NF / BGF" value={form.erwartete_nf} onChange={(v) => set("erwartete_nf", v)} rows={2} />
-                <RiskRow label="Baurechtliches Risiko" value={form.baurecht_risiko} onChange={(v) => set("baurecht_risiko", v)} />
-              </Section>
-
-              {/* 4. Technik */}
-              <Section title="4. Technische Grobprüfung">
-                <CheckRow label="Hanglage / komplexe Topografie?" checked={form.t_hanglage} onChange={(v) => set("t_hanglage", v)} />
-                <CheckRow label="Hinweise auf schlechte Bodenverhältnisse?" checked={form.t_boden} onChange={(v) => set("t_boden", v)} />
-                <CheckRow label="Altlastenverdacht?" checked={form.t_altlasten} onChange={(v) => set("t_altlasten", v)} />
-                <CheckRow label="Abbruchkosten relevant?" checked={form.t_abbruch} onChange={(v) => set("t_abbruch", v)} />
-                <RiskRow label="Technisches Risiko" value={form.technik_risiko} onChange={(v) => set("technik_risiko", v)} />
-              </Section>
-
-              {/* 5. Wirtschaft */}
-              <Section title="5. Wirtschaftliche Plausibilisierung (Quick-Check)">
-                <Field label="Erwartete NF" value={form.w_erwartete_nf} onChange={(v) => set("w_erwartete_nf", v)} />
-                <Field label="Landpreis pro m² NF" value={form.w_landpreis} onChange={(v) => set("w_landpreis", v)} />
-                <Field label="Gesch. Baukosten pro m² NF" value={form.w_baukosten} onChange={(v) => set("w_baukosten", v)} />
-                <Field label="Totalinvestition (Schätzung)" value={form.w_totalinvest} onChange={(v) => set("w_totalinvest", v)} />
-                <Field label="Erwarteter Mietertrag" value={form.w_mietertrag} onChange={(v) => set("w_mietertrag", v)} />
-                <Field label="Erwartete Zielrendite" value={form.w_zielrendite} onChange={(v) => set("w_zielrendite", v)} />
-                <Field label="Erwarteter Verkaufspreis (m²)" value={form.w_verkaufspreis} onChange={(v) => set("w_verkaufspreis", v)} />
-                <Field label="Erwarteter Mietzins (m²)" value={form.w_mietzins} onChange={(v) => set("w_mietzins", v)} />
-                <Field label="Erwarteter Verkaufserlös" value={form.w_verkaufserloes} onChange={(v) => set("w_verkaufserloes", v)} />
-                <Field label="Erwarteter Gewinn" value={form.w_gewinn} onChange={(v) => set("w_gewinn", v)} />
-                <CheckRow label="Baukosten +10% noch tragbar" checked={form.w_baukosten_plus10} onChange={(v) => set("w_baukosten_plus10", v)} />
-                <CheckRow label="Verkaufspreise -5% noch tragbar" checked={form.w_verkauf_minus5} onChange={(v) => set("w_verkauf_minus5", v)} />
-                <RadioRow
-                  label="Wirtschaftliche Bewertung"
-                  value={form.wirtschaft_bewertung}
-                  onChange={(v) => set("wirtschaft_bewertung", v as EconRating)}
-                  options={[
-                    { value: "attraktiv", label: "Attraktiv" },
-                    { value: "grenzwertig", label: "Grenzwertig" },
-                    { value: "nicht_attraktiv", label: "Nicht attraktiv" },
-                  ]}
-                />
-              </Section>
-
-              {/* 6. Markt */}
-              <Section title="6. Markt-Schnellanalyse">
-                <CheckRow label="Mikrostandort positiv" checked={form.m_mikrostandort} onChange={(v) => set("m_mikrostandort", v)} />
-                <CheckRow label="Nachfrage nach Nutzung vorhanden" checked={form.m_nachfrage} onChange={(v) => set("m_nachfrage", v)} />
-                <CheckRow label="Vergleichsprojekte erfolgreich" checked={form.m_vergleich} onChange={(v) => set("m_vergleich", v)} />
-                <CheckRow label="Keine Überangebot-Situation" checked={form.m_kein_ueberangebot} onChange={(v) => set("m_kein_ueberangebot", v)} />
-                <RiskRow label="Markt-Risiko" value={form.markt_risiko} onChange={(v) => set("markt_risiko", v)} />
-              </Section>
-
-              {/* 7. Interne */}
-              <Section title="7. Interne Realisierbarkeit">
-                <CheckRow label="Projektteam verfügbar" checked={form.i_team} onChange={(v) => set("i_team", v)} />
-                <CheckRow label="Know-how vorhanden" checked={form.i_knowhow} onChange={(v) => set("i_knowhow", v)} />
-                <CheckRow label="Keine Überlastung" checked={form.i_keine_ueberlast} onChange={(v) => set("i_keine_ueberlast", v)} />
-                <CheckRow label="Finanzierung grundsätzlich möglich" checked={form.i_finanzierung} onChange={(v) => set("i_finanzierung", v)} />
-              </Section>
-
-              {/* 8. Gesamteinschätzung */}
-              <Section title="8. Gesamteinschätzung">
-                <Field label="Strategie" value={form.g_strategie} onChange={(v) => set("g_strategie", v)} />
-                <Field label="Baurecht" value={form.g_baurecht} onChange={(v) => set("g_baurecht", v)} />
-                <Field label="Technik" value={form.g_technik} onChange={(v) => set("g_technik", v)} />
-                <Field label="Wirtschaft" value={form.g_wirtschaft} onChange={(v) => set("g_wirtschaft", v)} />
-                <Field label="Markt" value={form.g_markt} onChange={(v) => set("g_markt", v)} />
-              </Section>
-
-              {/* 9. Empfehlung */}
-              <Section title="9. Empfehlung an VR">
-                <RadioRow
-                  label="Empfehlung"
-                  value={form.empfehlung}
-                  onChange={(v) => set("empfehlung", v as Recommendation)}
-                  options={[
-                    { value: "freigabe", label: "Freigabe für vertiefte Due Diligence" },
-                    { value: "ablehnung", label: "Ablehnung" },
-                    { value: "freigabe_bedingt", label: "Freigabe unter Bedingungen" },
-                  ]}
-                />
-                <TextField label="Bedingungen" value={form.bedingungen} onChange={(v) => set("bedingungen", v)} rows={4} />
-                <Separator />
-                <Field label="Ort, Datum" value={form.ort_datum} onChange={(v) => set("ort_datum", v)} />
-                <Field label="Durchgeführt von" value={form.durchgefuehrt_von} onChange={(v) => set("durchgefuehrt_von", v)} />
-              </Section>
-
-              <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur">
-                <Button
-                  onClick={() => save.mutate()}
-                  disabled={save.isPending}
-                  className="w-full"
-                  size="lg"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {save.isPending ? "Speichert…" : "Vorprüfung speichern"}
-                </Button>
-              </div>
-            </div>
-
-            {/* RECHTS: Live-Vorschau wie PDF */}
-            <div
-              className="min-w-0 lg:sticky lg:top-4"
-              style={{ height: "calc(100dvh - 2rem)" }}
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <div className="text-sm font-medium text-muted-foreground">
-                  Live-Vorschau
-                </div>
-                <a
-                  href="/vorpruefung-vorlage.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline"
-                >
-                  Original-PDF
-                </a>
-              </div>
-              <div
-                className="min-h-[600px] overflow-y-auto rounded-lg border bg-white"
-                style={{
-                  height: "calc(100% - 2rem)",
-                  WebkitOverflowScrolling: "touch",
-                }}
-              >
-                <LivePreview data={form} />
-              </div>
-            </div>
-            </div>
+            <PrecheckBody
+              form={form}
+              set={set}
+              save={save}
+            />
           </div>
         </CardContent>
       )}
     </Card>
+  );
+}
+
+// ============================================================================
+// Body with collapsible sections + synced preview
+// ============================================================================
+
+const SECTION_IDS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
+type SectionId = (typeof SECTION_IDS)[number];
+
+const SECTION_TITLES: Record<SectionId, string> = {
+  "1": "Projekt-Steckbrief",
+  "2": "Strategische Passung",
+  "3": "Baurechtliche Grobprüfung",
+  "4": "Technische Grobprüfung",
+  "5": "Wirtschaftliche Plausibilisierung",
+  "6": "Markt-Schnellanalyse",
+  "7": "Interne Realisierbarkeit",
+  "8": "Gesamteinschätzung",
+  "9": "Empfehlung an VR",
+};
+
+function PrecheckBody({
+  form,
+  set,
+  save,
+}: {
+  form: PrecheckData;
+  set: <K extends keyof PrecheckData>(k: K, v: PrecheckData[K]) => void;
+  save: ReturnType<typeof useMutation<void, Error, void, unknown>>;
+}) {
+  // Accordion state — only one open at a time keeps the page short
+  const [activeSection, setActiveSection] = useState<SectionId>("1");
+  const previewScrollRef = useRef<HTMLDivElement>(null);
+
+  // When active section changes, scroll preview to matching anchor
+  useEffect(() => {
+    const container = previewScrollRef.current;
+    if (!container) return;
+    const target = container.querySelector<HTMLElement>(
+      `[data-prev-section="${activeSection}"]`,
+    );
+    if (target) {
+      const offset = target.offsetTop - 12;
+      container.scrollTo({ top: offset, behavior: "smooth" });
+    }
+  }, [activeSection]);
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2 xl:mx-auto xl:max-w-[1800px]">
+      {/* LEFT: form (accordion) */}
+      <div className="space-y-2 min-w-0">
+        <Accordion
+          id="1"
+          activeId={activeSection}
+          onToggle={setActiveSection}
+        >
+          <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
+          <Field label="Adresse" value={form.adresse} onChange={(v) => set("adresse", v)} />
+          <Field label="PLZ, Ortschaft" value={form.plz_ort} onChange={(v) => set("plz_ort", v)} />
+          <Field label="Kanton" value={form.kanton} onChange={(v) => set("kanton", v)} />
+          <Field label="Parzellen-Nr." value={form.parzellen_nr} onChange={(v) => set("parzellen_nr", v)} />
+          <Field label="Verkäufer" value={form.verkaeufer} onChange={(v) => set("verkaeufer", v)} />
+          <Field label="Kaufpreis / Richtpreis" value={form.kaufpreis} onChange={(v) => set("kaufpreis", v)} />
+          <Field label="Grundstücksfläche" value={form.grundstuecksflaeche} onChange={(v) => set("grundstuecksflaeche", v)} />
+          <Field label="Geplante Nutzung" value={form.geplante_nutzung} onChange={(v) => set("geplante_nutzung", v)} />
+          <Field label="Projektverantwortlicher" value={form.projektverantwortlicher} onChange={(v) => set("projektverantwortlicher", v)} />
+          <Field label="Datum" value={form.datum} onChange={(v) => set("datum", v)} />
+        </Accordion>
+
+        <Accordion id="2" activeId={activeSection} onToggle={setActiveSection}>
+          <CheckRow label="Standort passt zur Unternehmensstrategie" checked={form.s_standort} onChange={(v) => set("s_standort", v)} />
+          <CheckRow label="Nutzung passt zu Kernkompetenz" checked={form.s_nutzung} onChange={(v) => set("s_nutzung", v)} />
+          <CheckRow label="Projektgrösse passend zur Unternehmensgrösse" checked={form.s_groesse} onChange={(v) => set("s_groesse", v)} />
+          <CheckRow label="Kein Klumpenrisiko im Portfolio / Auftragsbuch" checked={form.s_klumpen} onChange={(v) => set("s_klumpen", v)} />
+          <CheckRow label="Region im definierten Marktgebiet" checked={form.s_marktgebiet} onChange={(v) => set("s_marktgebiet", v)} />
+          <RadioRow
+            label="Strategische Bewertung"
+            value={form.strategie_bewertung}
+            onChange={(v) => set("strategie_bewertung", v as Rating)}
+            options={[
+              { value: "sehr_gut", label: "Sehr gut" },
+              { value: "mittel", label: "Mittel" },
+              { value: "schwach", label: "Schwach" },
+            ]}
+          />
+          <TextField label="Begründung" value={form.strategie_begruendung} onChange={(v) => set("strategie_begruendung", v)} rows={3} />
+        </Accordion>
+
+        <Accordion id="3" activeId={activeSection} onToggle={setActiveSection}>
+          <CheckRow label="Bauzone bestätigt" checked={form.b_bauzone} onChange={(v) => set("b_bauzone", v)} />
+          <CheckRow label="Erschliessung grundsätzlich vorhanden" checked={form.b_erschliessung} onChange={(v) => set("b_erschliessung", v)} />
+          <CheckRow label="Keine offensichtlichen Nutzungseinschränkungen" checked={form.b_keine_einschr} onChange={(v) => set("b_keine_einschr", v)} />
+          <CheckRow label="Keine offensichtlichen Schutzauflagen" checked={form.b_keine_schutz} onChange={(v) => set("b_keine_schutz", v)} />
+          <CheckRow label="Grobe Ausnützung plausibel" checked={form.b_ausnuetzung} onChange={(v) => set("b_ausnuetzung", v)} />
+          <TextField label="Erwartete realisierbare NF / BGF" value={form.erwartete_nf} onChange={(v) => set("erwartete_nf", v)} rows={2} />
+          <RiskRow label="Baurechtliches Risiko" value={form.baurecht_risiko} onChange={(v) => set("baurecht_risiko", v)} />
+        </Accordion>
+
+        <Accordion id="4" activeId={activeSection} onToggle={setActiveSection}>
+          <CheckRow label="Hanglage / komplexe Topografie?" checked={form.t_hanglage} onChange={(v) => set("t_hanglage", v)} />
+          <CheckRow label="Hinweise auf schlechte Bodenverhältnisse?" checked={form.t_boden} onChange={(v) => set("t_boden", v)} />
+          <CheckRow label="Altlastenverdacht?" checked={form.t_altlasten} onChange={(v) => set("t_altlasten", v)} />
+          <CheckRow label="Abbruchkosten relevant?" checked={form.t_abbruch} onChange={(v) => set("t_abbruch", v)} />
+          <RiskRow label="Technisches Risiko" value={form.technik_risiko} onChange={(v) => set("technik_risiko", v)} />
+        </Accordion>
+
+        <Accordion id="5" activeId={activeSection} onToggle={setActiveSection}>
+          <Field label="Erwartete NF" value={form.w_erwartete_nf} onChange={(v) => set("w_erwartete_nf", v)} />
+          <Field label="Landpreis pro m² NF" value={form.w_landpreis} onChange={(v) => set("w_landpreis", v)} />
+          <Field label="Gesch. Baukosten pro m² NF" value={form.w_baukosten} onChange={(v) => set("w_baukosten", v)} />
+          <Field label="Totalinvestition (Schätzung)" value={form.w_totalinvest} onChange={(v) => set("w_totalinvest", v)} />
+          <Field label="Erwarteter Mietertrag" value={form.w_mietertrag} onChange={(v) => set("w_mietertrag", v)} />
+          <Field label="Erwartete Zielrendite" value={form.w_zielrendite} onChange={(v) => set("w_zielrendite", v)} />
+          <Field label="Erwarteter Verkaufspreis (m²)" value={form.w_verkaufspreis} onChange={(v) => set("w_verkaufspreis", v)} />
+          <Field label="Erwarteter Mietzins (m²)" value={form.w_mietzins} onChange={(v) => set("w_mietzins", v)} />
+          <Field label="Erwarteter Verkaufserlös" value={form.w_verkaufserloes} onChange={(v) => set("w_verkaufserloes", v)} />
+          <Field label="Erwarteter Gewinn" value={form.w_gewinn} onChange={(v) => set("w_gewinn", v)} />
+          <CheckRow label="Baukosten +10% noch tragbar" checked={form.w_baukosten_plus10} onChange={(v) => set("w_baukosten_plus10", v)} />
+          <CheckRow label="Verkaufspreise -5% noch tragbar" checked={form.w_verkauf_minus5} onChange={(v) => set("w_verkauf_minus5", v)} />
+          <RadioRow
+            label="Wirtschaftliche Bewertung"
+            value={form.wirtschaft_bewertung}
+            onChange={(v) => set("wirtschaft_bewertung", v as EconRating)}
+            options={[
+              { value: "attraktiv", label: "Attraktiv" },
+              { value: "grenzwertig", label: "Grenzwertig" },
+              { value: "nicht_attraktiv", label: "Nicht attraktiv" },
+            ]}
+          />
+        </Accordion>
+
+        <Accordion id="6" activeId={activeSection} onToggle={setActiveSection}>
+          <CheckRow label="Mikrostandort positiv" checked={form.m_mikrostandort} onChange={(v) => set("m_mikrostandort", v)} />
+          <CheckRow label="Nachfrage nach Nutzung vorhanden" checked={form.m_nachfrage} onChange={(v) => set("m_nachfrage", v)} />
+          <CheckRow label="Vergleichsprojekte erfolgreich" checked={form.m_vergleich} onChange={(v) => set("m_vergleich", v)} />
+          <CheckRow label="Keine Überangebot-Situation" checked={form.m_kein_ueberangebot} onChange={(v) => set("m_kein_ueberangebot", v)} />
+          <RiskRow label="Markt-Risiko" value={form.markt_risiko} onChange={(v) => set("markt_risiko", v)} />
+        </Accordion>
+
+        <Accordion id="7" activeId={activeSection} onToggle={setActiveSection}>
+          <CheckRow label="Projektteam verfügbar" checked={form.i_team} onChange={(v) => set("i_team", v)} />
+          <CheckRow label="Know-how vorhanden" checked={form.i_knowhow} onChange={(v) => set("i_knowhow", v)} />
+          <CheckRow label="Keine Überlastung" checked={form.i_keine_ueberlast} onChange={(v) => set("i_keine_ueberlast", v)} />
+          <CheckRow label="Finanzierung grundsätzlich möglich" checked={form.i_finanzierung} onChange={(v) => set("i_finanzierung", v)} />
+        </Accordion>
+
+        <Accordion id="8" activeId={activeSection} onToggle={setActiveSection}>
+          <Field label="Strategie" value={form.g_strategie} onChange={(v) => set("g_strategie", v)} />
+          <Field label="Baurecht" value={form.g_baurecht} onChange={(v) => set("g_baurecht", v)} />
+          <Field label="Technik" value={form.g_technik} onChange={(v) => set("g_technik", v)} />
+          <Field label="Wirtschaft" value={form.g_wirtschaft} onChange={(v) => set("g_wirtschaft", v)} />
+          <Field label="Markt" value={form.g_markt} onChange={(v) => set("g_markt", v)} />
+        </Accordion>
+
+        <Accordion id="9" activeId={activeSection} onToggle={setActiveSection}>
+          <RadioRow
+            label="Empfehlung"
+            value={form.empfehlung}
+            onChange={(v) => set("empfehlung", v as Recommendation)}
+            options={[
+              { value: "freigabe", label: "Freigabe für vertiefte Due Diligence" },
+              { value: "ablehnung", label: "Ablehnung" },
+              { value: "freigabe_bedingt", label: "Freigabe unter Bedingungen" },
+            ]}
+          />
+          <TextField label="Bedingungen" value={form.bedingungen} onChange={(v) => set("bedingungen", v)} rows={4} />
+          <Separator />
+          <Field label="Ort, Datum" value={form.ort_datum} onChange={(v) => set("ort_datum", v)} />
+          <Field label="Durchgeführt von" value={form.durchgefuehrt_von} onChange={(v) => set("durchgefuehrt_von", v)} />
+        </Accordion>
+
+        {/* Section nav prev/next */}
+        <div className="flex items-center justify-between gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={SECTION_IDS.indexOf(activeSection) === 0}
+            onClick={() => {
+              const idx = SECTION_IDS.indexOf(activeSection);
+              if (idx > 0) setActiveSection(SECTION_IDS[idx - 1]);
+            }}
+          >
+            ← Zurück
+          </Button>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {SECTION_IDS.indexOf(activeSection) + 1} / {SECTION_IDS.length}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={SECTION_IDS.indexOf(activeSection) === SECTION_IDS.length - 1}
+            onClick={() => {
+              const idx = SECTION_IDS.indexOf(activeSection);
+              if (idx < SECTION_IDS.length - 1) setActiveSection(SECTION_IDS[idx + 1]);
+            }}
+          >
+            Weiter →
+          </Button>
+        </div>
+
+        <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur">
+          <Button
+            onClick={() => save.mutate()}
+            disabled={save.isPending}
+            className="w-full"
+            size="lg"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {save.isPending ? "Speichert…" : "Vorprüfung speichern"}
+          </Button>
+        </div>
+      </div>
+
+      {/* RIGHT: Live preview, scrolls in sync with active section */}
+      <div
+        className="min-w-0 lg:sticky lg:top-4"
+        style={{ height: "calc(100dvh - 2rem)" }}
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-sm font-medium text-muted-foreground">
+            Live-Vorschau
+            <span className="ml-2 text-xs text-foreground">
+              · {activeSection}. {SECTION_TITLES[activeSection]}
+            </span>
+          </div>
+          <a
+            href="/vorpruefung-vorlage.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline"
+          >
+            Original-PDF
+          </a>
+        </div>
+        <div
+          ref={previewScrollRef}
+          className="min-h-[600px] overflow-y-auto rounded-lg border bg-white"
+          style={{
+            height: "calc(100% - 2rem)",
+            WebkitOverflowScrolling: "touch",
+            scrollBehavior: "smooth",
+          }}
+        >
+          <LivePreview data={form} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Accordion section wrapper
+// ============================================================================
+
+function Accordion({
+  id,
+  activeId,
+  onToggle,
+  children,
+}: {
+  id: SectionId;
+  activeId: SectionId;
+  onToggle: (id: SectionId) => void;
+  children: React.ReactNode;
+}) {
+  const isOpen = id === activeId;
+  return (
+    <div className="overflow-hidden rounded-lg border bg-card transition-colors">
+      <button
+        type="button"
+        onClick={() => onToggle(isOpen ? id : id)}
+        className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
+          isOpen ? "bg-muted/40" : "hover:bg-muted/20"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <span
+            className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+              isOpen
+                ? "bg-foreground text-background"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {id}
+          </span>
+          <span className="text-sm font-semibold tracking-tight">
+            {SECTION_TITLES[id]}
+          </span>
+        </div>
+        {isOpen ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        )}
+      </button>
+      {isOpen && (
+        <div className="space-y-3 border-t bg-background p-4">{children}</div>
+      )}
+    </div>
   );
 }
 
