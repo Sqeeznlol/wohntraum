@@ -491,11 +491,14 @@ function EmptyState({ stage }: { stage: PipelineStage }) {
   };
   const m = messages[stage];
   return (
-    <Card className="border-dashed border-border/70 bg-card/50 shadow-none">
+    <Card className="rounded-[6px] border-[0.5px] border-dashed border-hairline bg-white/40 shadow-none">
       <CardContent className="flex flex-col items-center py-16 text-center">
-        <h3 className="font-serif-display text-2xl">{m.title}</h3>
+        <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-steel mb-2">
+          Status
+        </p>
+        <h3 className="font-serif-display text-3xl text-sapphire">{m.title}</h3>
         {m.sub && (
-          <p className="mt-2 max-w-sm text-sm text-muted-foreground">{m.sub}</p>
+          <p className="mt-2 max-w-sm text-sm font-light text-steel">{m.sub}</p>
         )}
         {stage === "new" && <PorscheGoalAnimation />}
       </CardContent>
