@@ -85,6 +85,24 @@ const navItems: ReadonlyArray<{
   { to: "/onboarding", label: "Setup" },
 ];
 
+function VisitTracker() {
+  const [tracked, setTracked] = useState(false);
+  if (typeof window !== "undefined" && !tracked) {
+    setTracked(true);
+    // Fire-and-forget; ignore errors
+    fetch("/api/track-visit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: window.location.pathname,
+        referrer: document.referrer || null,
+        language: navigator.language || null,
+      }),
+    }).catch(() => {});
+  }
+  return null;
+}
+
 function RootComponent() {
   const [queryClient] = useState(
     () =>
@@ -94,6 +112,7 @@ function RootComponent() {
   );
   return (
     <QueryClientProvider client={queryClient}>
+      <VisitTracker />
       <div className="min-h-screen bg-background pb-[env(safe-area-inset-bottom)]">
         <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-5">
