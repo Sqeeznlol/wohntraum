@@ -29,6 +29,7 @@ import { ListingDocuments } from "@/components/ListingDocuments";
 import { ListingViewings } from "@/components/ListingViewings";
 import { ListingNotes } from "@/components/ListingNotes";
 import { ListingPrecheck } from "@/components/ListingPrecheck";
+import { ContactProgress } from "@/components/ContactProgress";
 
 export const Route = createFileRoute("/listings/$id")({
   component: ListingDetail,
@@ -143,6 +144,7 @@ function ListingDetail() {
             </CardContent>
           </Card>
 
+          {l.status === "contacted" && <ContactProgress listingId={id} />}
           <ListingDocuments listingId={id} />
           <ListingPrecheck listingId={id} listing={data.listing} />
           <ListingNotes listingId={id} />
