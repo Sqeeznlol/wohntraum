@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
@@ -13,6 +13,8 @@ import {
   Plus,
   Trash2,
   Sparkles,
+  Clock,
+  GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +40,8 @@ const STEPS: ReadonlyArray<{
 
 const CUSTOM_KEY = "__custom__";
 
+export type CustomStatus = "offen" | "in_bearbeitung" | "erledigt";
+
 type StepLog = Partial<Record<ContactStepKey, string>> & {
   [CUSTOM_KEY]?: CustomMilestone[];
 };
@@ -45,8 +49,10 @@ type StepLog = Partial<Record<ContactStepKey, string>> & {
 type CustomMilestone = {
   id: string;
   label: string;
-  ts: string; // ISO
-  done: boolean;
+  ts: string; // ISO – created/updated
+  // legacy field, kept for backwards compatibility (true === "erledigt")
+  done?: boolean;
+  status?: CustomStatus;
 };
 
 type ProgressRow = {
@@ -82,6 +88,17 @@ function fmtDate(iso: string | undefined): string {
 
 function getCustom(steps: StepLog | undefined): CustomMilestone[] {
   return (steps?.[CUSTOM_KEY] as CustomMilestone[] | undefined) ?? [];
+}
+
+function statusOf(m: CustomMilestone): CustomStatus {
+  if (m.status) return m.status;
+  return m.done ? "erledigt" : "offen";
+}
+
+function nextStatus(s: CustomStatus): CustomStatus {
+  if (s === "offen") return "in_bearbeitung";
+  if (s === "in_bearbeitung") return "erledigt";
+  return "offen";
 }
 
 export function ContactProgress({ listingId, compact = false }: { listingId: string; compact?: boolean }) {
@@ -166,6 +183,7 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
         id: crypto.randomUUID(),
         label: trimmed,
         ts: new Date().toISOString(),
+        status: "offen",
         done: false,
       };
       const nextSteps: StepLog = {
@@ -200,6 +218,15 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contact-progress", listingId] }),
   });
 
+  const reorderCustom = useMutation({
+    mutationFn: async (nextOrder: CustomMilestone[]) => {
+      const existingSteps = (progress?.steps ?? {}) as StepLog;
+      const nextSteps: StepLog = { ...existingSteps, [CUSTOM_KEY]: nextOrder };
+      await upsertSteps(nextSteps);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contact-progress", listingId] }),
+  });
+
   const [noteDraft, setNoteDraft] = useState<string>("");
   useEffect(() => {
     setNoteDraft(progress?.note ?? "");
@@ -226,10 +253,12 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
   const completedBuiltin = progress
     ? STEPS.filter((s) => (progress.steps as StepLog)[s.key]).length
     : 0;
-  const completedCustom = customMilestones.filter((m) => m.done).length;
+  const completedCustom = customMilestones.filter((m) => statusOf(m) === "erledigt").length;
+  const inProgressCustom = customMilestones.filter((m) => statusOf(m) === "in_bearbeitung").length;
   const totalSteps = STEPS.length + customMilestones.length;
   const completedTotal = completedBuiltin + completedCustom;
-  const pct = totalSteps > 0 ? (completedTotal / totalSteps) * 100 : 0;
+  // Count "in Bearbeitung" as half progress
+  const pct = totalSteps > 0 ? ((completedTotal + inProgressCustom * 0.5) / totalSteps) * 100 : 0;
 
   if (compact) {
     return (
@@ -270,16 +299,23 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
               </div>
             );
           })}
-          {customMilestones.map((m) => (
-            <div
-              key={m.id}
-              className={cn(
-                "h-2 flex-1 rounded-full",
-                m.done ? "bg-primary" : "bg-primary/20",
-              )}
-              title={m.label}
-            />
-          ))}
+          {customMilestones.map((m) => {
+            const st = statusOf(m);
+            return (
+              <div
+                key={m.id}
+                className={cn(
+                  "h-2 flex-1 rounded-full",
+                  st === "erledigt"
+                    ? "bg-primary"
+                    : st === "in_bearbeitung"
+                    ? "bg-amber-400"
+                    : "bg-primary/20",
+                )}
+                title={`${m.label} · ${st === "in_bearbeitung" ? "in Bearbeitung" : st}`}
+              />
+            );
+          })}
         </div>
         <div className="mt-1.5 flex items-center justify-between">
           <span className="text-[11px] font-medium text-foreground">
@@ -404,68 +440,20 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
           );
         })}
 
-        {/* Custom milestones */}
-        <AnimatePresence initial={false}>
-          {customMilestones.map((m) => (
-            <motion.li
-              key={m.id}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="relative flex items-start gap-4 py-2.5"
-            >
-              <button
-                onClick={() =>
-                  updateCustom.mutate({
-                    id: m.id,
-                    changes: { done: !m.done, ts: !m.done ? new Date().toISOString() : m.ts },
-                  })
-                }
-                className={cn(
-                  "relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed transition-all",
-                  m.done
-                    ? "border-primary bg-primary text-primary-foreground shadow-soft"
-                    : "border-primary/50 bg-background text-primary hover:bg-primary/5",
-                )}
-                aria-label={m.label}
-              >
-                {m.done ? <Check className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-              </button>
-              <div className="min-w-0 flex-1 pt-1">
-                <div className="flex items-center justify-between gap-2">
-                  <input
-                    defaultValue={m.label}
-                    onBlur={(e) => {
-                      const v = e.target.value.trim();
-                      if (v && v !== m.label) {
-                        updateCustom.mutate({ id: m.id, changes: { label: v } });
-                      } else if (!v) {
-                        e.target.value = m.label;
-                      }
-                    }}
-                    className={cn(
-                      "min-w-0 flex-1 truncate border-b border-transparent bg-transparent text-sm font-medium outline-none transition-colors hover:border-border focus:border-primary",
-                      m.done ? "text-foreground line-through opacity-70" : "text-foreground",
-                    )}
-                  />
-                  <span className="text-[10px] tabular-nums text-muted-foreground">
-                    {fmtDate(m.ts)}
-                  </span>
-                  <button
-                    onClick={() => deleteCustom.mutate(m.id)}
-                    className="text-muted-foreground/50 hover:text-destructive"
-                    aria-label="Schritt entfernen"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <span className="text-[11px] text-muted-foreground/70">
-                  {m.done ? "erledigt" : "individuell · klicke zum Abhaken"}
-                </span>
-              </div>
-            </motion.li>
-          ))}
-        </AnimatePresence>
+        {/* Custom milestones (with drag & drop reordering + 3-state status) */}
+        <CustomList
+          items={customMilestones}
+          onReorder={(next) => reorderCustom.mutate(next)}
+          onCycleStatus={(m) => {
+            const ns = nextStatus(statusOf(m));
+            updateCustom.mutate({
+              id: m.id,
+              changes: { status: ns, done: ns === "erledigt", ts: new Date().toISOString() },
+            });
+          }}
+          onRename={(m, label) => updateCustom.mutate({ id: m.id, changes: { label } })}
+          onDelete={(id) => deleteCustom.mutate(id)}
+        />
 
         {/* Add custom step */}
         <li className="relative flex items-start gap-4 py-2.5">
@@ -568,3 +556,162 @@ function AddCustomInput({ onAdd }: { onAdd: (label: string) => void }) {
     </div>
   );
 }
+
+// ============================================================================
+// Drag-and-drop list for custom milestones with 3-state status toggle
+// ============================================================================
+
+const STATUS_LABEL: Record<CustomStatus, string> = {
+  offen: "offen",
+  in_bearbeitung: "in Bearbeitung",
+  erledigt: "erledigt",
+};
+
+function CustomList({
+  items,
+  onReorder,
+  onCycleStatus,
+  onRename,
+  onDelete,
+}: {
+  items: CustomMilestone[];
+  onReorder: (next: CustomMilestone[]) => void;
+  onCycleStatus: (m: CustomMilestone) => void;
+  onRename: (m: CustomMilestone, label: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const dragId = useRef<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  const handleDragStart = (id: string) => {
+    dragId.current = id;
+  };
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (dragId.current && dragId.current !== id) setOverId(id);
+  };
+  const handleDrop = (targetId: string) => {
+    const fromId = dragId.current;
+    dragId.current = null;
+    setOverId(null);
+    if (!fromId || fromId === targetId) return;
+    const fromIdx = items.findIndex((m) => m.id === fromId);
+    const toIdx = items.findIndex((m) => m.id === targetId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const next = items.slice();
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+    onReorder(next);
+  };
+  const handleDragEnd = () => {
+    dragId.current = null;
+    setOverId(null);
+  };
+
+  return (
+    <AnimatePresence initial={false}>
+      {items.map((m) => {
+        const st = statusOf(m);
+        const isOver = overId === m.id;
+        return (
+          <motion.li
+            key={m.id}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            onDragOver={(e) => handleDragOver(e, m.id)}
+            onDrop={() => handleDrop(m.id)}
+            onDragEnd={handleDragEnd}
+            className={cn(
+              "relative flex items-start gap-3 py-2.5 transition-colors",
+              isOver && "rounded-lg bg-primary/5 ring-1 ring-primary/30",
+            )}
+          >
+            {/* Drag handle */}
+            <button
+              type="button"
+              draggable
+              onDragStart={() => handleDragStart(m.id)}
+              onDragEnd={handleDragEnd}
+              className="mt-2 flex h-6 w-4 shrink-0 cursor-grab items-center justify-center text-muted-foreground/60 hover:text-foreground active:cursor-grabbing"
+              aria-label="Schritt verschieben"
+              title="Ziehen zum Neuordnen"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+
+            {/* Status toggle (3-state) */}
+            <button
+              onClick={() => onCycleStatus(m)}
+              className={cn(
+                "relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed transition-all",
+                st === "erledigt"
+                  ? "border-primary bg-primary text-primary-foreground shadow-soft"
+                  : st === "in_bearbeitung"
+                  ? "border-amber-400 bg-amber-50 text-amber-600"
+                  : "border-primary/50 bg-background text-primary hover:bg-primary/5",
+              )}
+              aria-label={`${m.label} – ${STATUS_LABEL[st]}`}
+              title={`Status: ${STATUS_LABEL[st]} (klicken zum Wechseln)`}
+            >
+              {st === "erledigt" ? (
+                <Check className="h-4 w-4" />
+              ) : st === "in_bearbeitung" ? (
+                <Clock className="h-4 w-4" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+            </button>
+
+            <div className="min-w-0 flex-1 pt-1">
+              <div className="flex items-center justify-between gap-2">
+                <input
+                  defaultValue={m.label}
+                  key={m.label}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v && v !== m.label) onRename(m, v);
+                    else if (!v) e.target.value = m.label;
+                  }}
+                  className={cn(
+                    "min-w-0 flex-1 truncate border-b border-transparent bg-transparent text-sm font-medium outline-none transition-colors hover:border-border focus:border-primary",
+                    st === "erledigt"
+                      ? "text-foreground line-through opacity-70"
+                      : "text-foreground",
+                  )}
+                />
+                <span className="text-[10px] tabular-nums text-muted-foreground">
+                  {fmtDate(m.ts)}
+                </span>
+                <button
+                  onClick={() => onDelete(m.id)}
+                  className="text-muted-foreground/50 hover:text-destructive"
+                  aria-label="Schritt entfernen"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <span
+                className={cn(
+                  "text-[11px]",
+                  st === "in_bearbeitung"
+                    ? "text-amber-600"
+                    : st === "erledigt"
+                    ? "text-muted-foreground"
+                    : "text-muted-foreground/70",
+                )}
+              >
+                {st === "erledigt"
+                  ? "erledigt"
+                  : st === "in_bearbeitung"
+                  ? "in Bearbeitung · klicken zum Abhaken"
+                  : "offen · klicken für „in Bearbeitung“"}
+              </span>
+            </div>
+          </motion.li>
+        );
+      })}
+    </AnimatePresence>
+  );
+}
+
