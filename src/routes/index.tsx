@@ -233,7 +233,7 @@ function ListingsPage() {
               Deal Pipeline
             </h1>
             <p className="mt-3 max-w-md text-sm font-light text-steel">
-              Aggregierte Suchabos. Präzise CHF/m²-Analyse. Dein Weg zum
+              Präzise CHF/m²-Analyse. Dein Weg zum
               <span className="italic text-sapphire"> GT4 RS.</span>
             </p>
           </div>
