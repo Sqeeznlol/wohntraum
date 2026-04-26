@@ -7,16 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, MapPin } from "lucide-react";
 
 const REEL_HEIGHT = 132; // px per item
-const SPIN_DURATION_BASE = 2200; // ms
+// Realistic slot timing: each reel spins longer than the last, like a classic fruit machine.
+const REEL_BASE_DURATION = 2400; // ms — first reel
+const REEL_STAGGER = 700; // ms — added per reel
+const STRIP_LENGTH = 40; // many symbols to make the spin feel long & continuous
 
 interface Props {
   listings: Listing[];
 }
 
 export function ListingSlotMachine({ listings }: Props) {
-  // pool of listings to use as slot symbols (must have image)
+  // Pool: nur Inserate, die du selbst markiert hast (interessant oder kontaktiert) + mit Bild
   const pool = useMemo(
-    () => listings.filter((l) => l.image_url).slice(0, 30),
+    () =>
+      listings
+        .filter(
+          (l) =>
+            l.image_url &&
+            (l.status === "interested" || l.status === "contacted"),
+        )
+        .slice(0, 30),
     [listings],
   );
 
@@ -45,12 +55,11 @@ function Machine({ pool }: { pool: Listing[] }) {
       pool[Math.floor(Math.random() * pool.length)],
       pool[Math.floor(Math.random() * pool.length)],
     ];
-    // determine reel stop times so reels stop sequentially
-    const totalDuration = SPIN_DURATION_BASE + 800; // last reel
+    // Last reel stops at base + 2 * stagger; reveal results when last reel lands.
+    const totalDuration = REEL_BASE_DURATION + REEL_STAGGER * 2 + 150;
     setTimeout(() => {
       setResults(newResults);
       setSpinning(false);
-      // tiny jackpot easter egg: same city on all 3
       if (
         newResults[0].city &&
         newResults[0].city === newResults[1].city &&
@@ -72,11 +81,14 @@ function Machine({ pool }: { pool: Listing[] }) {
       <div className="relative flex items-center justify-between gap-3">
         <div>
           <span className="text-[10px] uppercase tracking-[0.28em] text-amber-300/80">
-            Daily Spin · Schweiz
+            Daily Spin · Deine Shortlist
           </span>
           <h2 className="font-serif-display text-2xl text-white md:text-3xl">
             Inserat-Roulette
           </h2>
+          <p className="mt-1 text-[11px] text-amber-100/60">
+            Nur Interessant & Kontaktiert mit Bild
+          </p>
         </div>
         <div className="hidden text-right sm:block">
           <div className="text-[10px] uppercase tracking-[0.22em] text-amber-300/70">
@@ -96,7 +108,7 @@ function Machine({ pool }: { pool: Listing[] }) {
             pool={pool}
             target={results[i]}
             spinning={spinning}
-            stopDelay={i * 400}
+            reelIndex={i}
           />
         ))}
       </div>
@@ -127,23 +139,25 @@ function Reel({
   pool,
   target,
   spinning,
-  stopDelay,
+  reelIndex,
 }: {
   pool: Listing[];
   target: Listing;
   spinning: boolean;
-  stopDelay: number;
+  reelIndex: number;
 }) {
-  // build a long strip: many random items + target at the end
+  // build a long strip: many random items + target at the end (so motion lands on target)
   const strip = useMemo(() => {
     if (!spinning) return [target];
     const items: Listing[] = [];
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < STRIP_LENGTH; i++) {
       items.push(pool[Math.floor(Math.random() * pool.length)]);
     }
     items.push(target);
     return items;
   }, [spinning, pool, target]);
+
+  const duration = REEL_BASE_DURATION + reelIndex * REEL_STAGGER;
 
   const [reveal, setReveal] = useState(true);
   const stripRef = useRef<HTMLDivElement>(null);
@@ -152,10 +166,10 @@ function Reel({
     if (spinning) {
       setReveal(false);
     } else {
-      const t = setTimeout(() => setReveal(true), stopDelay + 100);
+      const t = setTimeout(() => setReveal(true), reelIndex * 200 + 100);
       return () => clearTimeout(t);
     }
-  }, [spinning, stopDelay]);
+  }, [spinning, reelIndex]);
 
   if (!spinning) {
     return (
@@ -169,15 +183,22 @@ function Reel({
     );
   }
 
+  // Distance to travel: stop with target row aligned in the visible window.
+  const distance = (strip.length - 1) * REEL_HEIGHT;
+
   return (
     <div className="relative h-[132px] overflow-hidden rounded-xl bg-stone-900 ring-1 ring-amber-300/30">
       <motion.div
         ref={stripRef}
         initial={{ y: 0 }}
-        animate={{ y: -(strip.length - 1) * REEL_HEIGHT }}
+        animate={{
+          // Tiny overshoot then settle — gives the classic mechanical "thunk" feel.
+          y: [0, -(distance + 18), -distance],
+        }}
         transition={{
-          duration: (SPIN_DURATION_BASE + stopDelay) / 1000,
-          ease: [0.15, 0.6, 0.3, 1],
+          duration: duration / 1000,
+          times: [0, 0.92, 1],
+          ease: ["circIn", "circOut"],
         }}
       >
         {strip.map((l, idx) => (

@@ -329,6 +329,98 @@ function extractListings(html: string, defaultPortal: Portal): ExtractedListing[
   return Array.from(dedup.values()).slice(0, 50);
 }
 
+// ============================================================================
+// FREE image scraping — direct fetch of the portal page (no Firecrawl, 0 credits).
+// Works well for Homegate, Flatfox, Comparis, Newhome. ImmoScout24 often blocks
+// bots, so we skip it here.
+// ============================================================================
+
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept":
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  "Accept-Language": "de-CH,de;q=0.9,en;q=0.8",
+};
+
+function isLikelyImg(u: string): boolean {
+  const s = u.toLowerCase();
+  if (!s.startsWith("http")) return false;
+  if (s.endsWith(".svg")) return false;
+  if (/(logo|icon|favicon|sprite|avatar|placeholder|pixel|tracking|analytics|badge|loading|spinner|blank|sponsor|ad[-_/])/.test(s))
+    return false;
+  if (/\b(1x1|16x16|24x24|32x32|48x48|64x64|96x96)\b/.test(s)) return false;
+  if (!/\.(jpe?g|png|webp|avif)(\?|$)/.test(s)) return false;
+  return true;
+}
+
+function isHighResImg(u: string): boolean {
+  const m = u.match(/(\d{3,4})x(\d{3,4})/);
+  if (m) {
+    const w = parseInt(m[1]);
+    const h = parseInt(m[2]);
+    return w >= 600 || h >= 400;
+  }
+  if (/\/(large|xl|big|original|hd|1280|1600|1920|2048)\b/i.test(u)) return true;
+  if (/\/(thumb|small|tiny|mini|icon|sm|xs|150|200|240)\b/i.test(u)) return false;
+  return true;
+}
+
+function normImgUrl(u: string, base: string): string | null {
+  try {
+    return new URL(u, base).href.split("#")[0];
+  } catch {
+    return null;
+  }
+}
+
+function extractImagesFromHtml(html: string, base: string): string[] {
+  const urls = new Set<string>();
+  const meta = /<meta[^>]+(?:property|name)=["'](?:og:image|og:image:secure_url|twitter:image)["'][^>]+content=["']([^"']+)["']/gi;
+  for (const m of html.matchAll(meta)) {
+    const u = normImgUrl(m[1], base);
+    if (u) urls.add(u);
+  }
+  const img = /<img[^>]+(?:src|data-src|data-original|data-lazy|data-lazy-src)=["']([^"']+)["']/gi;
+  for (const m of html.matchAll(img)) {
+    const u = normImgUrl(m[1], base);
+    if (u) urls.add(u);
+  }
+  const srcset = /(?:srcset|data-srcset)=["']([^"']+)["']/gi;
+  for (const m of html.matchAll(srcset)) {
+    for (const c of m[1].split(",").map((p) => p.trim().split(/\s+/)[0])) {
+      const u = normImgUrl(c, base);
+      if (u) urls.add(u);
+    }
+  }
+  const inline = /https?:\/\/[^\s"'<>\\]+\.(?:jpe?g|png|webp|avif)(?:\?[^\s"'<>\\]*)?/gi;
+  for (const m of html.matchAll(inline)) urls.add(m[0]);
+  return Array.from(urls);
+}
+
+async function scrapeImagesFree(url: string): Promise<string[]> {
+  // ImmoScout24 blockt Bots -> skip um Edge-Function-Time zu sparen
+  if (/immoscout24\.ch/i.test(url)) return [];
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(url, {
+      headers: BROWSER_HEADERS,
+      redirect: "follow",
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) return [];
+    const html = await res.text();
+    if (html.length < 500) return [];
+    const all = extractImagesFromHtml(html, url);
+    return all.filter((u) => isLikelyImg(u) && isHighResImg(u)).slice(0, 20);
+  } catch (e) {
+    console.warn("scrapeImagesFree failed for", url, e);
+    return [];
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -553,6 +645,48 @@ Deno.serve(async (req) => {
           portal: l.portal,
           url: safePrimaryUrl,
         });
+      }
+    }
+
+    // FREE: Bilder direkt vom Portal scrapen (0 Credits) und in listing_images ablegen.
+    // Das ersetzt den manuellen "Bilder importieren"-Klick für Homegate/Flatfox/etc.
+    if (safePrimaryUrl) {
+      try {
+        const scraped = await scrapeImagesFree(safePrimaryUrl);
+        if (scraped.length > 0) {
+          // bestehende Bilder dieser Listing-ID laden, um Duplikate zu vermeiden
+          const { data: existingImgs } = await supabase
+            .from("listing_images")
+            .select("url, sort_order")
+            .eq("listing_id", listingId);
+          const existingSet = new Set(
+            (existingImgs ?? []).map((r: { url: string }) => r.url),
+          );
+          const startSort =
+            (existingImgs ?? []).reduce(
+              (m: number, r: { sort_order: number | null }) =>
+                Math.max(m, r.sort_order ?? 0),
+              -1,
+            ) + 1;
+          const fresh = scraped.filter((u) => !existingSet.has(u));
+          if (fresh.length > 0) {
+            const rows = fresh.map((u, i) => ({
+              listing_id: listingId,
+              url: u,
+              sort_order: startSort + i,
+            }));
+            await supabase.from("listing_images").insert(rows);
+          }
+          // image_url setzen, falls noch leer
+          if (!cleanImage && fresh[0]) {
+            await supabase
+              .from("listings")
+              .update({ image_url: fresh[0] })
+              .eq("id", listingId);
+          }
+        }
+      } catch (e) {
+        console.warn("free image scrape failed:", e);
       }
     }
 
