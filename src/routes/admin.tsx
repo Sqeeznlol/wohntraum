@@ -301,10 +301,11 @@ function AdminDashboard({
     if (!visitors) return [];
     return visitors
       .filter((v) => !v.is_blocked && now - new Date(v.last_seen_at).getTime() < LIVE_WINDOW_MS)
+      .filter((v) => (tab === "internal" ? isInternal(v) : !isInternal(v)))
       .sort(
         (a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime(),
       );
-  }, [visitors, now]);
+  }, [visitors, now, tab]);
 
   const stats = useMemo(() => {
     const total = visitors?.length ?? 0;
