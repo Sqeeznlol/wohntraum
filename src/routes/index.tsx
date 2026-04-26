@@ -385,12 +385,86 @@ function ListingsPage() {
   );
 }
 
+function PorscheGoalAnimation() {
+  return (
+    <div className="relative mt-8 w-full max-w-xl overflow-hidden rounded-xl border border-border/60 bg-gradient-to-b from-background to-muted/40 px-2 py-6">
+      {/* Sky / horizon */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-amber-100/30 via-transparent to-transparent dark:from-amber-300/10" />
+
+      {/* Goal flag */}
+      <div className="absolute right-4 top-4 flex flex-col items-center">
+        <motion.div
+          initial={{ rotate: -8 }}
+          animate={{ rotate: [-8, 8, -8] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+          className="origin-bottom-left"
+        >
+          <div className="grid h-6 w-10 grid-cols-4 grid-rows-3 overflow-hidden rounded-sm shadow">
+            {Array.from({ length: 12 }).map((_, i) => {
+              const row = Math.floor(i / 4);
+              const col = i % 4;
+              const black = (row + col) % 2 === 0;
+              return (
+                <div
+                  key={i}
+                  className={black ? "bg-foreground" : "bg-background"}
+                />
+              );
+            })}
+          </div>
+        </motion.div>
+        <div className="h-10 w-0.5 bg-foreground/70" />
+        <span className="mt-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          Ziel
+        </span>
+      </div>
+
+      {/* Road */}
+      <div className="relative mx-auto mt-10 h-20 w-[92%] rounded-md bg-neutral-800 shadow-inner dark:bg-neutral-900">
+        {/* Lane dashes moving toward the right */}
+        <motion.div
+          className="absolute inset-y-1/2 left-0 right-0 -translate-y-1/2 flex gap-4"
+          animate={{ x: [0, -48] }}
+          transition={{ duration: 0.6, repeat: Infinity, ease: "linear" }}
+        >
+          {Array.from({ length: 30 }).map((_, i) => (
+            <div key={i} className="h-1 w-8 shrink-0 rounded bg-amber-300/90" />
+          ))}
+        </motion.div>
+
+        {/* Porsche getting closer to the goal */}
+        <motion.img
+          src={porscheImg}
+          alt="Roter Porsche 718 Cayman GT4 RS rast Richtung Ziel"
+          className="absolute bottom-1 left-0 h-14 w-auto select-none drop-shadow-[0_8px_12px_rgba(220,38,38,0.45)]"
+          style={{ filter: "hue-rotate(-10deg) saturate(1.6)" }}
+          initial={{ x: "0%", scale: 0.7 }}
+          animate={{ x: ["0%", "70%", "78%", "70%", "0%"], scale: [0.7, 1.05, 1.1, 1.05, 0.7] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", times: [0, 0.45, 0.55, 0.65, 1] }}
+        />
+
+        {/* Speed lines */}
+        <motion.div
+          className="pointer-events-none absolute inset-0"
+          animate={{ opacity: [0.2, 0.6, 0.2] }}
+          transition={{ duration: 0.8, repeat: Infinity }}
+        >
+          <div className="absolute left-2 top-3 h-0.5 w-10 rounded bg-white/40" />
+          <div className="absolute left-6 top-7 h-0.5 w-14 rounded bg-white/30" />
+          <div className="absolute left-3 bottom-3 h-0.5 w-8 rounded bg-white/40" />
+        </motion.div>
+      </div>
+
+      <p className="mt-4 text-center text-xs uppercase tracking-[0.25em] text-muted-foreground">
+        Auf dem Weg zum Porsche 718 GT4 RS
+      </p>
+    </div>
+  );
+}
+
 function EmptyState({ stage }: { stage: PipelineStage }) {
   const messages: Record<PipelineStage, { title: string; sub: string }> = {
-    new: {
-      title: "Alles bearbeitet",
-      sub: "Du hast alle eingegangenen Inserate bereits geprüft. Neue Suchabo-Mails erscheinen hier automatisch.",
-    },
+    new: { title: "Alles bearbeitet", sub: "" },
     interested: {
       title: "Noch nichts auf der Watchlist",
       sub: "Markiere ein Inserat als interessant, um es hier zu sehen.",
@@ -413,7 +487,10 @@ function EmptyState({ stage }: { stage: PipelineStage }) {
     <Card className="border-dashed border-border/70 bg-card/50 shadow-none">
       <CardContent className="flex flex-col items-center py-16 text-center">
         <h3 className="font-serif-display text-2xl">{m.title}</h3>
-        <p className="mt-2 max-w-sm text-sm text-muted-foreground">{m.sub}</p>
+        {m.sub && (
+          <p className="mt-2 max-w-sm text-sm text-muted-foreground">{m.sub}</p>
+        )}
+        {stage === "new" && <PorscheGoalAnimation />}
       </CardContent>
     </Card>
   );
