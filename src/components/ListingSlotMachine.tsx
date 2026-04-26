@@ -14,9 +14,16 @@ interface Props {
 }
 
 export function ListingSlotMachine({ listings }: Props) {
-  // pool of listings to use as slot symbols (must have image)
+  // Pool: nur Inserate, die du selbst markiert hast (interessant oder kontaktiert) + mit Bild
   const pool = useMemo(
-    () => listings.filter((l) => l.image_url).slice(0, 30),
+    () =>
+      listings
+        .filter(
+          (l) =>
+            l.image_url &&
+            (l.status === "interested" || l.status === "contacted"),
+        )
+        .slice(0, 30),
     [listings],
   );
 
