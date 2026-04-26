@@ -388,8 +388,8 @@ function ListingsPage() {
 function EmptyState({ stage }: { stage: PipelineStage }) {
   const messages: Record<PipelineStage, { title: string; sub: string }> = {
     new: {
-      title: "Inbox leer",
-      sub: "Sobald neue Suchabo-Mails reinkommen, landen sie hier.",
+      title: "Alles bearbeitet",
+      sub: "Du hast alle eingegangenen Inserate bereits geprüft. Neue Suchabo-Mails erscheinen hier automatisch.",
     },
     interested: {
       title: "Noch nichts auf der Watchlist",
@@ -414,14 +414,6 @@ function EmptyState({ stage }: { stage: PipelineStage }) {
       <CardContent className="flex flex-col items-center py-16 text-center">
         <h3 className="font-serif-display text-2xl">{m.title}</h3>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">{m.sub}</p>
-        {stage === "new" && (
-          <Link
-            to="/onboarding"
-            className="mt-6 inline-flex items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Setup starten
-          </Link>
-        )}
       </CardContent>
     </Card>
   );
