@@ -587,6 +587,8 @@ function AdminDashboard({
                     );
                   })}
                 </div>
+                {/* Activity timeline (Tagebuch) */}
+                <ActivityTimeline ip={group.ip} />
               </Card>
             );
           })}
