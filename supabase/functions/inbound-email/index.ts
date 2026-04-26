@@ -1,7 +1,13 @@
 // Inbound Email Webhook
 // Receives forwarded real-estate alert emails, extracts listings via a
 // portal-aware regex parser (NO AI), computes CHF/m², deduplicates, and
-// stores them. AI extraction was removed on user request.
+// stores them.
+//
+// SUBJECT FILTER (strict):
+//   Only emails whose subject contains the phrase "neue treffer" (case-insensitive,
+//   whitespace-tolerant) are processed. All other emails — newsletters,
+//   "Empfohlen für dich", recommendations, account messages, etc. — are
+//   logged but skipped (no listings extracted).
 //
 // POST body (flexible — supports Resend Inbound, generic forwarders):
 // {
