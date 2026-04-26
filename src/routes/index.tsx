@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import porscheImg from "@/assets/porsche-gt4rs.png";
 import { ListingSlotMachine } from "@/components/ListingSlotMachine";
 import { PitchHero } from "@/components/PitchHero";
+import { ContactProgress } from "@/components/ContactProgress";
 import {
   formatCHF,
   formatPricePerSqm,
@@ -610,6 +611,9 @@ function PipelineCard({
             )}
           </Button>
         </div>
+
+        {/* Contact progress — only when contacted */}
+        {stage === "contacted" && <ContactProgress listingId={listing.id} compact />}
 
         {/* Stage indicator strip */}
         <StageIndicator current={listing.status as PipelineStage} />
