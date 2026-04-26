@@ -41,9 +41,15 @@ interface Visitor {
   os: string | null;
   browser: string | null;
   device_type: string | null;
+  device_name: string | null;
   hostname: string | null;
   country: string | null;
+  region: string | null;
   city: string | null;
+  postal: string | null;
+  isp: string | null;
+  latitude: number | null;
+  longitude: number | null;
   language: string | null;
   referrer: string | null;
   path: string | null;
