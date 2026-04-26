@@ -240,10 +240,41 @@ function AdminDashboard({
     );
   }, [visitors, search]);
 
+  // Tab: separate real visitors from internal (Lovable preview / Cloudflare infra)
+  const [tab, setTab] = useState<"real" | "internal">("real");
+
+  const isInternal = (v: Visitor) => {
+    const blob = `${v.hostname ?? ""} ${v.isp ?? ""} ${v.referrer ?? ""}`.toLowerCase();
+    return (
+      blob.includes("lovable.app") ||
+      blob.includes("lovable.dev") ||
+      blob.includes("lovableproject") ||
+      blob.includes("cloudflare") ||
+      blob.includes("cloudfront") ||
+      blob.includes("cf-") ||
+      blob.includes("amazonaws") ||
+      blob.includes("vercel") ||
+      blob.includes("googleusercontent") ||
+      blob.includes("googlebot") ||
+      blob.includes("bingbot")
+    );
+  };
+
+  const visibleFiltered = useMemo(
+    () => filtered.filter((v) => (tab === "internal" ? isInternal(v) : !isInternal(v))),
+    [filtered, tab],
+  );
+
+  const internalCount = useMemo(
+    () => (visitors ?? []).filter(isInternal).length,
+    [visitors],
+  );
+  const realCount = (visitors?.length ?? 0) - internalCount;
+
   // Group devices by IP — same router = same group
   const grouped = useMemo(() => {
     const map = new Map<string, Visitor[]>();
-    for (const v of filtered) {
+    for (const v of visibleFiltered) {
       const list = map.get(v.ip_address) ?? [];
       list.push(v);
       map.set(v.ip_address, list);
@@ -262,7 +293,7 @@ function AdminDashboard({
         totalVisits: devices.reduce((acc, d) => acc + (d.visit_count ?? 0), 0),
       }))
       .sort((a, b) => b.lastSeen - a.lastSeen);
-  }, [filtered]);
+  }, [visibleFiltered]);
 
   // Devices active in the last 60s = "live on the site right now"
   const LIVE_WINDOW_MS = 60_000;
@@ -270,10 +301,11 @@ function AdminDashboard({
     if (!visitors) return [];
     return visitors
       .filter((v) => !v.is_blocked && now - new Date(v.last_seen_at).getTime() < LIVE_WINDOW_MS)
+      .filter((v) => (tab === "internal" ? isInternal(v) : !isInternal(v)))
       .sort(
         (a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime(),
       );
-  }, [visitors, now]);
+  }, [visitors, now, tab]);
 
   const stats = useMemo(() => {
     const total = visitors?.length ?? 0;
@@ -374,6 +406,34 @@ function AdminDashboard({
           </div>
         </Card>
       )}
+
+      {/* Tab switcher: real visitors vs internal/Cloudflare */}
+      <div className="flex flex-wrap items-center gap-1 rounded-full border bg-muted/30 p-1 w-fit">
+        <button
+          type="button"
+          onClick={() => setTab("real")}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+            tab === "real"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Echte Besucher
+          <Badge variant="secondary" className="text-[10px] tabular-nums">{realCount}</Badge>
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("internal")}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+            tab === "internal"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Intern / Cloudflare
+          <Badge variant="outline" className="text-[10px] tabular-nums">{internalCount}</Badge>
+        </button>
+      </div>
 
       {/* Search + refresh */}
       <div className="flex items-center gap-2">
