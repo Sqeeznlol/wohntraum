@@ -55,12 +55,11 @@ function Machine({ pool }: { pool: Listing[] }) {
       pool[Math.floor(Math.random() * pool.length)],
       pool[Math.floor(Math.random() * pool.length)],
     ];
-    // determine reel stop times so reels stop sequentially
-    const totalDuration = SPIN_DURATION_BASE + 800; // last reel
+    // Last reel stops at base + 2 * stagger; reveal results when last reel lands.
+    const totalDuration = REEL_BASE_DURATION + REEL_STAGGER * 2 + 150;
     setTimeout(() => {
       setResults(newResults);
       setSpinning(false);
-      // tiny jackpot easter egg: same city on all 3
       if (
         newResults[0].city &&
         newResults[0].city === newResults[1].city &&
