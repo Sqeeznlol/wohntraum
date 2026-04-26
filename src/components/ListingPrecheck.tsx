@@ -255,28 +255,7 @@ export function ListingPrecheck({
 
       {open && (
         <CardContent className="px-3 sm:px-6">
-          <div className="precheck-bleed">
-            <style>{`
-              .precheck-bleed { width: 100%; }
-              @media (min-width: 1280px) {
-                .precheck-bleed {
-                  width: 100vw;
-                  margin-left: calc(50% - 50vw);
-                  margin-right: calc(50% - 50vw);
-                  padding-left: 1.5rem;
-                  padding-right: 1.5rem;
-                }
-              }
-              @media (min-width: 1536px) {
-                .precheck-bleed { padding-left: 3rem; padding-right: 3rem; }
-              }
-            `}</style>
-            <PrecheckBody
-              form={form}
-              set={set}
-              save={save}
-            />
-          </div>
+          <PrecheckBody form={form} set={set} save={save} />
         </CardContent>
       )}
     </Card>
