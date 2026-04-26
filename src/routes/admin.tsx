@@ -149,10 +149,6 @@ function AdminPage() {
               <Button type="submit" className="w-full">
                 Einloggen
               </Button>
-              <div className="rounded-md border border-dashed border-border bg-muted/40 p-3 text-center text-xs text-muted-foreground">
-                <div>Benutzer: <span className="font-mono font-semibold text-foreground">Admin</span></div>
-                <div>Passwort: <span className="font-mono font-semibold text-foreground">Alys_1203</span></div>
-              </div>
             </form>
           </CardContent>
         </Card>
