@@ -21,6 +21,9 @@ import {
   Search,
   Trash2,
   RefreshCw,
+  Wifi,
+  MapPin,
+  Building2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -38,9 +41,15 @@ interface Visitor {
   os: string | null;
   browser: string | null;
   device_type: string | null;
+  device_name: string | null;
   hostname: string | null;
   country: string | null;
+  region: string | null;
   city: string | null;
+  postal: string | null;
+  isp: string | null;
+  latitude: number | null;
+  longitude: number | null;
   language: string | null;
   referrer: string | null;
   path: string | null;
@@ -213,11 +222,35 @@ function AdminDashboard({
     const s = search.toLowerCase().trim();
     if (!s) return visitors;
     return visitors.filter((v) =>
-      `${v.ip_address} ${v.hostname ?? ""} ${v.os ?? ""} ${v.browser ?? ""} ${v.device_type ?? ""} ${v.country ?? ""} ${v.city ?? ""} ${v.custom_label ?? ""}`
+      `${v.ip_address} ${v.hostname ?? ""} ${v.os ?? ""} ${v.browser ?? ""} ${v.device_type ?? ""} ${v.device_name ?? ""} ${v.country ?? ""} ${v.region ?? ""} ${v.city ?? ""} ${v.isp ?? ""} ${v.custom_label ?? ""}`
         .toLowerCase()
         .includes(s),
     );
   }, [visitors, search]);
+
+  // Group devices by IP — same router = same group
+  const grouped = useMemo(() => {
+    const map = new Map<string, Visitor[]>();
+    for (const v of filtered) {
+      const list = map.get(v.ip_address) ?? [];
+      list.push(v);
+      map.set(v.ip_address, list);
+    }
+    // Sort groups by most recent activity within the group
+    return Array.from(map.entries())
+      .map(([ip, devices]) => ({
+        ip,
+        devices: devices.sort(
+          (a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime(),
+        ),
+        lastSeen: devices.reduce(
+          (acc, d) => Math.max(acc, new Date(d.last_seen_at).getTime()),
+          0,
+        ),
+        totalVisits: devices.reduce((acc, d) => acc + (d.visit_count ?? 0), 0),
+      }))
+      .sort((a, b) => b.lastSeen - a.lastSeen);
+  }, [filtered]);
 
   const stats = useMemo(() => {
     const total = visitors?.length ?? 0;
@@ -225,7 +258,8 @@ function AdminDashboard({
     const today = visitors?.filter(
       (v) => new Date(v.last_seen_at).toDateString() === new Date().toDateString(),
     ).length ?? 0;
-    return { total, blocked, today };
+    const uniqueIps = new Set(visitors?.map((v) => v.ip_address)).size;
+    return { total, blocked, today, uniqueIps };
   }, [visitors]);
 
   return (
@@ -247,8 +281,9 @@ function AdminDashboard({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Gesamt" value={stats.total} />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard label="Geräte gesamt" value={stats.total} />
+        <StatCard label="Eindeutige IPs" value={stats.uniqueIps} />
         <StatCard label="Heute aktiv" value={stats.today} accent />
         <StatCard label="Blockiert" value={stats.blocked} danger />
       </div>
@@ -275,136 +310,182 @@ function AdminDashboard({
         </Button>
       </div>
 
-      {/* Visitor list */}
+      {/* Visitor list grouped by IP */}
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Lade Besucher…</p>
-      ) : filtered.length === 0 ? (
+      ) : grouped.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             Noch keine Besucher erfasst.
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((v) => {
-            const Icon = deviceIcon(v.device_type);
+        <div className="space-y-4">
+          {grouped.map((group) => {
+            // Take richest geo info from any device in the group
+            const meta = group.devices.find((d) => d.city || d.country) ?? group.devices[0];
+            const isMulti = group.devices.length > 1;
+            const allBlocked = group.devices.every((d) => d.is_blocked);
             return (
               <Card
-                key={v.id}
-                className={`transition-colors ${v.is_blocked ? "border-destructive/40 bg-destructive/5" : ""}`}
+                key={group.ip}
+                className={`overflow-hidden ${allBlocked ? "border-destructive/40" : ""}`}
               >
-                <CardContent className="p-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    {/* Left: identity */}
-                    <div className="flex min-w-0 flex-1 items-start gap-3">
-                      <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                          v.is_blocked ? "bg-destructive/10 text-destructive" : "bg-muted"
-                        }`}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-sm font-semibold tabular-nums">
-                            {v.ip_address}
-                          </span>
-                          {v.is_blocked && (
-                            <Badge variant="destructive" className="text-[10px]">
-                              <Ban className="mr-1 h-3 w-3" />
-                              Blockiert
-                            </Badge>
-                          )}
-                          <Badge variant="secondary" className="text-[10px] tabular-nums">
-                            {v.visit_count}× Besuch
-                          </Badge>
-                        </div>
-                        {v.hostname && (
-                          <div className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
-                            {v.hostname}
-                          </div>
-                        )}
-                        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1">
-                            <Monitor className="h-3 w-3" />
-                            {v.os ?? "—"} · {v.browser ?? "—"}
-                          </span>
-                          {v.device_type && (
-                            <span className="inline-flex items-center gap-1">
-                              <Smartphone className="h-3 w-3" />
-                              {v.device_type}
-                            </span>
-                          )}
-                          {(v.city || v.country) && (
-                            <span className="inline-flex items-center gap-1">
-                              <Globe className="h-3 w-3" />
-                              {[v.city, v.country].filter(Boolean).join(", ")}
-                            </span>
-                          )}
-                          {v.language && (
-                            <span className="text-[10px] uppercase tracking-wider">
-                              {v.language.split(",")[0]}
-                            </span>
-                          )}
-                        </div>
-                        {v.path && (
-                          <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground/70">
-                            zuletzt auf: {v.path}
-                          </div>
-                        )}
-                        <Input
-                          defaultValue={v.custom_label ?? ""}
-                          placeholder="Label setzen (z. B. mein iPhone)"
-                          className="mt-2 h-7 text-xs"
-                          onBlur={(e) => {
-                            const val = e.target.value;
-                            if (val !== (v.custom_label ?? "")) {
-                              setLabel.mutate({ id: v.id, label: val });
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Right: meta + actions */}
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                      <div className="text-right text-[10px] text-muted-foreground">
-                        <div>Erstmals: {fmtDate(v.first_seen_at)}</div>
-                        <div>Zuletzt: {fmtDate(v.last_seen_at)}</div>
-                      </div>
-                      <div className="flex gap-1.5">
-                        <Button
-                          size="sm"
-                          variant={v.is_blocked ? "outline" : "destructive"}
-                          onClick={() => block.mutate({ id: v.id, blocked: !v.is_blocked })}
-                          className="h-8"
-                        >
-                          {v.is_blocked ? (
-                            <>
-                              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                              Freigeben
-                            </>
-                          ) : (
-                            <>
-                              <Ban className="mr-1.5 h-3.5 w-3.5" />
-                              Blockieren
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            if (confirm("Eintrag löschen?")) remove.mutate(v.id);
-                          }}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
+                {/* Group header — the router/IP */}
+                <div className="border-b bg-muted/30 px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Wifi className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-mono text-sm font-semibold tabular-nums">
+                      {group.ip}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {group.devices.length} {isMulti ? "Geräte" : "Gerät"}
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px] tabular-nums">
+                      {group.totalVisits}× Besuche
+                    </Badge>
+                    {meta?.hostname && (
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {meta.hostname}
+                      </span>
+                    )}
                   </div>
-                </CardContent>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                    {(meta?.city || meta?.region || meta?.country) && (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {[meta?.city, meta?.postal, meta?.region, meta?.country]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </span>
+                    )}
+                    {meta?.isp && (
+                      <span className="inline-flex items-center gap-1">
+                        <Building2 className="h-3 w-3" />
+                        {meta.isp}
+                      </span>
+                    )}
+                    {meta?.latitude && meta?.longitude && (
+                      <a
+                        href={`https://www.google.com/maps?q=${meta.latitude},${meta.longitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
+                      >
+                        <Globe className="h-3 w-3" />
+                        Auf Karte zeigen
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Devices in this group */}
+                <div className="divide-y">
+                  {group.devices.map((v) => {
+                    const Icon = deviceIcon(v.device_type);
+                    const displayName =
+                      v.custom_label ||
+                      v.device_name ||
+                      `${v.device_type ?? "Gerät"} · ${v.browser ?? ""}`.trim();
+                    return (
+                      <div
+                        key={v.id}
+                        className={`p-4 transition-colors ${v.is_blocked ? "bg-destructive/5" : ""}`}
+                      >
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div className="flex min-w-0 flex-1 items-start gap-3">
+                            <div
+                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                                v.is_blocked ? "bg-destructive/10 text-destructive" : "bg-muted"
+                              }`}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-semibold">{displayName}</span>
+                                {v.is_blocked && (
+                                  <Badge variant="destructive" className="text-[10px]">
+                                    <Ban className="mr-1 h-3 w-3" />
+                                    Blockiert
+                                  </Badge>
+                                )}
+                                <Badge variant="secondary" className="text-[10px] tabular-nums">
+                                  {v.visit_count}×
+                                </Badge>
+                              </div>
+                              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                                <span>
+                                  {v.os ?? "—"} · {v.browser ?? "—"}
+                                </span>
+                                {v.language && (
+                                  <span className="text-[10px] uppercase tracking-wider">
+                                    {v.language.split(",")[0]}
+                                  </span>
+                                )}
+                              </div>
+                              {v.path && (
+                                <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground/70">
+                                  zuletzt auf: {v.path}
+                                </div>
+                              )}
+                              <Input
+                                defaultValue={v.custom_label ?? ""}
+                                placeholder={`Eigener Name (Vorschlag: ${v.device_name ?? v.device_type ?? "Gerät"})`}
+                                className="mt-2 h-7 text-xs"
+                                onBlur={(e) => {
+                                  const val = e.target.value;
+                                  if (val !== (v.custom_label ?? "")) {
+                                    setLabel.mutate({ id: v.id, label: val });
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex shrink-0 flex-col items-end gap-2">
+                            <div className="text-right text-[10px] text-muted-foreground">
+                              <div>Erstmals: {fmtDate(v.first_seen_at)}</div>
+                              <div>Zuletzt: {fmtDate(v.last_seen_at)}</div>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <Button
+                                size="sm"
+                                variant={v.is_blocked ? "outline" : "destructive"}
+                                onClick={() =>
+                                  block.mutate({ id: v.id, blocked: !v.is_blocked })
+                                }
+                                className="h-8"
+                              >
+                                {v.is_blocked ? (
+                                  <>
+                                    <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                                    Freigeben
+                                  </>
+                                ) : (
+                                  <>
+                                    <Ban className="mr-1.5 h-3.5 w-3.5" />
+                                    Blockieren
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (confirm("Eintrag löschen?")) remove.mutate(v.id);
+                                }}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </Card>
             );
           })}

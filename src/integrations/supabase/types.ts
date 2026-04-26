@@ -447,17 +447,23 @@ export type Database = {
           country: string | null
           created_at: string
           custom_label: string | null
+          device_name: string | null
           device_type: string | null
           first_seen_at: string
           hostname: string | null
           id: string
           ip_address: string
           is_blocked: boolean
+          isp: string | null
           language: string | null
           last_seen_at: string
+          latitude: number | null
+          longitude: number | null
           os: string | null
           path: string | null
+          postal: string | null
           referrer: string | null
+          region: string | null
           updated_at: string
           user_agent: string | null
           visit_count: number
@@ -468,17 +474,23 @@ export type Database = {
           country?: string | null
           created_at?: string
           custom_label?: string | null
+          device_name?: string | null
           device_type?: string | null
           first_seen_at?: string
           hostname?: string | null
           id?: string
           ip_address: string
           is_blocked?: boolean
+          isp?: string | null
           language?: string | null
           last_seen_at?: string
+          latitude?: number | null
+          longitude?: number | null
           os?: string | null
           path?: string | null
+          postal?: string | null
           referrer?: string | null
+          region?: string | null
           updated_at?: string
           user_agent?: string | null
           visit_count?: number
@@ -489,17 +501,23 @@ export type Database = {
           country?: string | null
           created_at?: string
           custom_label?: string | null
+          device_name?: string | null
           device_type?: string | null
           first_seen_at?: string
           hostname?: string | null
           id?: string
           ip_address?: string
           is_blocked?: boolean
+          isp?: string | null
           language?: string | null
           last_seen_at?: string
+          latitude?: number | null
+          longitude?: number | null
           os?: string | null
           path?: string | null
+          postal?: string | null
           referrer?: string | null
+          region?: string | null
           updated_at?: string
           user_agent?: string | null
           visit_count?: number
