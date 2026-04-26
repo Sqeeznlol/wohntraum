@@ -36,12 +36,12 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Aggregiert Suchabo-Mails von ImmoScout24, Homegate, Flatfox & Co. mit automatischer CHF/m²-Analyse.",
+          "Schweizer Immobilien-Intelligenz: kuratierte Inserate mit präziser CHF/m²-Analyse.",
       },
       { property: "og:title", content: "Immo Radar — Schweizer Immobilien-Intelligenz" },
       { name: "twitter:title", content: "Immo Radar — Schweizer Immobilien-Intelligenz" },
-      { property: "og:description", content: "Aggregiert Suchabo-Mails von ImmoScout24, Homegate, Flatfox & Co. mit automatischer CHF/m²-Analyse." },
-      { name: "twitter:description", content: "Aggregiert Suchabo-Mails von ImmoScout24, Homegate, Flatfox & Co. mit automatischer CHF/m²-Analyse." },
+      { property: "og:description", content: "Schweizer Immobilien-Intelligenz: kuratierte Inserate mit präziser CHF/m²-Analyse." },
+      { name: "twitter:description", content: "Schweizer Immobilien-Intelligenz: kuratierte Inserate mit präziser CHF/m²-Analyse." },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],
