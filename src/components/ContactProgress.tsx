@@ -440,68 +440,20 @@ export function ContactProgress({ listingId, compact = false }: { listingId: str
           );
         })}
 
-        {/* Custom milestones */}
-        <AnimatePresence initial={false}>
-          {customMilestones.map((m) => (
-            <motion.li
-              key={m.id}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="relative flex items-start gap-4 py-2.5"
-            >
-              <button
-                onClick={() =>
-                  updateCustom.mutate({
-                    id: m.id,
-                    changes: { done: !m.done, ts: !m.done ? new Date().toISOString() : m.ts },
-                  })
-                }
-                className={cn(
-                  "relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed transition-all",
-                  m.done
-                    ? "border-primary bg-primary text-primary-foreground shadow-soft"
-                    : "border-primary/50 bg-background text-primary hover:bg-primary/5",
-                )}
-                aria-label={m.label}
-              >
-                {m.done ? <Check className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-              </button>
-              <div className="min-w-0 flex-1 pt-1">
-                <div className="flex items-center justify-between gap-2">
-                  <input
-                    defaultValue={m.label}
-                    onBlur={(e) => {
-                      const v = e.target.value.trim();
-                      if (v && v !== m.label) {
-                        updateCustom.mutate({ id: m.id, changes: { label: v } });
-                      } else if (!v) {
-                        e.target.value = m.label;
-                      }
-                    }}
-                    className={cn(
-                      "min-w-0 flex-1 truncate border-b border-transparent bg-transparent text-sm font-medium outline-none transition-colors hover:border-border focus:border-primary",
-                      m.done ? "text-foreground line-through opacity-70" : "text-foreground",
-                    )}
-                  />
-                  <span className="text-[10px] tabular-nums text-muted-foreground">
-                    {fmtDate(m.ts)}
-                  </span>
-                  <button
-                    onClick={() => deleteCustom.mutate(m.id)}
-                    className="text-muted-foreground/50 hover:text-destructive"
-                    aria-label="Schritt entfernen"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <span className="text-[11px] text-muted-foreground/70">
-                  {m.done ? "erledigt" : "individuell · klicke zum Abhaken"}
-                </span>
-              </div>
-            </motion.li>
-          ))}
-        </AnimatePresence>
+        {/* Custom milestones (with drag & drop reordering + 3-state status) */}
+        <CustomList
+          items={customMilestones}
+          onReorder={(next) => reorderCustom.mutate(next)}
+          onCycleStatus={(m) => {
+            const ns = nextStatus(statusOf(m));
+            updateCustom.mutate({
+              id: m.id,
+              changes: { status: ns, done: ns === "erledigt", ts: new Date().toISOString() },
+            });
+          }}
+          onRename={(m, label) => updateCustom.mutate({ id: m.id, changes: { label } })}
+          onDelete={(id) => deleteCustom.mutate(id)}
+        />
 
         {/* Add custom step */}
         <li className="relative flex items-start gap-4 py-2.5">
