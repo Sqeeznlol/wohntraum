@@ -293,7 +293,7 @@ function AdminDashboard({
         totalVisits: devices.reduce((acc, d) => acc + (d.visit_count ?? 0), 0),
       }))
       .sort((a, b) => b.lastSeen - a.lastSeen);
-  }, [filtered]);
+  }, [visibleFiltered]);
 
   // Devices active in the last 60s = "live on the site right now"
   const LIVE_WINDOW_MS = 60_000;
