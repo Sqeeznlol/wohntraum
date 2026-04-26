@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, MapPin } from "lucide-react";
 
 const REEL_HEIGHT = 132; // px per item
-const SPIN_DURATION_BASE = 2200; // ms
+// Realistic slot timing: each reel spins longer than the last, like a classic fruit machine.
+const REEL_BASE_DURATION = 2400; // ms — first reel
+const REEL_STAGGER = 700; // ms — added per reel
+const STRIP_LENGTH = 40; // many symbols to make the spin feel long & continuous
 
 interface Props {
   listings: Listing[];
