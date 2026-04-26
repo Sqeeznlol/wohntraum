@@ -49,7 +49,7 @@ function Redacted({ text }: { text: string }) {
       <span className="invisible block truncate font-mono text-xs">{text}</span>
       <span
         aria-hidden
-        className="absolute inset-0 block rounded-sm bg-foreground transition-opacity duration-150 group-hover:opacity-0"
+        className="absolute inset-0 block rounded-sm bg-black transition-opacity duration-150 group-hover:opacity-0"
       />
       <span className="pointer-events-none absolute inset-0 hidden truncate font-mono text-xs text-foreground group-hover:block">
         {text}
