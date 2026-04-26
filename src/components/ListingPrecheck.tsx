@@ -290,32 +290,52 @@ function PrecheckBody({
   set: <K extends keyof PrecheckData>(k: K, v: PrecheckData[K]) => void;
   save: ReturnType<typeof useMutation<void, Error, void, unknown>>;
 }) {
-  // Accordion state — only one open at a time keeps the page short
   const [activeSection, setActiveSection] = useState<SectionId>("1");
-  const previewScrollRef = useRef<HTMLDivElement>(null);
 
-  // When active section changes, scroll preview to matching anchor
-  useEffect(() => {
-    const container = previewScrollRef.current;
-    if (!container) return;
-    const target = container.querySelector<HTMLElement>(
-      `[data-prev-section="${activeSection}"]`,
-    );
-    if (target) {
-      const offset = target.offsetTop - 12;
-      container.scrollTo({ top: offset, behavior: "smooth" });
-    }
+  // Progress: count of sections that have at least one filled value
+  const progressPct = useMemo(() => {
+    const idx = SECTION_IDS.indexOf(activeSection) + 1;
+    return Math.round((idx / SECTION_IDS.length) * 100);
   }, [activeSection]);
 
+  const goPrev = () => {
+    const idx = SECTION_IDS.indexOf(activeSection);
+    if (idx > 0) setActiveSection(SECTION_IDS[idx - 1]);
+  };
+  const goNext = () => {
+    const idx = SECTION_IDS.indexOf(activeSection);
+    if (idx < SECTION_IDS.length - 1) setActiveSection(SECTION_IDS[idx + 1]);
+  };
+
   return (
-    <div className="grid gap-6 lg:grid-cols-2 xl:mx-auto xl:max-w-[1800px]">
-      {/* LEFT: form (accordion) */}
-      <div className="space-y-2 min-w-0">
-        <Accordion
-          id="1"
-          activeId={activeSection}
-          onToggle={setActiveSection}
-        >
+    <div className="mx-auto max-w-3xl space-y-4">
+      {/* Hero / progress */}
+      <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-background to-background p-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <FileCheck2 className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold">Vorprüfung Bauprojekt</div>
+            <div className="text-xs text-muted-foreground">
+              Schritt {SECTION_IDS.indexOf(activeSection) + 1} von {SECTION_IDS.length} · {SECTION_TITLES[activeSection]}
+            </div>
+          </div>
+          <div className="hidden text-right sm:block">
+            <div className="text-lg font-bold tabular-nums">{progressPct}%</div>
+          </div>
+        </div>
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Sections */}
+      <div className="space-y-2">
+        <Accordion id="1" activeId={activeSection} onToggle={setActiveSection}>
           <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
             <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
             <Field label="Adresse" value={form.adresse} onChange={(v) => set("adresse", v)} />
@@ -371,16 +391,18 @@ function PrecheckBody({
         </Accordion>
 
         <Accordion id="5" activeId={activeSection} onToggle={setActiveSection}>
-          <Field label="Erwartete NF" value={form.w_erwartete_nf} onChange={(v) => set("w_erwartete_nf", v)} />
-          <Field label="Landpreis pro m² NF" value={form.w_landpreis} onChange={(v) => set("w_landpreis", v)} />
-          <Field label="Gesch. Baukosten pro m² NF" value={form.w_baukosten} onChange={(v) => set("w_baukosten", v)} />
-          <Field label="Totalinvestition (Schätzung)" value={form.w_totalinvest} onChange={(v) => set("w_totalinvest", v)} />
-          <Field label="Erwarteter Mietertrag" value={form.w_mietertrag} onChange={(v) => set("w_mietertrag", v)} />
-          <Field label="Erwartete Zielrendite" value={form.w_zielrendite} onChange={(v) => set("w_zielrendite", v)} />
-          <Field label="Erwarteter Verkaufspreis (m²)" value={form.w_verkaufspreis} onChange={(v) => set("w_verkaufspreis", v)} />
-          <Field label="Erwarteter Mietzins (m²)" value={form.w_mietzins} onChange={(v) => set("w_mietzins", v)} />
-          <Field label="Erwarteter Verkaufserlös" value={form.w_verkaufserloes} onChange={(v) => set("w_verkaufserloes", v)} />
-          <Field label="Erwarteter Gewinn" value={form.w_gewinn} onChange={(v) => set("w_gewinn", v)} />
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+            <Field label="Erwartete NF" value={form.w_erwartete_nf} onChange={(v) => set("w_erwartete_nf", v)} />
+            <Field label="Landpreis pro m² NF" value={form.w_landpreis} onChange={(v) => set("w_landpreis", v)} />
+            <Field label="Gesch. Baukosten pro m² NF" value={form.w_baukosten} onChange={(v) => set("w_baukosten", v)} />
+            <Field label="Totalinvestition (Schätzung)" value={form.w_totalinvest} onChange={(v) => set("w_totalinvest", v)} />
+            <Field label="Erwarteter Mietertrag" value={form.w_mietertrag} onChange={(v) => set("w_mietertrag", v)} />
+            <Field label="Erwartete Zielrendite" value={form.w_zielrendite} onChange={(v) => set("w_zielrendite", v)} />
+            <Field label="Erwarteter Verkaufspreis (m²)" value={form.w_verkaufspreis} onChange={(v) => set("w_verkaufspreis", v)} />
+            <Field label="Erwarteter Mietzins (m²)" value={form.w_mietzins} onChange={(v) => set("w_mietzins", v)} />
+            <Field label="Erwarteter Verkaufserlös" value={form.w_verkaufserloes} onChange={(v) => set("w_verkaufserloes", v)} />
+            <Field label="Erwarteter Gewinn" value={form.w_gewinn} onChange={(v) => set("w_gewinn", v)} />
+          </div>
           <CheckRow label="Baukosten +10% noch tragbar" checked={form.w_baukosten_plus10} onChange={(v) => set("w_baukosten_plus10", v)} />
           <CheckRow label="Verkaufspreise -5% noch tragbar" checked={form.w_verkauf_minus5} onChange={(v) => set("w_verkauf_minus5", v)} />
           <RadioRow
@@ -411,11 +433,15 @@ function PrecheckBody({
         </Accordion>
 
         <Accordion id="8" activeId={activeSection} onToggle={setActiveSection}>
-          <Field label="Strategie" value={form.g_strategie} onChange={(v) => set("g_strategie", v)} />
-          <Field label="Baurecht" value={form.g_baurecht} onChange={(v) => set("g_baurecht", v)} />
-          <Field label="Technik" value={form.g_technik} onChange={(v) => set("g_technik", v)} />
-          <Field label="Wirtschaft" value={form.g_wirtschaft} onChange={(v) => set("g_wirtschaft", v)} />
-          <Field label="Markt" value={form.g_markt} onChange={(v) => set("g_markt", v)} />
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+            <Field label="Strategie" value={form.g_strategie} onChange={(v) => set("g_strategie", v)} />
+            <Field label="Baurecht" value={form.g_baurecht} onChange={(v) => set("g_baurecht", v)} />
+            <Field label="Technik" value={form.g_technik} onChange={(v) => set("g_technik", v)} />
+            <Field label="Wirtschaft" value={form.g_wirtschaft} onChange={(v) => set("g_wirtschaft", v)} />
+            <div className="sm:col-span-2">
+              <Field label="Markt" value={form.g_markt} onChange={(v) => set("g_markt", v)} />
+            </div>
+          </div>
         </Accordion>
 
         <Accordion id="9" activeId={activeSection} onToggle={setActiveSection}>
@@ -431,84 +457,46 @@ function PrecheckBody({
           />
           <TextField label="Bedingungen" value={form.bedingungen} onChange={(v) => set("bedingungen", v)} rows={4} />
           <Separator />
-          <Field label="Ort, Datum" value={form.ort_datum} onChange={(v) => set("ort_datum", v)} />
-          <Field label="Durchgeführt von" value={form.durchgefuehrt_von} onChange={(v) => set("durchgefuehrt_von", v)} />
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+            <Field label="Ort, Datum" value={form.ort_datum} onChange={(v) => set("ort_datum", v)} />
+            <Field label="Durchgeführt von" value={form.durchgefuehrt_von} onChange={(v) => set("durchgefuehrt_von", v)} />
+          </div>
         </Accordion>
-
-        {/* Section nav prev/next */}
-        <div className="flex items-center justify-between gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={SECTION_IDS.indexOf(activeSection) === 0}
-            onClick={() => {
-              const idx = SECTION_IDS.indexOf(activeSection);
-              if (idx > 0) setActiveSection(SECTION_IDS[idx - 1]);
-            }}
-          >
-            ← Zurück
-          </Button>
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {SECTION_IDS.indexOf(activeSection) + 1} / {SECTION_IDS.length}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={SECTION_IDS.indexOf(activeSection) === SECTION_IDS.length - 1}
-            onClick={() => {
-              const idx = SECTION_IDS.indexOf(activeSection);
-              if (idx < SECTION_IDS.length - 1) setActiveSection(SECTION_IDS[idx + 1]);
-            }}
-          >
-            Weiter →
-          </Button>
-        </div>
-
-        <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur">
-          <Button
-            onClick={() => save.mutate()}
-            disabled={save.isPending}
-            className="w-full"
-            size="lg"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {save.isPending ? "Speichert…" : "Vorprüfung speichern"}
-          </Button>
-        </div>
       </div>
 
-      {/* RIGHT: Live preview, scrolls in sync with active section */}
-      <div
-        className="min-w-0 lg:sticky lg:top-4"
-        style={{ height: "calc(100dvh - 2rem)" }}
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <div className="text-sm font-medium text-muted-foreground">
-            Live-Vorschau
-            <span className="ml-2 text-xs text-foreground">
-              · {activeSection}. {SECTION_TITLES[activeSection]}
-            </span>
-          </div>
-          <a
-            href="/vorpruefung-vorlage.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline"
-          >
-            Original-PDF
-          </a>
-        </div>
-        <div
-          ref={previewScrollRef}
-          className="min-h-[600px] overflow-y-auto rounded-lg border bg-white"
-          style={{
-            height: "calc(100% - 2rem)",
-            WebkitOverflowScrolling: "touch",
-            scrollBehavior: "smooth",
-          }}
+      {/* Section nav prev/next */}
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={SECTION_IDS.indexOf(activeSection) === 0}
+          onClick={goPrev}
         >
-          <LivePreview data={form} />
-        </div>
+          ← Zurück
+        </Button>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {SECTION_IDS.indexOf(activeSection) + 1} / {SECTION_IDS.length}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={SECTION_IDS.indexOf(activeSection) === SECTION_IDS.length - 1}
+          onClick={goNext}
+        >
+          Weiter →
+        </Button>
+      </div>
+
+      <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur">
+        <Button
+          onClick={() => save.mutate()}
+          disabled={save.isPending}
+          className="w-full"
+          size="lg"
+        >
+          <Save className="mr-2 h-4 w-4" />
+          {save.isPending ? "Speichert…" : "Vorprüfung speichern"}
+        </Button>
       </div>
     </div>
   );
