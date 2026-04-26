@@ -16,6 +16,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ListingsIdRouteImport } from './routes/listings.$id'
 import { Route as ApiTrackVisitRouteImport } from './routes/api.track-visit'
+import { Route as ApiTrackActivityRouteImport } from './routes/api.track-activity'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -52,6 +53,11 @@ const ApiTrackVisitRoute = ApiTrackVisitRouteImport.update({
   path: '/api/track-visit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTrackActivityRoute = ApiTrackActivityRouteImport.update({
+  id: '/api/track-activity',
+  path: '/api/track-activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/alerts': typeof AlertsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/api/track-activity': typeof ApiTrackActivityRoute
   '/api/track-visit': typeof ApiTrackVisitRoute
   '/listings/$id': typeof ListingsIdRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/alerts': typeof AlertsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/api/track-activity': typeof ApiTrackActivityRoute
   '/api/track-visit': typeof ApiTrackVisitRoute
   '/listings/$id': typeof ListingsIdRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/alerts': typeof AlertsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/api/track-activity': typeof ApiTrackActivityRoute
   '/api/track-visit': typeof ApiTrackVisitRoute
   '/listings/$id': typeof ListingsIdRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/map'
     | '/onboarding'
+    | '/api/track-activity'
     | '/api/track-visit'
     | '/listings/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/map'
     | '/onboarding'
+    | '/api/track-activity'
     | '/api/track-visit'
     | '/listings/$id'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/map'
     | '/onboarding'
+    | '/api/track-activity'
     | '/api/track-visit'
     | '/listings/$id'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   AlertsRoute: typeof AlertsRoute
   MapRoute: typeof MapRoute
   OnboardingRoute: typeof OnboardingRoute
+  ApiTrackActivityRoute: typeof ApiTrackActivityRoute
   ApiTrackVisitRoute: typeof ApiTrackVisitRoute
   ListingsIdRoute: typeof ListingsIdRoute
 }
@@ -172,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrackVisitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/track-activity': {
+      id: '/api/track-activity'
+      path: '/api/track-activity'
+      fullPath: '/api/track-activity'
+      preLoaderRoute: typeof ApiTrackActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlertsRoute: AlertsRoute,
   MapRoute: MapRoute,
   OnboardingRoute: OnboardingRoute,
+  ApiTrackActivityRoute: ApiTrackActivityRoute,
   ApiTrackVisitRoute: ApiTrackVisitRoute,
   ListingsIdRoute: ListingsIdRoute,
 }
