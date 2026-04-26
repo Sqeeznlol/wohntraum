@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
@@ -13,6 +13,8 @@ import {
   Plus,
   Trash2,
   Sparkles,
+  Clock,
+  GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +40,8 @@ const STEPS: ReadonlyArray<{
 
 const CUSTOM_KEY = "__custom__";
 
+export type CustomStatus = "offen" | "in_bearbeitung" | "erledigt";
+
 type StepLog = Partial<Record<ContactStepKey, string>> & {
   [CUSTOM_KEY]?: CustomMilestone[];
 };
@@ -45,8 +49,10 @@ type StepLog = Partial<Record<ContactStepKey, string>> & {
 type CustomMilestone = {
   id: string;
   label: string;
-  ts: string; // ISO
-  done: boolean;
+  ts: string; // ISO – created/updated
+  // legacy field, kept for backwards compatibility (true === "erledigt")
+  done?: boolean;
+  status?: CustomStatus;
 };
 
 type ProgressRow = {
