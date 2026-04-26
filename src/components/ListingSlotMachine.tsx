@@ -136,23 +136,25 @@ function Reel({
   pool,
   target,
   spinning,
-  stopDelay,
+  reelIndex,
 }: {
   pool: Listing[];
   target: Listing;
   spinning: boolean;
-  stopDelay: number;
+  reelIndex: number;
 }) {
-  // build a long strip: many random items + target at the end
+  // build a long strip: many random items + target at the end (so motion lands on target)
   const strip = useMemo(() => {
     if (!spinning) return [target];
     const items: Listing[] = [];
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < STRIP_LENGTH; i++) {
       items.push(pool[Math.floor(Math.random() * pool.length)]);
     }
     items.push(target);
     return items;
   }, [spinning, pool, target]);
+
+  const duration = REEL_BASE_DURATION + reelIndex * REEL_STAGGER;
 
   const [reveal, setReveal] = useState(true);
   const stripRef = useRef<HTMLDivElement>(null);
@@ -161,10 +163,10 @@ function Reel({
     if (spinning) {
       setReveal(false);
     } else {
-      const t = setTimeout(() => setReveal(true), stopDelay + 100);
+      const t = setTimeout(() => setReveal(true), reelIndex * 200 + 100);
       return () => clearTimeout(t);
     }
-  }, [spinning, stopDelay]);
+  }, [spinning, reelIndex]);
 
   if (!spinning) {
     return (
@@ -178,15 +180,22 @@ function Reel({
     );
   }
 
+  // Distance to travel: stop with target row aligned in the visible window.
+  const distance = (strip.length - 1) * REEL_HEIGHT;
+
   return (
     <div className="relative h-[132px] overflow-hidden rounded-xl bg-stone-900 ring-1 ring-amber-300/30">
       <motion.div
         ref={stripRef}
         initial={{ y: 0 }}
-        animate={{ y: -(strip.length - 1) * REEL_HEIGHT }}
+        animate={{
+          // Tiny overshoot then settle — gives the classic mechanical "thunk" feel.
+          y: [0, -(distance + 18), -distance],
+        }}
         transition={{
-          duration: (SPIN_DURATION_BASE + stopDelay) / 1000,
-          ease: [0.15, 0.6, 0.3, 1],
+          duration: duration / 1000,
+          times: [0, 0.92, 1],
+          ease: ["circIn", "circOut"],
         }}
       >
         {strip.map((l, idx) => (
