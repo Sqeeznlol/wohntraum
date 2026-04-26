@@ -347,8 +347,16 @@ function AdminDashboard({
                     </div>
                     <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
                       <span>{v.os ?? "—"} · {v.browser ?? "—"}</span>
-                      {(v.city || v.country) && (
-                        <span>{[v.city, v.country].filter(Boolean).join(", ")}</span>
+                      {(v.address || v.city || v.country) && (
+                        <span>
+                          {[
+                            v.address,
+                            [v.postal, v.city].filter(Boolean).join(" "),
+                            v.country,
+                          ]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </span>
                       )}
                       {v.path && <span className="font-mono truncate">{v.path}</span>}
                     </div>
