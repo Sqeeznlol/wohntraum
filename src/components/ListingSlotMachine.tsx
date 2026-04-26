@@ -81,11 +81,14 @@ function Machine({ pool }: { pool: Listing[] }) {
       <div className="relative flex items-center justify-between gap-3">
         <div>
           <span className="text-[10px] uppercase tracking-[0.28em] text-amber-300/80">
-            Daily Spin · Schweiz
+            Daily Spin · Deine Shortlist
           </span>
           <h2 className="font-serif-display text-2xl text-white md:text-3xl">
             Inserat-Roulette
           </h2>
+          <p className="mt-1 text-[11px] text-amber-100/60">
+            Nur Interessant & Kontaktiert mit Bild
+          </p>
         </div>
         <div className="hidden text-right sm:block">
           <div className="text-[10px] uppercase tracking-[0.22em] text-amber-300/70">
