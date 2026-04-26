@@ -320,6 +320,8 @@ function AdminDashboard({
     return { total, blocked, today, uniqueIps, live: liveDevices.length };
   }, [visitors, liveDevices]);
 
+  const [section, setSection] = useState<"visitors" | "listings">("visitors");
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4">
@@ -330,7 +332,9 @@ function AdminDashboard({
               Admin-Konsole
             </span>
           </div>
-          <h1 className="mt-1 font-serif-display text-3xl sm:text-4xl">Besucher-Übersicht</h1>
+          <h1 className="mt-1 font-serif-display text-3xl sm:text-4xl">
+            {section === "visitors" ? "Besucher-Übersicht" : "Inserate-Verwaltung"}
+          </h1>
         </div>
         <Button variant="outline" size="sm" onClick={onLogout}>
           <LogOut className="mr-2 h-4 w-4" />
@@ -338,7 +342,38 @@ function AdminDashboard({
         </Button>
       </div>
 
-      {/* Stats */}
+      {/* Section switcher */}
+      <div className="flex flex-wrap items-center gap-1 rounded-full border bg-muted/30 p-1 w-fit">
+        <button
+          type="button"
+          onClick={() => setSection("visitors")}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+            section === "visitors"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Users className="h-3.5 w-3.5" />
+          Besucher
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection("listings")}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+            section === "listings"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Home className="h-3.5 w-3.5" />
+          Inserate
+        </button>
+      </div>
+
+      {section === "listings" && <AdminListings />}
+      {section === "visitors" && (
+        <>
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <StatCard label="Live jetzt" value={stats.live} live />
         <StatCard label="Geräte gesamt" value={stats.total} />
