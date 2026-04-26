@@ -32,7 +32,10 @@ import {
   FileText,
   Pencil,
   ArrowUpRight,
+  Home,
+  Users,
 } from "lucide-react";
+import { AdminListings } from "@/components/AdminListings";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
