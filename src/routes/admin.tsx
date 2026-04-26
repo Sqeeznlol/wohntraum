@@ -688,6 +688,8 @@ function AdminDashboard({
           })}
         </div>
       )}
+        </>
+      )}
     </div>
   );
 }
