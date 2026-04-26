@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as AlertsRouteImport } from './routes/alerts'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ListingsIdRouteImport } from './routes/listings.$id'
+import { Route as ApiTrackVisitRouteImport } from './routes/api.track-visit'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -30,6 +32,11 @@ const AlertsRoute = AlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -40,42 +47,77 @@ const ListingsIdRoute = ListingsIdRouteImport.update({
   path: '/listings/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTrackVisitRoute = ApiTrackVisitRouteImport.update({
+  id: '/api/track-visit',
+  path: '/api/track-visit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/api/track-visit': typeof ApiTrackVisitRoute
   '/listings/$id': typeof ListingsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/api/track-visit': typeof ApiTrackVisitRoute
   '/listings/$id': typeof ListingsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/api/track-visit': typeof ApiTrackVisitRoute
   '/listings/$id': typeof ListingsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/alerts' | '/map' | '/onboarding' | '/listings/$id'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/alerts'
+    | '/map'
+    | '/onboarding'
+    | '/api/track-visit'
+    | '/listings/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/alerts' | '/map' | '/onboarding' | '/listings/$id'
-  id: '__root__' | '/' | '/alerts' | '/map' | '/onboarding' | '/listings/$id'
+  to:
+    | '/'
+    | '/admin'
+    | '/alerts'
+    | '/map'
+    | '/onboarding'
+    | '/api/track-visit'
+    | '/listings/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/alerts'
+    | '/map'
+    | '/onboarding'
+    | '/api/track-visit'
+    | '/listings/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AlertsRoute: typeof AlertsRoute
   MapRoute: typeof MapRoute
   OnboardingRoute: typeof OnboardingRoute
+  ApiTrackVisitRoute: typeof ApiTrackVisitRoute
   ListingsIdRoute: typeof ListingsIdRoute
 }
 
@@ -102,6 +144,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlertsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -116,14 +165,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/track-visit': {
+      id: '/api/track-visit'
+      path: '/api/track-visit'
+      fullPath: '/api/track-visit'
+      preLoaderRoute: typeof ApiTrackVisitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AlertsRoute: AlertsRoute,
   MapRoute: MapRoute,
   OnboardingRoute: OnboardingRoute,
+  ApiTrackVisitRoute: ApiTrackVisitRoute,
   ListingsIdRoute: ListingsIdRoute,
 }
 export const routeTree = rootRouteImport
