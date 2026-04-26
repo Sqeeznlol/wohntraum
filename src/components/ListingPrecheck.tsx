@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, FileCheck2, ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
+import { Save, FileCheck2, ChevronDown, ChevronUp, ChevronRight, Download, FileText } from "lucide-react";
 import type { Listing } from "@/lib/db-types";
 
 type RiskLevel = "niedrig" | "mittel" | "hoch";
@@ -308,33 +308,35 @@ function PrecheckBody({
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      {/* Hero / progress */}
-      <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-background to-background p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <FileCheck2 className="h-5 w-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold">Vorprüfung Bauprojekt</div>
-            <div className="text-xs text-muted-foreground">
-              Schritt {SECTION_IDS.indexOf(activeSection) + 1} von {SECTION_IDS.length} · {SECTION_TITLES[activeSection]}
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      {/* LEFT: Editor */}
+      <div className="space-y-4 min-w-0">
+        {/* Hero / progress */}
+        <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-background to-background p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <FileCheck2 className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold">Vorprüfung Bauprojekt</div>
+              <div className="text-xs text-muted-foreground">
+                Schritt {SECTION_IDS.indexOf(activeSection) + 1} von {SECTION_IDS.length} · {SECTION_TITLES[activeSection]}
+              </div>
+            </div>
+            <div className="hidden text-right sm:block">
+              <div className="text-lg font-bold tabular-nums">{progressPct}%</div>
             </div>
           </div>
-          <div className="hidden text-right sm:block">
-            <div className="text-lg font-bold tabular-nums">{progressPct}%</div>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{ width: `${progressPct}%` }}
+            />
           </div>
         </div>
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-300"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
-      </div>
 
-      {/* Sections */}
-      <div className="space-y-2">
+        {/* Sections */}
+        <div className="space-y-2">
         <Accordion id="1" activeId={activeSection} onToggle={setActiveSection}>
           <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
             <Field label="Projektname" value={form.projektname} onChange={(v) => set("projektname", v)} />
@@ -487,7 +489,7 @@ function PrecheckBody({
         </Button>
       </div>
 
-      <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur space-y-2">
         <Button
           onClick={() => save.mutate()}
           disabled={save.isPending}
@@ -497,6 +499,27 @@ function PrecheckBody({
           <Save className="mr-2 h-4 w-4" />
           {save.isPending ? "Speichert…" : "Vorprüfung speichern"}
         </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" size="sm" onClick={() => downloadAsWord(form)}>
+            <FileText className="mr-2 h-4 w-4" /> Als Word (.doc)
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => downloadAsPdf(form)}>
+            <Download className="mr-2 h-4 w-4" /> Als PDF
+          </Button>
+        </div>
+      </div>
+      </div>
+
+      {/* RIGHT: live preview of currently active section */}
+      <div className="min-w-0">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Live-Vorschau · Abschnitt {activeSection}
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-xl border bg-white shadow-sm lg:sticky lg:top-4">
+          <LiveSectionPreview sectionId={activeSection} data={form} />
+        </div>
       </div>
     </div>
   );
@@ -677,3 +700,388 @@ function RiskRow({
     />
   );
 }
+
+// ============================================================================
+// Live preview of a single section (mirrors the document layout)
+// ============================================================================
+
+const NAVY = "#1F2A6B";
+
+function LiveSectionPreview({ sectionId, data: d }: { sectionId: SectionId; data: PrecheckData }) {
+  return (
+    <div
+      className="max-h-[calc(100dvh-8rem)] min-h-[420px] overflow-y-auto bg-white p-6 text-[13px] leading-[1.55] text-black sm:p-8"
+      style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif" }}
+    >
+      <div className="-mx-6 -mt-6 mb-5 h-2 sm:-mx-8 sm:-mt-8" style={{ backgroundColor: NAVY }} />
+      <div className="mb-5">
+        <div className="text-[11px] uppercase tracking-widest" style={{ color: NAVY }}>
+          Vorprüfung · Bauprojekt / Grundstück
+        </div>
+        <h2 className="mt-1 text-[18px] font-extrabold tracking-wide" style={{ color: NAVY }}>
+          {sectionId}. {SECTION_TITLES[sectionId].toUpperCase()}
+        </h2>
+      </div>
+      <SectionContent sectionId={sectionId} d={d} />
+    </div>
+  );
+}
+
+function SectionContent({ sectionId, d }: { sectionId: SectionId; d: PrecheckData }) {
+  switch (sectionId) {
+    case "1":
+      return (
+        <>
+          <PrevRow label="Projektname" value={d.projektname} />
+          <PrevRow label="Adresse" value={d.adresse} />
+          <PrevRow label="PLZ, Ortschaft" value={d.plz_ort} />
+          <PrevRow label="Kanton" value={d.kanton} />
+          <PrevRow label="Parzellen-Nr." value={d.parzellen_nr} />
+          <PrevRow label="Verkäufer" value={d.verkaeufer} />
+          <PrevRow label="Kaufpreis / Richtpreis" value={d.kaufpreis} />
+          <PrevRow label="Grundstücksfläche" value={d.grundstuecksflaeche} />
+          <PrevRow label="Geplante Nutzung" value={d.geplante_nutzung} />
+          <PrevRow label="Projektverantwortlicher" value={d.projektverantwortlicher} />
+          <PrevRow label="Datum" value={d.datum} />
+        </>
+      );
+    case "2":
+      return (
+        <>
+          <PrevCheck label="Standort passt zur Unternehmensstrategie" checked={d.s_standort} />
+          <PrevCheck label="Nutzung passt zu Kernkompetenz" checked={d.s_nutzung} />
+          <PrevCheck label="Projektgrösse passend zur Unternehmensgrösse" checked={d.s_groesse} />
+          <PrevCheck label="Kein Klumpenrisiko im Portfolio / Auftragsbuch" checked={d.s_klumpen} />
+          <PrevCheck label="Region im definierten Marktgebiet" checked={d.s_marktgebiet} />
+          <PrevSubLabel>Strategische Bewertung:</PrevSubLabel>
+          <PrevCheck label="Sehr gut" checked={d.strategie_bewertung === "sehr_gut"} />
+          <PrevCheck label="Mittel" checked={d.strategie_bewertung === "mittel"} />
+          <PrevCheck label="Schwach" checked={d.strategie_bewertung === "schwach"} />
+          <PrevSubLabel>Begründung:</PrevSubLabel>
+          <PrevFreeText value={d.strategie_begruendung} />
+        </>
+      );
+    case "3":
+      return (
+        <>
+          <PrevCheck label="Bauzone bestätigt" checked={d.b_bauzone} />
+          <PrevCheck label="Erschliessung grundsätzlich vorhanden" checked={d.b_erschliessung} />
+          <PrevCheck label="Keine offensichtlichen Nutzungseinschränkungen" checked={d.b_keine_einschr} />
+          <PrevCheck label="Keine offensichtlichen Schutzauflagen" checked={d.b_keine_schutz} />
+          <PrevCheck label="Grobe Ausnützung plausibel" checked={d.b_ausnuetzung} />
+          <PrevSubLabel>Erwartete realisierbare NF / BGF:</PrevSubLabel>
+          <PrevFreeText value={d.erwartete_nf} />
+          <PrevSubLabel>Baurechtliches Risiko:</PrevSubLabel>
+          <PrevCheck label="Niedrig" checked={d.baurecht_risiko === "niedrig"} />
+          <PrevCheck label="Mittel" checked={d.baurecht_risiko === "mittel"} />
+          <PrevCheck label="Hoch" checked={d.baurecht_risiko === "hoch"} />
+        </>
+      );
+    case "4":
+      return (
+        <>
+          <PrevCheck label="Hanglage / komplexe Topografie?" checked={d.t_hanglage} />
+          <PrevCheck label="Hinweise auf schlechte Bodenverhältnisse?" checked={d.t_boden} />
+          <PrevCheck label="Altlastenverdacht?" checked={d.t_altlasten} />
+          <PrevCheck label="Abbruchkosten relevant?" checked={d.t_abbruch} />
+          <PrevSubLabel>Technisches Risiko:</PrevSubLabel>
+          <PrevCheck label="Niedrig" checked={d.technik_risiko === "niedrig"} />
+          <PrevCheck label="Mittel" checked={d.technik_risiko === "mittel"} />
+          <PrevCheck label="Hoch" checked={d.technik_risiko === "hoch"} />
+        </>
+      );
+    case "5":
+      return (
+        <>
+          <PrevRow label="Erwartete NF" value={d.w_erwartete_nf} />
+          <PrevRow label="Landpreis pro m² NF" value={d.w_landpreis} />
+          <PrevRow label="Gesch. Baukosten pro m² NF" value={d.w_baukosten} />
+          <PrevRow label="Totalinvestition (Schätzung)" value={d.w_totalinvest} />
+          <PrevRow label="Erwarteter Mietertrag" value={d.w_mietertrag} />
+          <PrevRow label="Erwartete Zielrendite" value={d.w_zielrendite} />
+          <PrevRow label="Erwarteter Verkaufspreis (m²)" value={d.w_verkaufspreis} />
+          <PrevRow label="Erwarteter Mietzins (m²)" value={d.w_mietzins} />
+          <PrevRow label="Erwarteter Verkaufserlös" value={d.w_verkaufserloes} />
+          <PrevRow label="Erwarteter Gewinn" value={d.w_gewinn} />
+          <PrevSubLabel>Szenario-Abwägung:</PrevSubLabel>
+          <PrevCheck label="Baukosten +10% noch tragbar" checked={d.w_baukosten_plus10} />
+          <PrevCheck label="Verkaufspreise -5% noch tragbar" checked={d.w_verkauf_minus5} />
+          <PrevSubLabel>Wirtschaftliche Bewertung:</PrevSubLabel>
+          <PrevCheck label="Attraktiv" checked={d.wirtschaft_bewertung === "attraktiv"} />
+          <PrevCheck label="Grenzwertig" checked={d.wirtschaft_bewertung === "grenzwertig"} />
+          <PrevCheck label="Nicht attraktiv" checked={d.wirtschaft_bewertung === "nicht_attraktiv"} />
+        </>
+      );
+    case "6":
+      return (
+        <>
+          <PrevCheck label="Mikrostandort positiv" checked={d.m_mikrostandort} />
+          <PrevCheck label="Nachfrage nach Nutzung vorhanden" checked={d.m_nachfrage} />
+          <PrevCheck label="Vergleichsprojekte erfolgreich" checked={d.m_vergleich} />
+          <PrevCheck label="Keine Überangebot-Situation" checked={d.m_kein_ueberangebot} />
+          <PrevSubLabel>Markt-Risiko:</PrevSubLabel>
+          <PrevCheck label="Niedrig" checked={d.markt_risiko === "niedrig"} />
+          <PrevCheck label="Mittel" checked={d.markt_risiko === "mittel"} />
+          <PrevCheck label="Hoch" checked={d.markt_risiko === "hoch"} />
+        </>
+      );
+    case "7":
+      return (
+        <>
+          <PrevCheck label="Projektteam verfügbar" checked={d.i_team} />
+          <PrevCheck label="Know-how vorhanden" checked={d.i_knowhow} />
+          <PrevCheck label="Keine Überlastung" checked={d.i_keine_ueberlast} />
+          <PrevCheck label="Finanzierung grundsätzlich möglich" checked={d.i_finanzierung} />
+        </>
+      );
+    case "8":
+      return (
+        <>
+          <PrevRow label="Strategie" value={d.g_strategie} />
+          <PrevRow label="Baurecht" value={d.g_baurecht} />
+          <PrevRow label="Technik" value={d.g_technik} />
+          <PrevRow label="Wirtschaft" value={d.g_wirtschaft} />
+          <PrevRow label="Markt" value={d.g_markt} />
+        </>
+      );
+    case "9":
+      return (
+        <>
+          <PrevCheck label="Freigabe für vertiefte Due Diligence" checked={d.empfehlung === "freigabe"} />
+          <PrevCheck label="Ablehnung" checked={d.empfehlung === "ablehnung"} />
+          <PrevCheck label="Freigabe unter Bedingungen" checked={d.empfehlung === "freigabe_bedingt"} />
+          <PrevSubLabel>Bedingungen:</PrevSubLabel>
+          <PrevFreeText value={d.bedingungen} />
+          <div className="mt-5 space-y-1">
+            <div className="text-[12px]">Diese Vorprüfung wurde durchgeführt und geleitet von:</div>
+            <div className="pt-2">
+              <PrevRow label="Ort, Datum" value={d.ort_datum} />
+              <PrevRow label="Durchgeführt von" value={d.durchgefuehrt_von} />
+            </div>
+          </div>
+        </>
+      );
+  }
+}
+
+function PrevSubLabel({ children }: { children: React.ReactNode }) {
+  return <div className="mt-3 mb-1 text-[12px] font-semibold underline">{children}</div>;
+}
+
+function PrevRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-end gap-3 border-b border-dotted border-black/30 py-[3px]">
+      <div className="min-w-[180px] text-[12.5px] text-black">{label}:</div>
+      <div
+        className={`flex-1 text-[12.5px] font-bold ${value ? "" : "opacity-30"}`}
+        style={{ color: value ? NAVY : "#000" }}
+      >
+        {value || "\u00A0"}
+      </div>
+    </div>
+  );
+}
+
+function PrevFreeText({ value }: { value: string }) {
+  return (
+    <div
+      className={`min-h-[22px] whitespace-pre-wrap border-b border-dotted border-black/30 py-[3px] text-[12.5px] font-bold ${
+        value ? "" : "opacity-30"
+      }`}
+      style={{ color: value ? NAVY : "#000" }}
+    >
+      {value || "\u00A0"}
+    </div>
+  );
+}
+
+function PrevCheck({ label, checked }: { label: string; checked: boolean }) {
+  return (
+    <div className="flex items-center gap-3 py-[2px] pl-1">
+      <span
+        className="inline-flex h-[14px] w-[14px] flex-none items-center justify-center border border-black text-[11px] font-bold leading-none"
+        style={{ color: "#000" }}
+      >
+        {checked ? "✕" : ""}
+      </span>
+      <span className="text-[12.5px]">{label}</span>
+    </div>
+  );
+}
+
+// ============================================================================
+// Export helpers (Word .doc and PDF)
+// ============================================================================
+
+function buildFullDocumentHtml(d: PrecheckData): string {
+  const esc = (s: string) =>
+    (s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:3px 8px;border-bottom:1px dotted #555;width:38%;">${esc(label)}:</td><td style="padding:3px 8px;border-bottom:1px dotted #555;color:${NAVY};font-weight:bold;">${esc(value) || "&nbsp;"}</td></tr>`;
+  const check = (label: string, checked: boolean) =>
+    `<div style="padding:2px 0;"><span style="display:inline-block;width:12px;height:12px;border:1px solid #000;text-align:center;line-height:12px;font-weight:bold;margin-right:8px;">${checked ? "&#x2715;" : "&nbsp;"}</span>${esc(label)}</div>`;
+  const para = (value: string) =>
+    `<div style="min-height:20px;border-bottom:1px dotted #555;padding:3px 0;color:${NAVY};font-weight:bold;white-space:pre-wrap;">${esc(value) || "&nbsp;"}</div>`;
+  const sub = (txt: string) => `<div style="margin-top:10px;margin-bottom:4px;text-decoration:underline;font-weight:600;">${esc(txt)}</div>`;
+  const sec = (num: string, title: string, body: string) =>
+    `<h2 style="color:${NAVY};font-size:14px;margin:20px 0 8px 0;">${num} ${title}</h2><table style="width:100%;border-collapse:collapse;font-size:12px;">${body}</table>`;
+
+  const sec1 = sec("1.", "PROJEKT-STECKBRIEF",
+    [
+      row("Projektname", d.projektname), row("Adresse", d.adresse),
+      row("PLZ, Ortschaft", d.plz_ort), row("Kanton", d.kanton),
+      row("Parzellen-Nr.", d.parzellen_nr), row("Verkäufer", d.verkaeufer),
+      row("Kaufpreis / Richtpreis", d.kaufpreis), row("Grundstücksfläche", d.grundstuecksflaeche),
+      row("Geplante Nutzung", d.geplante_nutzung),
+      row("Projektverantwortlicher", d.projektverantwortlicher), row("Datum", d.datum),
+    ].join(""));
+
+  const sec2 = `<h2 style="color:${NAVY};font-size:14px;margin:20px 0 8px 0;">2. STRATEGISCHE PASSUNG</h2>` +
+    check("Standort passt zur Unternehmensstrategie", d.s_standort) +
+    check("Nutzung passt zu Kernkompetenz", d.s_nutzung) +
+    check("Projektgrösse passend zur Unternehmensgrösse", d.s_groesse) +
+    check("Kein Klumpenrisiko im Portfolio / Auftragsbuch", d.s_klumpen) +
+    check("Region im definierten Marktgebiet", d.s_marktgebiet) +
+    sub("Strategische Bewertung:") +
+    check("Sehr gut", d.strategie_bewertung === "sehr_gut") +
+    check("Mittel", d.strategie_bewertung === "mittel") +
+    check("Schwach", d.strategie_bewertung === "schwach") +
+    sub("Begründung:") + para(d.strategie_begruendung);
+
+  const sec3 = `<h2 style="color:${NAVY};font-size:14px;margin:20px 0 8px 0;">3. BAURECHTLICHE GROBPRÜFUNG</h2>` +
+    check("Bauzone bestätigt", d.b_bauzone) +
+    check("Erschliessung grundsätzlich vorhanden", d.b_erschliessung) +
+    check("Keine offensichtlichen Nutzungseinschränkungen", d.b_keine_einschr) +
+    check("Keine offensichtlichen Schutzauflagen", d.b_keine_schutz) +
+    check("Grobe Ausnützung plausibel", d.b_ausnuetzung) +
+    sub("Erwartete realisierbare NF / BGF:") + para(d.erwartete_nf) +
+    sub("Baurechtliches Risiko:") +
+    check("Niedrig", d.baurecht_risiko === "niedrig") +
+    check("Mittel", d.baurecht_risiko === "mittel") +
+    check("Hoch", d.baurecht_risiko === "hoch");
+
+  const sec4 = `<h2 style="color:${NAVY};font-size:14px;margin:20px 0 8px 0;">4. TECHNISCHE GROBPRÜFUNG</h2>` +
+    check("Hanglage / komplexe Topografie?", d.t_hanglage) +
+    check("Hinweise auf schlechte Bodenverhältnisse?", d.t_boden) +
+    check("Altlastenverdacht?", d.t_altlasten) +
+    check("Abbruchkosten relevant?", d.t_abbruch) +
+    sub("Technisches Risiko:") +
+    check("Niedrig", d.technik_risiko === "niedrig") +
+    check("Mittel", d.technik_risiko === "mittel") +
+    check("Hoch", d.technik_risiko === "hoch");
+
+  const sec5 = sec("5.", "WIRTSCHAFTLICHE PLAUSIBILISIERUNG",
+    [
+      row("Erwartete NF", d.w_erwartete_nf), row("Landpreis pro m² NF", d.w_landpreis),
+      row("Gesch. Baukosten pro m² NF", d.w_baukosten), row("Totalinvestition", d.w_totalinvest),
+      row("Erwarteter Mietertrag", d.w_mietertrag), row("Erwartete Zielrendite", d.w_zielrendite),
+      row("Erwarteter Verkaufspreis (m²)", d.w_verkaufspreis), row("Erwarteter Mietzins (m²)", d.w_mietzins),
+      row("Erwarteter Verkaufserlös", d.w_verkaufserloes), row("Erwarteter Gewinn", d.w_gewinn),
+    ].join("")) +
+    sub("Szenario-Abwägung:") +
+    check("Baukosten +10% noch tragbar", d.w_baukosten_plus10) +
+    check("Verkaufspreise -5% noch tragbar", d.w_verkauf_minus5) +
+    sub("Wirtschaftliche Bewertung:") +
+    check("Attraktiv", d.wirtschaft_bewertung === "attraktiv") +
+    check("Grenzwertig", d.wirtschaft_bewertung === "grenzwertig") +
+    check("Nicht attraktiv", d.wirtschaft_bewertung === "nicht_attraktiv");
+
+  const sec6 = `<h2 style="color:${NAVY};font-size:14px;margin:20px 0 8px 0;">6. MARKT-SCHNELLANALYSE</h2>` +
+    check("Mikrostandort positiv", d.m_mikrostandort) +
+    check("Nachfrage nach Nutzung vorhanden", d.m_nachfrage) +
+    check("Vergleichsprojekte erfolgreich", d.m_vergleich) +
+    check("Keine Überangebot-Situation", d.m_kein_ueberangebot) +
+    sub("Markt-Risiko:") +
+    check("Niedrig", d.markt_risiko === "niedrig") +
+    check("Mittel", d.markt_risiko === "mittel") +
+    check("Hoch", d.markt_risiko === "hoch");
+
+  const sec7 = `<h2 style="color:${NAVY};font-size:14px;margin:20px 0 8px 0;">7. INTERNE REALISIERBARKEIT</h2>` +
+    check("Projektteam verfügbar", d.i_team) +
+    check("Know-how vorhanden", d.i_knowhow) +
+    check("Keine Überlastung", d.i_keine_ueberlast) +
+    check("Finanzierung grundsätzlich möglich", d.i_finanzierung);
+
+  const sec8 = sec("8.", "GESAMTEINSCHÄTZUNG",
+    [
+      row("Strategie", d.g_strategie), row("Baurecht", d.g_baurecht),
+      row("Technik", d.g_technik), row("Wirtschaft", d.g_wirtschaft),
+      row("Markt", d.g_markt),
+    ].join(""));
+
+  const sec9 = `<h2 style="color:${NAVY};font-size:14px;margin:20px 0 8px 0;">9. EMPFEHLUNG AN VR</h2>` +
+    check("Freigabe für vertiefte Due Diligence", d.empfehlung === "freigabe") +
+    check("Ablehnung", d.empfehlung === "ablehnung") +
+    check("Freigabe unter Bedingungen", d.empfehlung === "freigabe_bedingt") +
+    sub("Bedingungen:") + para(d.bedingungen) +
+    `<div style="margin-top:18px;font-size:12px;">Diese Vorprüfung wurde durchgeführt und geleitet von:</div>` +
+    `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;">` +
+    row("Ort, Datum", d.ort_datum) + row("Durchgeführt von", d.durchgefuehrt_von) +
+    `</table>`;
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Vorprüfung – ${esc(d.projektname || "Bauprojekt")}</title>
+    <style>
+      body { font-family: 'Helvetica Neue', Arial, sans-serif; color:#000; max-width: 800px; margin: 24px auto; padding: 0 20px; }
+      h1 { color: ${NAVY}; font-size: 22px; letter-spacing: 1px; margin: 0; }
+      .sub { font-size: 14px; font-weight: bold; margin-top: 4px; }
+      .ziel { font-style: italic; margin: 12px 0 20px; }
+      .band { height: 8px; background: ${NAVY}; margin-bottom: 18px; }
+    </style></head><body>
+    <div class="band"></div>
+    <h1>VORPRÜFUNG</h1>
+    <div class="sub">Bauprojekt / Grundstück</div>
+    <div class="ziel"><u>Ziel:</u> Entscheidungsgrundlage für VR – Freigabe für die Due Diligence</div>
+    ${sec1}${sec2}${sec3}${sec4}${sec5}${sec6}${sec7}${sec8}${sec9}
+    </body></html>`;
+}
+
+function fileSafeName(d: PrecheckData): string {
+  const base = (d.projektname || "Vorpruefung").replace(/[^\p{L}\p{N}\-_ ]+/gu, "").trim() || "Vorpruefung";
+  return `Vorpruefung_${base}`.replace(/\s+/g, "_");
+}
+
+function downloadAsWord(d: PrecheckData) {
+  const html = buildFullDocumentHtml(d);
+  // .doc with proper MIME so Word opens it natively
+  const wordHtml =
+    `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">` +
+    html.replace(/^<!DOCTYPE html>/, "").replace(/^<html>/, "").replace(/<\/html>$/, "") +
+    `</html>`;
+  const blob = new Blob(["\ufeff", wordHtml], { type: "application/msword" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${fileSafeName(d)}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadAsPdf(d: PrecheckData) {
+  const html = buildFullDocumentHtml(d);
+  // Open hidden iframe, write document, trigger print → user saves as PDF
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  if (!doc) return;
+  doc.open();
+  doc.write(html);
+  doc.close();
+  // Wait briefly for layout, then print
+  setTimeout(() => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } finally {
+      setTimeout(() => document.body.removeChild(iframe), 500);
+    }
+  }, 250);
+}
+
