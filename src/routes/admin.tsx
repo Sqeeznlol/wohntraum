@@ -222,11 +222,35 @@ function AdminDashboard({
     const s = search.toLowerCase().trim();
     if (!s) return visitors;
     return visitors.filter((v) =>
-      `${v.ip_address} ${v.hostname ?? ""} ${v.os ?? ""} ${v.browser ?? ""} ${v.device_type ?? ""} ${v.country ?? ""} ${v.city ?? ""} ${v.custom_label ?? ""}`
+      `${v.ip_address} ${v.hostname ?? ""} ${v.os ?? ""} ${v.browser ?? ""} ${v.device_type ?? ""} ${v.device_name ?? ""} ${v.country ?? ""} ${v.region ?? ""} ${v.city ?? ""} ${v.isp ?? ""} ${v.custom_label ?? ""}`
         .toLowerCase()
         .includes(s),
     );
   }, [visitors, search]);
+
+  // Group devices by IP — same router = same group
+  const grouped = useMemo(() => {
+    const map = new Map<string, Visitor[]>();
+    for (const v of filtered) {
+      const list = map.get(v.ip_address) ?? [];
+      list.push(v);
+      map.set(v.ip_address, list);
+    }
+    // Sort groups by most recent activity within the group
+    return Array.from(map.entries())
+      .map(([ip, devices]) => ({
+        ip,
+        devices: devices.sort(
+          (a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime(),
+        ),
+        lastSeen: devices.reduce(
+          (acc, d) => Math.max(acc, new Date(d.last_seen_at).getTime()),
+          0,
+        ),
+        totalVisits: devices.reduce((acc, d) => acc + (d.visit_count ?? 0), 0),
+      }))
+      .sort((a, b) => b.lastSeen - a.lastSeen);
+  }, [filtered]);
 
   const stats = useMemo(() => {
     const total = visitors?.length ?? 0;
@@ -234,7 +258,8 @@ function AdminDashboard({
     const today = visitors?.filter(
       (v) => new Date(v.last_seen_at).toDateString() === new Date().toDateString(),
     ).length ?? 0;
-    return { total, blocked, today };
+    const uniqueIps = new Set(visitors?.map((v) => v.ip_address)).size;
+    return { total, blocked, today, uniqueIps };
   }, [visitors]);
 
   return (
