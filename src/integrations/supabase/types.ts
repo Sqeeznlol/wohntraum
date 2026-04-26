@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_contact_progress: {
+        Row: {
+          created_at: string
+          current_step: string
+          id: string
+          listing_id: string
+          note: string | null
+          steps: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_step?: string
+          id?: string
+          listing_id: string
+          note?: string | null
+          steps?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_step?: string
+          id?: string
+          listing_id?: string
+          note?: string | null
+          steps?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       listing_documents: {
         Row: {
           created_at: string
