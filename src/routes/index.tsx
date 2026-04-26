@@ -393,77 +393,242 @@ function ListingsPage() {
 }
 
 function PorscheGoalAnimation() {
+  // Cinematic, Apple-style hero animation:
+  // — Deep night skyline with parallax stars
+  // — Twin layered roads with motion-blurred lane markers
+  // — A red GT4 RS approaches from the horizon, tilts into frame, then dissolves into a hero shot
+  // — Live telemetry HUD (km/h, distance) ticks in tabular nums
   return (
-    <div className="relative mt-8 w-full max-w-xl overflow-hidden rounded-xl border border-border/60 bg-gradient-to-b from-background to-muted/40 px-2 py-6">
-      {/* Sky / horizon */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-amber-100/30 via-transparent to-transparent dark:from-amber-300/10" />
-
-      {/* Goal flag */}
-      <div className="absolute right-4 top-4 flex flex-col items-center">
-        <motion.div
-          initial={{ rotate: -8 }}
-          animate={{ rotate: [-8, 8, -8] }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-          className="origin-bottom-left"
-        >
-          <div className="grid h-6 w-10 grid-cols-4 grid-rows-3 overflow-hidden rounded-sm shadow">
-            {Array.from({ length: 12 }).map((_, i) => {
-              const row = Math.floor(i / 4);
-              const col = i % 4;
-              const black = (row + col) % 2 === 0;
-              return (
-                <div
-                  key={i}
-                  className={black ? "bg-foreground" : "bg-background"}
-                />
-              );
-            })}
-          </div>
-        </motion.div>
-        <div className="h-10 w-0.5 bg-foreground/70" />
-        <span className="mt-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-          Ziel
+    <div className="relative mt-12 w-full max-w-2xl overflow-hidden rounded-[14px] border-[0.5px] border-hairline bg-[oklch(0.14_0.04_265)] shadow-[0_30px_80px_-30px_rgba(8,29,66,0.55)]">
+      {/* Eyebrow chip */}
+      <div className="absolute left-4 top-4 z-30 flex items-center gap-2">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+        </span>
+        <span className="text-[9px] font-medium uppercase tracking-[0.3em] text-white/60">
+          Live · Mission GT4 RS
         </span>
       </div>
 
-      {/* Road */}
-      <div className="relative mx-auto mt-10 h-20 w-[92%] rounded-md bg-neutral-800 shadow-inner dark:bg-neutral-900">
-        {/* Lane dashes moving toward the right */}
-        <motion.div
-          className="absolute inset-y-1/2 left-0 right-0 -translate-y-1/2 flex gap-4"
-          animate={{ x: [0, -48] }}
-          transition={{ duration: 0.6, repeat: Infinity, ease: "linear" }}
-        >
-          {Array.from({ length: 30 }).map((_, i) => (
-            <div key={i} className="h-1 w-8 shrink-0 rounded bg-amber-300/90" />
-          ))}
-        </motion.div>
-
-        {/* Porsche getting closer to the goal */}
-        <motion.img
-          src={porscheImg}
-          alt="Roter Porsche 718 Cayman GT4 RS rast Richtung Ziel"
-          className="absolute bottom-1 left-0 h-14 w-auto select-none drop-shadow-[0_8px_12px_rgba(220,38,38,0.45)]"
-          style={{ filter: "hue-rotate(-10deg) saturate(1.6)" }}
-          initial={{ x: "0%", scale: 0.7 }}
-          animate={{ x: ["0%", "70%", "78%", "70%", "0%"], scale: [0.7, 1.05, 1.1, 1.05, 0.7] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", times: [0, 0.45, 0.55, 0.65, 1] }}
-        />
-
-        {/* Speed lines */}
-        <motion.div
-          className="pointer-events-none absolute inset-0"
-          animate={{ opacity: [0.2, 0.6, 0.2] }}
-          transition={{ duration: 0.8, repeat: Infinity }}
-        >
-          <div className="absolute left-2 top-3 h-0.5 w-10 rounded bg-white/40" />
-          <div className="absolute left-6 top-7 h-0.5 w-14 rounded bg-white/30" />
-          <div className="absolute left-3 bottom-3 h-0.5 w-8 rounded bg-white/40" />
-        </motion.div>
+      {/* HUD telemetry */}
+      <div className="absolute right-4 top-4 z-30 flex items-center gap-4 text-right">
+        <TelemetryCounter label="km/h" from={42} to={312} duration={5.6} />
+        <div className="h-6 w-px bg-white/10" />
+        <TelemetryCounter label="Distanz" from={9999} to={42} duration={5.6} suffix=" km" />
       </div>
 
-      <p className="mt-4 text-center text-xs uppercase tracking-[0.25em] text-muted-foreground">
-        Auf dem Weg zum Porsche 718 GT4 RS
+      {/* Sky — sapphire night with stars */}
+      <div className="relative h-[260px] w-full overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_85%,oklch(0.32_0.12_265)_0%,oklch(0.14_0.04_265)_55%,oklch(0.08_0.02_265)_100%)]" />
+        {/* Stars */}
+        <div className="absolute inset-0">
+          {Array.from({ length: 40 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute h-px w-px rounded-full bg-white"
+              style={{
+                left: `${(i * 53) % 100}%`,
+                top: `${(i * 37) % 60}%`,
+                opacity: 0.3 + ((i * 7) % 10) / 14,
+              }}
+              animate={{ opacity: [0.2, 0.9, 0.2] }}
+              transition={{
+                duration: 2 + (i % 5) * 0.4,
+                repeat: Infinity,
+                delay: (i % 7) * 0.2,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Distant city silhouette */}
+        <div className="absolute inset-x-0 bottom-[58%] h-8 opacity-40">
+          <svg viewBox="0 0 800 32" preserveAspectRatio="none" className="h-full w-full">
+            <path
+              d="M0 32 V18 L40 18 L40 10 L80 10 L80 14 L120 14 L120 6 L160 6 L160 16 L210 16 L210 8 L260 8 L260 18 L320 18 L320 12 L380 12 L380 4 L430 4 L430 14 L490 14 L490 8 L540 8 L540 18 L600 18 L600 10 L660 10 L660 16 L720 16 L720 6 L800 6 L800 32 Z"
+              fill="oklch(0.22 0.08 265)"
+            />
+          </svg>
+        </div>
+
+        {/* Horizon glow */}
+        <div className="absolute inset-x-0 bottom-[42%] h-px bg-gradient-to-r from-transparent via-red-500/60 to-transparent shadow-[0_0_20px_2px_rgba(239,68,68,0.5)]" />
+
+        {/* Road — perspective floor */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-[42%]"
+          style={{
+            background:
+              "linear-gradient(to bottom, oklch(0.10 0.02 265) 0%, oklch(0.16 0.03 265) 100%)",
+            perspective: "400px",
+            perspectiveOrigin: "50% 0%",
+          }}
+        >
+          {/* Center line — animated dashes vanishing into horizon */}
+          <div
+            className="absolute left-1/2 top-0 h-full w-[40%] -translate-x-1/2 overflow-hidden"
+            style={{
+              transform: "rotateX(72deg) translateZ(0)",
+              transformOrigin: "50% 0%",
+            }}
+          >
+            <motion.div
+              className="flex h-full flex-col items-center gap-6"
+              animate={{ y: [0, 80] }}
+              transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
+            >
+              {Array.from({ length: 30 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-12 w-3 rounded-full bg-amber-300/80 shadow-[0_0_8px_rgba(252,211,77,0.6)]"
+                />
+              ))}
+            </motion.div>
+          </div>
+
+          {/* Side guide rails */}
+          <div
+            className="absolute left-1/2 top-0 h-full w-[90%] -translate-x-1/2"
+            style={{
+              transform: "rotateX(72deg)",
+              transformOrigin: "50% 0%",
+              background:
+                "linear-gradient(to right, transparent 0%, transparent 8%, rgba(255,255,255,0.15) 8.5%, transparent 9%, transparent 91%, rgba(255,255,255,0.15) 91.5%, transparent 92%)",
+            }}
+          />
+        </div>
+
+        {/* Speed lines */}
+        {Array.from({ length: 6 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
+            style={{
+              top: `${30 + i * 8}%`,
+              left: 0,
+              width: "100%",
+            }}
+            animate={{ x: ["-100%", "100%"], opacity: [0, 0.7, 0] }}
+            transition={{
+              duration: 0.6 + i * 0.1,
+              repeat: Infinity,
+              delay: i * 0.15,
+              ease: "easeIn",
+            }}
+          />
+        ))}
+
+        {/* The Porsche — enters small from horizon, scales up dramatically, holds hero pose */}
+        <motion.div
+          className="absolute left-1/2 bottom-[6%] -translate-x-1/2"
+          initial={{ scale: 0.05, y: -90, opacity: 0, filter: "blur(6px)" }}
+          animate={{
+            scale: [0.05, 0.15, 0.45, 1, 1, 0.05],
+            y: [-90, -70, -30, 0, 0, -90],
+            opacity: [0, 0.4, 0.85, 1, 1, 0],
+            filter: [
+              "blur(6px)",
+              "blur(3px)",
+              "blur(1px)",
+              "blur(0px)",
+              "blur(0px)",
+              "blur(6px)",
+            ],
+          }}
+          transition={{
+            duration: 5.6,
+            times: [0, 0.18, 0.38, 0.55, 0.85, 1],
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
+          {/* Subtle ground shadow */}
+          <div className="absolute left-1/2 top-full h-3 w-[80%] -translate-x-1/2 rounded-full bg-black/70 blur-md" />
+          <motion.img
+            src={porscheImg}
+            alt="Roter Porsche 718 Cayman GT4 RS"
+            className="relative h-auto w-[280px] select-none drop-shadow-[0_20px_40px_rgba(220,38,38,0.45)]"
+            animate={{ rotate: [0, -0.6, 0.4, -0.3, 0] }}
+            transition={{ duration: 5.6, repeat: Infinity, ease: "easeInOut" }}
+            draggable={false}
+          />
+          {/* Headlight bloom when close */}
+          <motion.div
+            className="absolute left-[10%] top-1/2 h-6 w-24 -translate-y-1/2 rounded-full bg-white/80 blur-2xl"
+            animate={{ opacity: [0, 0, 0.2, 0.7, 0.7, 0] }}
+            transition={{
+              duration: 5.6,
+              times: [0, 0.3, 0.45, 0.6, 0.85, 1],
+              repeat: Infinity,
+            }}
+          />
+        </motion.div>
+
+        {/* Vignette */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.55)_100%)]" />
+      </div>
+
+      {/* Caption strip */}
+      <div className="flex items-center justify-between gap-4 border-t-[0.5px] border-white/10 bg-black/30 px-5 py-3 backdrop-blur-md">
+        <div>
+          <p className="text-[9px] font-medium uppercase tracking-[0.3em] text-white/40">
+            Endgame
+          </p>
+          <p className="mt-0.5 font-serif-display text-base text-white">
+            Porsche 718 Cayman <span className="italic text-red-400">GT4 RS</span>
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[9px] font-medium uppercase tracking-[0.3em] text-white/40">
+            Status
+          </p>
+          <p className="mt-0.5 text-xs font-light tabular-nums text-white/80">
+            in Anfahrt …
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TelemetryCounter({
+  label,
+  from,
+  to,
+  duration,
+  suffix = "",
+}: {
+  label: string;
+  from: number;
+  to: number;
+  duration: number;
+  suffix?: string;
+}) {
+  const [value, setValue] = React.useState(from);
+  React.useEffect(() => {
+    let raf = 0;
+    let start = 0;
+    const loop = (t: number) => {
+      if (!start) start = t;
+      const elapsed = ((t - start) / 1000) % duration;
+      const p = elapsed / duration;
+      // ease-out for a sense of acceleration then settle
+      const eased = 1 - Math.pow(1 - p, 2.4);
+      setValue(Math.round(from + (to - from) * eased));
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [from, to, duration]);
+  return (
+    <div className="text-right">
+      <p className="text-[8px] font-medium uppercase tracking-[0.28em] text-white/40">
+        {label}
+      </p>
+      <p className="font-serif-display text-base tabular-nums text-white">
+        {value.toLocaleString("de-CH")}
+        {suffix}
       </p>
     </div>
   );
