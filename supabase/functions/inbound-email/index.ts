@@ -332,10 +332,16 @@ function extractListings(html: string, defaultPortal: Portal): ExtractedListing[
 
     const parsed = parseListingFromBlock(fullBlock, defaultPortal);
     if (!parsed) continue;
-    // Mindestens Titel ODER Bild ODER Preis – sonst zu schwach
-    if (!parsed.image_url && parsed.price_chf == null && parsed.area_sqm == null) {
-      continue;
-    }
+    // Akzeptiere ein Inserat, sobald wenigstens eine sinnvolle Information da ist.
+    // Bilder sind oft nicht eingebettet — Hauptsache wir haben Titel + (Preis | Fläche | Portal-URL | PLZ).
+    const hasPortalUrl = !!findPortalUrlIn(parsed.url ?? "");
+    const meaningful =
+      parsed.price_chf != null ||
+      parsed.area_sqm != null ||
+      parsed.postal_code != null ||
+      parsed.image_url != null ||
+      hasPortalUrl;
+    if (!meaningful) continue;
     out.push(parsed);
   }
 
