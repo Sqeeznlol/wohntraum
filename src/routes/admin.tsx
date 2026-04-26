@@ -82,7 +82,9 @@ function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (user === ADMIN_USER && pw === ADMIN_PASSWORD) {
+    const u = user.trim();
+    const p = pw.trim();
+    if (u.toLowerCase() === ADMIN_USER.toLowerCase() && p === ADMIN_PASSWORD) {
       sessionStorage.setItem(SESSION_KEY, "1");
       setAuthed(true);
       toast.success("Eingeloggt");
