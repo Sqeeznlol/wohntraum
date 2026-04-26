@@ -556,3 +556,162 @@ function AddCustomInput({ onAdd }: { onAdd: (label: string) => void }) {
     </div>
   );
 }
+
+// ============================================================================
+// Drag-and-drop list for custom milestones with 3-state status toggle
+// ============================================================================
+
+const STATUS_LABEL: Record<CustomStatus, string> = {
+  offen: "offen",
+  in_bearbeitung: "in Bearbeitung",
+  erledigt: "erledigt",
+};
+
+function CustomList({
+  items,
+  onReorder,
+  onCycleStatus,
+  onRename,
+  onDelete,
+}: {
+  items: CustomMilestone[];
+  onReorder: (next: CustomMilestone[]) => void;
+  onCycleStatus: (m: CustomMilestone) => void;
+  onRename: (m: CustomMilestone, label: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const dragId = useRef<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  const handleDragStart = (id: string) => {
+    dragId.current = id;
+  };
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (dragId.current && dragId.current !== id) setOverId(id);
+  };
+  const handleDrop = (targetId: string) => {
+    const fromId = dragId.current;
+    dragId.current = null;
+    setOverId(null);
+    if (!fromId || fromId === targetId) return;
+    const fromIdx = items.findIndex((m) => m.id === fromId);
+    const toIdx = items.findIndex((m) => m.id === targetId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const next = items.slice();
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+    onReorder(next);
+  };
+  const handleDragEnd = () => {
+    dragId.current = null;
+    setOverId(null);
+  };
+
+  return (
+    <AnimatePresence initial={false}>
+      {items.map((m) => {
+        const st = statusOf(m);
+        const isOver = overId === m.id;
+        return (
+          <motion.li
+            key={m.id}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            onDragOver={(e) => handleDragOver(e, m.id)}
+            onDrop={() => handleDrop(m.id)}
+            onDragEnd={handleDragEnd}
+            className={cn(
+              "relative flex items-start gap-3 py-2.5 transition-colors",
+              isOver && "rounded-lg bg-primary/5 ring-1 ring-primary/30",
+            )}
+          >
+            {/* Drag handle */}
+            <button
+              type="button"
+              draggable
+              onDragStart={() => handleDragStart(m.id)}
+              onDragEnd={handleDragEnd}
+              className="mt-2 flex h-6 w-4 shrink-0 cursor-grab items-center justify-center text-muted-foreground/60 hover:text-foreground active:cursor-grabbing"
+              aria-label="Schritt verschieben"
+              title="Ziehen zum Neuordnen"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+
+            {/* Status toggle (3-state) */}
+            <button
+              onClick={() => onCycleStatus(m)}
+              className={cn(
+                "relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed transition-all",
+                st === "erledigt"
+                  ? "border-primary bg-primary text-primary-foreground shadow-soft"
+                  : st === "in_bearbeitung"
+                  ? "border-amber-400 bg-amber-50 text-amber-600"
+                  : "border-primary/50 bg-background text-primary hover:bg-primary/5",
+              )}
+              aria-label={`${m.label} – ${STATUS_LABEL[st]}`}
+              title={`Status: ${STATUS_LABEL[st]} (klicken zum Wechseln)`}
+            >
+              {st === "erledigt" ? (
+                <Check className="h-4 w-4" />
+              ) : st === "in_bearbeitung" ? (
+                <Clock className="h-4 w-4" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+            </button>
+
+            <div className="min-w-0 flex-1 pt-1">
+              <div className="flex items-center justify-between gap-2">
+                <input
+                  defaultValue={m.label}
+                  key={m.label}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v && v !== m.label) onRename(m, v);
+                    else if (!v) e.target.value = m.label;
+                  }}
+                  className={cn(
+                    "min-w-0 flex-1 truncate border-b border-transparent bg-transparent text-sm font-medium outline-none transition-colors hover:border-border focus:border-primary",
+                    st === "erledigt"
+                      ? "text-foreground line-through opacity-70"
+                      : "text-foreground",
+                  )}
+                />
+                <span className="text-[10px] tabular-nums text-muted-foreground">
+                  {fmtDate(m.ts)}
+                </span>
+                <button
+                  onClick={() => onDelete(m.id)}
+                  className="text-muted-foreground/50 hover:text-destructive"
+                  aria-label="Schritt entfernen"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <span
+                className={cn(
+                  "text-[11px]",
+                  st === "in_bearbeitung"
+                    ? "text-amber-600"
+                    : st === "erledigt"
+                    ? "text-muted-foreground"
+                    : "text-muted-foreground/70",
+                )}
+              >
+                {st === "erledigt"
+                  ? "erledigt"
+                  : st === "in_bearbeitung"
+                  ? "in Bearbeitung · klicken zum Abhaken"
+                  : "offen · klicken für „in Bearbeitung“"}
+              </span>
+            </div>
+          </motion.li>
+        );
+      })}
+    </AnimatePresence>
+  );
+}
+
