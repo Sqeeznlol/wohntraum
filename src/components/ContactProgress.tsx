@@ -90,6 +90,17 @@ function getCustom(steps: StepLog | undefined): CustomMilestone[] {
   return (steps?.[CUSTOM_KEY] as CustomMilestone[] | undefined) ?? [];
 }
 
+function statusOf(m: CustomMilestone): CustomStatus {
+  if (m.status) return m.status;
+  return m.done ? "erledigt" : "offen";
+}
+
+function nextStatus(s: CustomStatus): CustomStatus {
+  if (s === "offen") return "in_bearbeitung";
+  if (s === "in_bearbeitung") return "erledigt";
+  return "offen";
+}
+
 export function ContactProgress({ listingId, compact = false }: { listingId: string; compact?: boolean }) {
   const qc = useQueryClient();
 
