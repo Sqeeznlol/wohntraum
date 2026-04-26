@@ -50,6 +50,7 @@ interface Visitor {
   isp: string | null;
   latitude: number | null;
   longitude: number | null;
+  address: string | null;
   language: string | null;
   referrer: string | null;
   path: string | null;
