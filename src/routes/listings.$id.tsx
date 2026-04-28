@@ -145,6 +145,8 @@ function ListingDetail() {
             </CardContent>
           </Card>
 
+          <BuildingDataPanel listing={l} />
+
           {l.status === "contacted" && <ContactProgress listingId={id} />}
           <ListingDocuments listingId={id} />
           <ListingPrecheck listingId={id} listing={data.listing} />
