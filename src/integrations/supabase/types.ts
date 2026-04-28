@@ -258,17 +258,21 @@ export type Database = {
           building_category: string | null
           building_status: string | null
           building_year: number | null
+          canton: string | null
           city: string | null
           created_at: string
           description: string | null
           dwellings: number | null
           egid: number | null
           egrid: string | null
+          energy_source: string | null
           extra_notes: string | null
           fingerprint: string | null
           first_seen_at: string
           floors: number | null
+          geo_researched: boolean
           gwr_enriched_at: string | null
+          heating_type: string | null
           heritage_protected: boolean | null
           id: string
           image_url: string | null
@@ -292,6 +296,7 @@ export type Database = {
           status: Database["public"]["Enums"]["listing_status"]
           title: string
           updated_at: string
+          usage_zone: string | null
           zone_area_sqm: number | null
           zone_code: string | null
           zone_legal_status: string | null
@@ -306,17 +311,21 @@ export type Database = {
           building_category?: string | null
           building_status?: string | null
           building_year?: number | null
+          canton?: string | null
           city?: string | null
           created_at?: string
           description?: string | null
           dwellings?: number | null
           egid?: number | null
           egrid?: string | null
+          energy_source?: string | null
           extra_notes?: string | null
           fingerprint?: string | null
           first_seen_at?: string
           floors?: number | null
+          geo_researched?: boolean
           gwr_enriched_at?: string | null
+          heating_type?: string | null
           heritage_protected?: boolean | null
           id?: string
           image_url?: string | null
@@ -340,6 +349,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["listing_status"]
           title: string
           updated_at?: string
+          usage_zone?: string | null
           zone_area_sqm?: number | null
           zone_code?: string | null
           zone_legal_status?: string | null
@@ -354,17 +364,21 @@ export type Database = {
           building_category?: string | null
           building_status?: string | null
           building_year?: number | null
+          canton?: string | null
           city?: string | null
           created_at?: string
           description?: string | null
           dwellings?: number | null
           egid?: number | null
           egrid?: string | null
+          energy_source?: string | null
           extra_notes?: string | null
           fingerprint?: string | null
           first_seen_at?: string
           floors?: number | null
+          geo_researched?: boolean
           gwr_enriched_at?: string | null
+          heating_type?: string | null
           heritage_protected?: boolean | null
           id?: string
           image_url?: string | null
@@ -388,6 +402,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["listing_status"]
           title?: string
           updated_at?: string
+          usage_zone?: string | null
           zone_area_sqm?: number | null
           zone_code?: string | null
           zone_legal_status?: string | null
