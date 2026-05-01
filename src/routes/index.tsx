@@ -277,6 +277,16 @@ function ListingsPage() {
               loading="lazy"
               className="hidden h-20 w-auto self-center drop-shadow-[0_8px_16px_rgba(8,29,66,0.18)] lg:block"
             />
+            <Button
+              onClick={() => refreshAll.mutate()}
+              disabled={refreshAll.isPending}
+              variant="outline"
+              size="sm"
+              className="self-center rounded-[3px] border-[0.5px] border-sapphire/30 bg-white text-xs font-medium text-sapphire hover:bg-sapphire hover:text-white"
+            >
+              <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${refreshAll.isPending ? "animate-spin" : ""}`} />
+              {refreshAll.isPending ? "Aktualisiere…" : "Aktualisieren"}
+            </Button>
           </div>
         </div>
       </section>
