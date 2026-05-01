@@ -219,20 +219,12 @@ async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok:
   const meta = extractMetadata(html);
   const images = extractImages(html, url);
 
-  // Build update payload only with missing fields
+  // Build update payload only with missing fields.
+  // NOTE: price_per_sqm is a GENERATED column in Postgres — never write it,
+  // it auto-computes from price_chf / area_sqm.
   const update: any = { updated_at: new Date().toISOString() };
-  if (!listing.price_chf && meta.price) {
-    update.price_chf = meta.price;
-    if (meta.area || listing.area_sqm) {
-      const area = meta.area ?? Number(listing.area_sqm);
-      if (area > 0) update.price_per_sqm = Math.round(meta.price / area);
-    }
-  }
-  if (!listing.area_sqm && meta.area) {
-    update.area_sqm = meta.area;
-    const price = listing.price_chf ?? meta.price;
-    if (price) update.price_per_sqm = Math.round(Number(price) / meta.area);
-  }
+  if (!listing.price_chf && meta.price) update.price_chf = meta.price;
+  if (!listing.area_sqm && meta.area) update.area_sqm = meta.area;
   if (!listing.rooms && meta.rooms) update.rooms = meta.rooms;
   if (!listing.postal_code && meta.postal_code) update.postal_code = meta.postal_code;
   if (!listing.city && meta.city) update.city = meta.city;
@@ -284,7 +276,7 @@ Deno.serve(async (req) => {
         .from("listings")
         .select("*")
         .is("archived_at", null)
-        .or("price_chf.is.null,image_url.is.null,rooms.is.null,area_sqm.is.null")
+        .or("price_chf.is.null,image_url.is.null,rooms.is.null,area_sqm.is.null,address.is.null")
         .order("created_at", { ascending: false })
         .limit(hardCap);
       if (error) throw error;
