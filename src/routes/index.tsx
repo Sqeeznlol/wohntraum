@@ -199,6 +199,8 @@ function ListingsPage() {
     },
     onError: (e: Error) => toast.error(`Aktualisierung fehlgeschlagen: ${e.message}`),
   });
+
+  const counts = useMemo(() => {
     const c: Record<PipelineStage, number> = {
       new: 0,
       interested: 0,
