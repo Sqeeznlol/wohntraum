@@ -184,7 +184,21 @@ function ListingsPage() {
     },
   });
 
-  const counts = useMemo(() => {
+  const refreshAll = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("enrich-listing", {
+        body: { all_incomplete: true, limit: 50 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { processed: number; succeeded: number };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["listings"] });
+      toast.success(`${data.succeeded} von ${data.processed} Inseraten aktualisiert`);
+    },
+    onError: (e: Error) => toast.error(`Aktualisierung fehlgeschlagen: ${e.message}`),
+  });
     const c: Record<PipelineStage, number> = {
       new: 0,
       interested: 0,
