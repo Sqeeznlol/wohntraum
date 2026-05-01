@@ -221,23 +221,25 @@ async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok:
 
   // Build update payload only with missing fields
   const update: any = { updated_at: new Date().toISOString() };
-  if (!listing.price_chf && meta.price) {
-    update.price_chf = meta.price;
-    if (meta.area || listing.area_sqm) {
-      const area = meta.area ?? Number(listing.area_sqm);
-      if (area > 0) update.price_per_sqm = Math.round(meta.price / area);
-    }
-  }
-  if (!listing.area_sqm && meta.area) {
-    update.area_sqm = meta.area;
-    const price = listing.price_chf ?? meta.price;
-    if (price) update.price_per_sqm = Math.round(Number(price) / meta.area);
-  }
+  if (!listing.price_chf && meta.price) update.price_chf = meta.price;
+  if (!listing.area_sqm && meta.area) update.area_sqm = meta.area;
   if (!listing.rooms && meta.rooms) update.rooms = meta.rooms;
   if (!listing.postal_code && meta.postal_code) update.postal_code = meta.postal_code;
   if (!listing.city && meta.city) update.city = meta.city;
   if (!listing.address && meta.address) update.address = meta.address;
   if (!listing.image_url && images.length > 0) update.image_url = images[0];
+
+  // ALWAYS recompute price_per_sqm from final values (covers cases where
+  // price_chf + area_sqm already existed but price_per_sqm was never set,
+  // and where we just filled one of them).
+  const finalPrice = update.price_chf ?? (listing.price_chf != null ? Number(listing.price_chf) : null);
+  const finalArea = update.area_sqm ?? (listing.area_sqm != null ? Number(listing.area_sqm) : null);
+  if (finalPrice && finalArea && finalArea > 0) {
+    const computed = Math.round(finalPrice / finalArea);
+    if (computed !== (listing.price_per_sqm != null ? Number(listing.price_per_sqm) : null)) {
+      update.price_per_sqm = computed;
+    }
+  }
 
   if (Object.keys(update).length > 1) {
     const { error } = await supabase.from("listings").update(update).eq("id", listing.id);
