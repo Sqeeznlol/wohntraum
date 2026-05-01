@@ -276,7 +276,7 @@ Deno.serve(async (req) => {
         .from("listings")
         .select("*")
         .is("archived_at", null)
-        .or("price_chf.is.null,image_url.is.null,rooms.is.null,area_sqm.is.null,address.is.null,price_per_sqm.is.null")
+        .or("price_chf.is.null,image_url.is.null,rooms.is.null,area_sqm.is.null,address.is.null")
         .order("created_at", { ascending: false })
         .limit(hardCap);
       if (error) throw error;
