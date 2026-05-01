@@ -187,7 +187,7 @@ async function firecrawlScrape(url: string): Promise<string> {
     const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
       headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url, formats: ["html"], onlyMainContent: false, waitFor: 2000 }),
+      body: JSON.stringify({ url, formats: ["html"], onlyMainContent: false, waitFor: 800, timeout: 20000 }),
     });
     if (!res.ok) return "";
     const data = await res.json();
