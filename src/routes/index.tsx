@@ -187,7 +187,7 @@ function ListingsPage() {
   const refreshAll = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("enrich-listing", {
-        body: { all_incomplete: true, limit: 50 },
+        body: { all_incomplete: true, limit: 8 },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

@@ -187,7 +187,7 @@ async function firecrawlScrape(url: string): Promise<string> {
     const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
       headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url, formats: ["html"], onlyMainContent: false, waitFor: 2000 }),
+      body: JSON.stringify({ url, formats: ["html"], onlyMainContent: false, waitFor: 800, timeout: 20000 }),
     });
     if (!res.ok) return "";
     const data = await res.json();
@@ -278,13 +278,15 @@ Deno.serve(async (req) => {
       if (error) throw error;
       if (data) listings = [data];
     } else if (all_incomplete) {
+      // Hard cap to avoid 150s idle timeout. Each enrich can take 5-15s.
+      const hardCap = Math.min(limit ?? 8, 12);
       const { data, error } = await supabase
         .from("listings")
         .select("*")
         .is("archived_at", null)
         .or("price_chf.is.null,image_url.is.null,rooms.is.null,area_sqm.is.null")
         .order("created_at", { ascending: false })
-        .limit(limit ?? 50);
+        .limit(hardCap);
       if (error) throw error;
       listings = data ?? [];
     } else {
@@ -294,15 +296,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    const results = [];
-    for (const l of listings) {
-      try {
-        const r = await enrichOne(supabase, l);
-        results.push(r);
-      } catch (e) {
-        results.push({ id: l.id, ok: false, reason: e instanceof Error ? e.message : String(e) });
+    // Process in parallel with concurrency cap and per-item timeout
+    const CONCURRENCY = 4;
+    const PER_ITEM_TIMEOUT_MS = 25_000;
+    const results: any[] = [];
+
+    async function withTimeout<T>(p: Promise<T>, ms: number, id: string): Promise<T> {
+      return await Promise.race([
+        p,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error(`timeout after ${ms}ms for ${id}`)), ms),
+        ),
+      ]);
+    }
+
+    let cursor = 0;
+    async function worker() {
+      while (cursor < listings.length) {
+        const idx = cursor++;
+        const l = listings[idx];
+        try {
+          const r = await withTimeout(enrichOne(supabase, l), PER_ITEM_TIMEOUT_MS, l.id);
+          results.push(r);
+        } catch (e) {
+          results.push({ id: l.id, ok: false, reason: e instanceof Error ? e.message : String(e) });
+        }
       }
     }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, listings.length) }, worker));
 
     const succeeded = results.filter((r) => r.ok).length;
     return new Response(JSON.stringify({ processed: results.length, succeeded, results }), {
