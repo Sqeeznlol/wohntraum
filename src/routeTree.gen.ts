@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SwipeRouteImport } from './routes/swipe'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MapRouteImport } from './routes/map'
+import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -32,6 +33,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsightsRoute = InsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlertsRoute = AlertsRouteImport.update({
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
+  '/insights': typeof InsightsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
   '/swipe': typeof SwipeRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
+  '/insights': typeof InsightsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
   '/swipe': typeof SwipeRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
+  '/insights': typeof InsightsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
   '/swipe': typeof SwipeRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/alerts'
+    | '/insights'
     | '/map'
     | '/onboarding'
     | '/swipe'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/alerts'
+    | '/insights'
     | '/map'
     | '/onboarding'
     | '/swipe'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/alerts'
+    | '/insights'
     | '/map'
     | '/onboarding'
     | '/swipe'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AlertsRoute: typeof AlertsRoute
+  InsightsRoute: typeof InsightsRoute
   MapRoute: typeof MapRoute
   OnboardingRoute: typeof OnboardingRoute
   SwipeRoute: typeof SwipeRoute
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/map'
       preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insights': {
+      id: '/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof InsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alerts': {
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AlertsRoute: AlertsRoute,
+  InsightsRoute: InsightsRoute,
   MapRoute: MapRoute,
   OnboardingRoute: OnboardingRoute,
   SwipeRoute: SwipeRoute,
