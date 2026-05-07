@@ -331,28 +331,82 @@ async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok:
   if (!listing.postal_code && meta.postal_code) update.postal_code = meta.postal_code;
   if (!listing.city && meta.city) update.city = meta.city;
   if (!listing.address && meta.address) update.address = meta.address;
-  if (!listing.image_url && images.length > 0) update.image_url = images[0];
+  if ((!listing.title || listing.title === "Inserat") && meta.title) update.title = meta.title;
+  if (!listing.description && meta.description) update.description = meta.description;
 
-  if (Object.keys(update).length > 1) {
-    const { error } = await supabase.from("listings").update(update).eq("id", listing.id);
-    if (error) return { id: listing.id, ok: false, reason: error.message };
-  }
-
-  // Insert images
+  // Upload cover + gallery to Supabase Storage
   let imagesAdded = 0;
   if (images.length > 0) {
     const { data: existing } = await supabase
       .from("listing_images")
       .select("url, sort_order")
       .eq("listing_id", listing.id);
-    const existingUrls = new Set((existing ?? []).map((e: any) => e.url));
+    const existingCount = (existing ?? []).length;
     const startSort = (existing ?? []).reduce((m: number, e: any) => Math.max(m, e.sort_order ?? 0), -1) + 1;
-    const fresh = images.filter((u) => !existingUrls.has(u)).slice(0, 30);
-    if (fresh.length > 0) {
-      const rows = fresh.map((url, i) => ({ listing_id: listing.id, url, sort_order: startSort + i }));
-      const { error } = await supabase.from("listing_images").insert(rows);
-      if (!error) imagesAdded = fresh.length;
+
+    // Cover (first image) — upload to storage if listing has no image yet
+    if (!listing.image_url) {
+      const coverUrl = await uploadImageToStorage(supabase, listing.id, images[0], "cover.jpg");
+      if (coverUrl) update.image_url = coverUrl;
+      else update.image_url = images[0];
     }
+
+    // Gallery — upload up to 10 to storage and store rows
+    if (existingCount < 10) {
+      const slots = 10 - existingCount;
+      const candidates = images.slice(0, slots);
+      const rows: Array<{ listing_id: string; url: string; sort_order: number }> = [];
+      for (let i = 0; i < candidates.length; i++) {
+        const stored = await uploadImageToStorage(
+          supabase,
+          listing.id,
+          candidates[i],
+          `${startSort + i}.jpg`,
+        );
+        rows.push({
+          listing_id: listing.id,
+          url: stored ?? candidates[i],
+          sort_order: startSort + i,
+        });
+      }
+      if (rows.length > 0) {
+        const { error } = await supabase.from("listing_images").insert(rows);
+        if (!error) imagesAdded = rows.length;
+      }
+    }
+  }
+
+  // GWR enrichment via geo.admin.ch — only if address available and not yet researched
+  const effectiveAddress =
+    update.address ?? listing.address
+      ? `${update.address ?? listing.address}, ${update.postal_code ?? listing.postal_code ?? ""} ${update.city ?? listing.city ?? ""}`.trim()
+      : null;
+  if (effectiveAddress && !listing.geo_researched) {
+    const gwr = await fetchGwrFromGeoAdmin(effectiveAddress);
+    if (gwr) {
+      if (gwr.egid != null) update.egid = gwr.egid;
+      if (gwr.egrid) update.egrid = gwr.egrid;
+      if (gwr.building_year) update.building_year = gwr.building_year;
+      if (gwr.building_category) update.building_category = gwr.building_category;
+      if (gwr.building_area_sqm) update.building_area_sqm = gwr.building_area_sqm;
+      if (gwr.dwellings) update.dwellings = gwr.dwellings;
+      if (gwr.floors) update.floors = gwr.floors;
+      if (gwr.heating_type) update.heating_type = gwr.heating_type;
+      if (gwr.energy_source) update.energy_source = gwr.energy_source;
+      if (gwr.municipality) update.municipality = gwr.municipality;
+      if (gwr.canton) update.canton = gwr.canton;
+      if (gwr.parcel_number) update.parcel_number = gwr.parcel_number;
+      if (gwr.lv95_east != null) update.lv95_east = gwr.lv95_east;
+      if (gwr.lv95_north != null) update.lv95_north = gwr.lv95_north;
+      if (gwr.usage_zone) update.usage_zone = gwr.usage_zone;
+    }
+    update.geo_researched = true;
+    update.gwr_enriched_at = new Date().toISOString();
+  }
+
+  if (Object.keys(update).length > 1) {
+    const { error } = await supabase.from("listings").update(update).eq("id", listing.id);
+    if (error) return { id: listing.id, ok: false, reason: error.message };
   }
 
   return { id: listing.id, ok: true, updated: update, imagesAdded };
