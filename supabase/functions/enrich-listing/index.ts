@@ -202,6 +202,108 @@ function needsFirecrawl(url: string): boolean {
   return /immoscout24\.ch/i.test(url);
 }
 
+async function uploadImageToStorage(
+  supabase: any,
+  listingId: string,
+  imageUrl: string,
+  filename: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(imageUrl, { headers: BROWSER_HEADERS, redirect: "follow" });
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") ?? "image/jpeg";
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.length < 2048) return null; // skip tiny / placeholder
+    const path = `${listingId}/${filename}`;
+    const { error } = await supabase.storage
+      .from("listing-images")
+      .upload(path, buf, { contentType, upsert: true });
+    if (error) {
+      console.warn("storage upload failed", path, error.message);
+      return null;
+    }
+    const { data } = supabase.storage.from("listing-images").getPublicUrl(path);
+    return data?.publicUrl ?? null;
+  } catch (e) {
+    console.warn("uploadImageToStorage error", e);
+    return null;
+  }
+}
+
+async function fetchGwrFromGeoAdmin(address: string): Promise<{
+  egid?: number | null;
+  egrid?: string | null;
+  building_year?: number | null;
+  building_category?: string | null;
+  building_area_sqm?: number | null;
+  dwellings?: number | null;
+  floors?: number | null;
+  heating_type?: string | null;
+  energy_source?: string | null;
+  municipality?: string | null;
+  canton?: string | null;
+  parcel_number?: string | null;
+  lv95_east?: number | null;
+  lv95_north?: number | null;
+  usage_zone?: string | null;
+} | null> {
+  try {
+    const searchUrl = `https://api3.geo.admin.ch/rest/services/ech/SearchServer?searchText=${encodeURIComponent(
+      "adresse " + address,
+    )}&type=locations&origins=address&limit=1&sr=2056`;
+    const sRes = await fetch(searchUrl, { headers: { Accept: "application/json" } });
+    if (!sRes.ok) return null;
+    const sJson = (await sRes.json()) as any;
+    const hit = sJson.results?.[0]?.attrs;
+    if (!hit) return null;
+    const featureId: string | undefined = hit.featureId;
+    const east: number | null = hit.y ?? null;
+    const north: number | null = hit.x ?? null;
+
+    let attrs: any = null;
+    if (featureId) {
+      const detUrl = `https://api3.geo.admin.ch/rest/services/ech/MapServer/ch.bfs.gebaeude_wohnungs_register/${featureId}?returnGeometry=false`;
+      const dRes = await fetch(detUrl, { headers: { Accept: "application/json" } });
+      if (dRes.ok) {
+        const dJson = (await dRes.json()) as any;
+        attrs = dJson.feature?.attributes ?? dJson.attributes ?? null;
+      }
+    }
+
+    let usage_zone: string | null = null;
+    if (east != null && north != null) {
+      const zUrl = `https://api3.geo.admin.ch/rest/services/ech/MapServer/identify?geometry=${east},${north}&geometryType=esriGeometryPoint&imageDisplay=0,0,0&mapExtent=0,0,0,0&tolerance=5&layers=all:ch.are.bauzonen&returnGeometry=false&sr=2056`;
+      const zRes = await fetch(zUrl, { headers: { Accept: "application/json" } });
+      if (zRes.ok) {
+        const zJson = (await zRes.json()) as any;
+        const a = zJson.results?.[0]?.attributes ?? null;
+        usage_zone = a?.ch_bezeichnung ?? a?.bezeichnung ?? a?.kategorie_de ?? null;
+      }
+    }
+
+    return {
+      egid: attrs?.egid ?? null,
+      egrid: attrs?.egrid ?? null,
+      building_year: attrs?.gbauj ?? null,
+      building_category: attrs?.gkat ? String(attrs.gkat) : null,
+      building_area_sqm: attrs?.garea ?? null,
+      dwellings: attrs?.ganzwhg ?? null,
+      floors: attrs?.gastw ?? null,
+      heating_type: attrs?.genh1 ? String(attrs.genh1) : null,
+      energy_source: attrs?.gwaerzh1 ? String(attrs.gwaerzh1) : null,
+      municipality: attrs?.ggdename ?? null,
+      canton: attrs?.gdekt ?? null,
+      parcel_number: attrs?.lparz ?? null,
+      lv95_east: east,
+      lv95_north: north,
+      usage_zone,
+    };
+  } catch (e) {
+    console.warn("GWR fetch failed", e);
+    return null;
+  }
+}
+
 async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok: boolean; reason?: string; updated?: any; imagesAdded?: number }> {
   if (!listing.primary_url) return { id: listing.id, ok: false, reason: "no url" };
   const url = listing.primary_url;
