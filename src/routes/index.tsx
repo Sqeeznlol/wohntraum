@@ -200,6 +200,36 @@ function ListingsPage() {
     onError: (e: Error) => toast.error(`Aktualisierung fehlgeschlagen: ${e.message}`),
   });
 
+  // Realtime: auto-enrich newly inserted listings + refresh the list on updates
+  useEffect(() => {
+    const channel = supabase
+      .channel("listings-stream")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "listings" },
+        (payload) => {
+          const row = payload.new as Listing;
+          qc.invalidateQueries({ queryKey: ["listings"] });
+          if (row?.id && row?.primary_url) {
+            supabase.functions.invoke("enrich-listing", {
+              body: { listing_id: row.id },
+            }).catch(() => {});
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "listings" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["listings"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
   const counts = useMemo(() => {
     const c: Record<PipelineStage, number> = {
       new: 0,
