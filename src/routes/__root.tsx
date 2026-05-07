@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { initActivityTracker } from "@/lib/activity-tracker";
+import { LoginGate } from "@/components/LoginGate";
 
 import appCss from "../styles.css?url";
 import leafletCss from "leaflet/dist/leaflet.css?url";
@@ -119,6 +120,7 @@ function RootComponent() {
   );
   return (
     <QueryClientProvider client={queryClient}>
+      <LoginGate>
       <VisitTracker />
       <div className="min-h-screen bg-background pb-[env(safe-area-inset-bottom)]">
         {/* Apple-style fixed glass nav */}
@@ -155,6 +157,7 @@ function RootComponent() {
         </main>
         <Toaster />
       </div>
+      </LoginGate>
     </QueryClientProvider>
   );
 }
