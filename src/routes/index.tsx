@@ -796,6 +796,11 @@ function PipelineCard({
                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                 loading="lazy"
               />
+            ) : !listing.geo_researched ? (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-xs text-steel">
+                <RefreshCw className="h-5 w-5 animate-spin text-sapphire/60" />
+                <span>Lade Inseratdaten…</span>
+              </div>
             ) : (
               <div className="flex h-full w-full items-center justify-center text-xs text-steel">
                 Kein Bild
