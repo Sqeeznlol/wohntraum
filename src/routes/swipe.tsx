@@ -286,9 +286,9 @@ function CardContent({
   return (
     <div className="flex h-full w-full flex-col">
       <div
-        className="relative w-full bg-gray-200"
+        className="relative w-full bg-black"
         style={{
-          height: "58%",
+          height: "65%",
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           overflow: "hidden",
@@ -299,7 +299,7 @@ function CardContent({
             src={listing.image_url}
             alt={listing.title ?? ""}
             className="h-full w-full"
-            style={{ objectFit: "cover", objectPosition: "center" }}
+            style={{ objectFit: "contain", objectPosition: "center" }}
             draggable={false}
           />
         ) : (
@@ -312,20 +312,17 @@ function CardContent({
         </div>
         {children}
       </div>
-      <div className="flex flex-1 flex-col gap-2 px-5 py-4">
-        <h2 className="line-clamp-2 text-lg font-semibold leading-tight text-gray-900">
-          {listing.title ?? "Inserat"}
-        </h2>
-        <p className="line-clamp-1 text-sm text-gray-500">
+      <div className="flex flex-1 flex-col gap-1.5 px-4 py-3">
+        <p className="line-clamp-1 text-sm font-medium text-gray-700">
           {[listing.address, listing.postal_code, listing.city]
             .filter(Boolean)
-            .join(", ") || "—"}
+            .join(", ") || listing.title || "—"}
         </p>
         <div className="flex items-baseline justify-between gap-3">
           <span className="text-2xl font-bold text-gray-900">
             {formatCHF(listing.price_chf)}
           </span>
-          <span className="text-base text-gray-600">
+          <span className="text-sm text-gray-600">
             {[
               listing.rooms != null ? `${listing.rooms} Zi.` : null,
               listing.area_sqm != null ? formatSqm(listing.area_sqm) : null,
@@ -335,14 +332,14 @@ function CardContent({
           </span>
         </div>
         {(listing.building_year || listing.usage_zone) && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {listing.building_year && (
-              <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
                 Baujahr {listing.building_year}
               </span>
             )}
             {listing.usage_zone && (
-              <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
                 {listing.usage_zone}
               </span>
             )}
