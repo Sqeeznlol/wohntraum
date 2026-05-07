@@ -1,6 +1,6 @@
-import { Link, Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Link, Outlet, createRootRoute, HeadContent, Scripts, useLocation, useRouter } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { initActivityTracker } from "@/lib/activity-tracker";
 import { LoginGate } from "@/components/LoginGate";
@@ -77,15 +77,32 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 const navItems: ReadonlyArray<{
-  to: "/" | "/map" | "/alerts" | "/onboarding";
+  to: "/" | "/map" | "/alerts" | "/onboarding" | "/insights";
   label: string;
   exact?: boolean;
 }> = [
   { to: "/", label: "Inserate", exact: true },
   { to: "/map", label: "Karte" },
   { to: "/alerts", label: "Alerts" },
+  { to: "/insights", label: "Tims Geschmack" },
   { to: "/onboarding", label: "Setup" },
 ];
+
+function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
+function MobileRedirect() {
+  const router = useRouter();
+  const location = useLocation();
+  useEffect(() => {
+    if (isMobileDevice() && location.pathname === "/") {
+      router.navigate({ to: "/swipe" });
+    }
+  }, [location.pathname, router]);
+  return null;
+}
 
 function VisitTracker() {
   const [tracked, setTracked] = useState(false);
@@ -118,9 +135,22 @@ function RootComponent() {
         defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
       }),
   );
+  const location = useLocation();
+  const isSwipe = location.pathname.startsWith("/swipe");
+
+  if (isSwipe) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+        <Toaster />
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <LoginGate>
+      <MobileRedirect />
       <VisitTracker />
       <div className="min-h-screen bg-background pb-[env(safe-area-inset-bottom)]">
         {/* Apple-style fixed glass nav */}

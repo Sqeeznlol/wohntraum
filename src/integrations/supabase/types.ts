@@ -253,6 +253,7 @@ export type Database = {
           address: string | null
           archived_at: string | null
           area_sqm: number | null
+          bewertet_von: string | null
           bfs_number: number | null
           building_area_sqm: number | null
           building_category: string | null
@@ -306,6 +307,7 @@ export type Database = {
           address?: string | null
           archived_at?: string | null
           area_sqm?: number | null
+          bewertet_von?: string | null
           bfs_number?: number | null
           building_area_sqm?: number | null
           building_category?: string | null
@@ -359,6 +361,7 @@ export type Database = {
           address?: string | null
           archived_at?: string | null
           area_sqm?: number | null
+          bewertet_von?: string | null
           bfs_number?: number | null
           building_area_sqm?: number | null
           building_category?: string | null
@@ -454,6 +457,68 @@ export type Database = {
           to_address?: string | null
         }
         Relationships: []
+      }
+      tim_preferences: {
+        Row: {
+          area_sqm: number | null
+          building_year: number | null
+          canton: string | null
+          decision: string
+          floor_count: number | null
+          id: string
+          listing_id: string | null
+          municipality: string | null
+          parcel_area_sqm: number | null
+          portal: string | null
+          price_chf: number | null
+          price_per_sqm: number | null
+          rooms: number | null
+          swiped_at: string
+          usage_zone: string | null
+        }
+        Insert: {
+          area_sqm?: number | null
+          building_year?: number | null
+          canton?: string | null
+          decision: string
+          floor_count?: number | null
+          id?: string
+          listing_id?: string | null
+          municipality?: string | null
+          parcel_area_sqm?: number | null
+          portal?: string | null
+          price_chf?: number | null
+          price_per_sqm?: number | null
+          rooms?: number | null
+          swiped_at?: string
+          usage_zone?: string | null
+        }
+        Update: {
+          area_sqm?: number | null
+          building_year?: number | null
+          canton?: string | null
+          decision?: string
+          floor_count?: number | null
+          id?: string
+          listing_id?: string | null
+          municipality?: string | null
+          parcel_area_sqm?: number | null
+          portal?: string | null
+          price_chf?: number | null
+          price_per_sqm?: number | null
+          rooms?: number | null
+          swiped_at?: string
+          usage_zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tim_preferences_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       visitor_activity: {
         Row: {
