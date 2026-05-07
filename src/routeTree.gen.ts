@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SwipeRouteImport } from './routes/swipe'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as AlertsRouteImport } from './routes/alerts'
@@ -18,6 +19,11 @@ import { Route as ListingsIdRouteImport } from './routes/listings.$id'
 import { Route as ApiTrackVisitRouteImport } from './routes/api.track-visit'
 import { Route as ApiTrackActivityRouteImport } from './routes/api.track-activity'
 
+const SwipeRoute = SwipeRouteImport.update({
+  id: '/swipe',
+  path: '/swipe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/alerts': typeof AlertsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/swipe': typeof SwipeRoute
   '/api/track-activity': typeof ApiTrackActivityRoute
   '/api/track-visit': typeof ApiTrackVisitRoute
   '/listings/$id': typeof ListingsIdRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/alerts': typeof AlertsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/swipe': typeof SwipeRoute
   '/api/track-activity': typeof ApiTrackActivityRoute
   '/api/track-visit': typeof ApiTrackVisitRoute
   '/listings/$id': typeof ListingsIdRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/alerts': typeof AlertsRoute
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/swipe': typeof SwipeRoute
   '/api/track-activity': typeof ApiTrackActivityRoute
   '/api/track-visit': typeof ApiTrackVisitRoute
   '/listings/$id': typeof ListingsIdRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/map'
     | '/onboarding'
+    | '/swipe'
     | '/api/track-activity'
     | '/api/track-visit'
     | '/listings/$id'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/map'
     | '/onboarding'
+    | '/swipe'
     | '/api/track-activity'
     | '/api/track-visit'
     | '/listings/$id'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/map'
     | '/onboarding'
+    | '/swipe'
     | '/api/track-activity'
     | '/api/track-visit'
     | '/listings/$id'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   AlertsRoute: typeof AlertsRoute
   MapRoute: typeof MapRoute
   OnboardingRoute: typeof OnboardingRoute
+  SwipeRoute: typeof SwipeRoute
   ApiTrackActivityRoute: typeof ApiTrackActivityRoute
   ApiTrackVisitRoute: typeof ApiTrackVisitRoute
   ListingsIdRoute: typeof ListingsIdRoute
@@ -136,6 +149,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/swipe': {
+      id: '/swipe'
+      path: '/swipe'
+      fullPath: '/swipe'
+      preLoaderRoute: typeof SwipeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlertsRoute: AlertsRoute,
   MapRoute: MapRoute,
   OnboardingRoute: OnboardingRoute,
+  SwipeRoute: SwipeRoute,
   ApiTrackActivityRoute: ApiTrackActivityRoute,
   ApiTrackVisitRoute: ApiTrackVisitRoute,
   ListingsIdRoute: ListingsIdRoute,
@@ -208,3 +229,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
