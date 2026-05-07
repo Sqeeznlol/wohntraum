@@ -286,9 +286,9 @@ function CardContent({
   return (
     <div className="flex h-full w-full flex-col">
       <div
-        className="relative w-full bg-gray-200"
+        className="relative w-full bg-black"
         style={{
-          height: "58%",
+          height: "65%",
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           overflow: "hidden",
@@ -299,7 +299,7 @@ function CardContent({
             src={listing.image_url}
             alt={listing.title ?? ""}
             className="h-full w-full"
-            style={{ objectFit: "cover", objectPosition: "center" }}
+            style={{ objectFit: "contain", objectPosition: "center" }}
             draggable={false}
           />
         ) : (
