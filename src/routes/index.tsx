@@ -200,6 +200,36 @@ function ListingsPage() {
     onError: (e: Error) => toast.error(`Aktualisierung fehlgeschlagen: ${e.message}`),
   });
 
+  // Realtime: auto-enrich newly inserted listings + refresh the list on updates
+  useEffect(() => {
+    const channel = supabase
+      .channel("listings-stream")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "listings" },
+        (payload) => {
+          const row = payload.new as Listing;
+          qc.invalidateQueries({ queryKey: ["listings"] });
+          if (row?.id && row?.primary_url) {
+            supabase.functions.invoke("enrich-listing", {
+              body: { listing_id: row.id },
+            }).catch(() => {});
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "listings" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["listings"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
   const counts = useMemo(() => {
     const c: Record<PipelineStage, number> = {
       new: 0,
@@ -766,6 +796,11 @@ function PipelineCard({
                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                 loading="lazy"
               />
+            ) : !listing.geo_researched ? (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-xs text-steel">
+                <RefreshCw className="h-5 w-5 animate-spin text-sapphire/60" />
+                <span>Lade Inseratdaten…</span>
+              </div>
             ) : (
               <div className="flex h-full w-full items-center justify-center text-xs text-steel">
                 Kein Bild

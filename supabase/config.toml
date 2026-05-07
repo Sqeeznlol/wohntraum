@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.import-listing-images]
 verify_jwt = false
+
+[functions.enrich-listing]
+verify_jwt = false

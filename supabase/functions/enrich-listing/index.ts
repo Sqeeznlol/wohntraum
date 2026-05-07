@@ -202,6 +202,108 @@ function needsFirecrawl(url: string): boolean {
   return /immoscout24\.ch/i.test(url);
 }
 
+async function uploadImageToStorage(
+  supabase: any,
+  listingId: string,
+  imageUrl: string,
+  filename: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(imageUrl, { headers: BROWSER_HEADERS, redirect: "follow" });
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") ?? "image/jpeg";
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.length < 2048) return null; // skip tiny / placeholder
+    const path = `${listingId}/${filename}`;
+    const { error } = await supabase.storage
+      .from("listing-images")
+      .upload(path, buf, { contentType, upsert: true });
+    if (error) {
+      console.warn("storage upload failed", path, error.message);
+      return null;
+    }
+    const { data } = supabase.storage.from("listing-images").getPublicUrl(path);
+    return data?.publicUrl ?? null;
+  } catch (e) {
+    console.warn("uploadImageToStorage error", e);
+    return null;
+  }
+}
+
+async function fetchGwrFromGeoAdmin(address: string): Promise<{
+  egid?: number | null;
+  egrid?: string | null;
+  building_year?: number | null;
+  building_category?: string | null;
+  building_area_sqm?: number | null;
+  dwellings?: number | null;
+  floors?: number | null;
+  heating_type?: string | null;
+  energy_source?: string | null;
+  municipality?: string | null;
+  canton?: string | null;
+  parcel_number?: string | null;
+  lv95_east?: number | null;
+  lv95_north?: number | null;
+  usage_zone?: string | null;
+} | null> {
+  try {
+    const searchUrl = `https://api3.geo.admin.ch/rest/services/ech/SearchServer?searchText=${encodeURIComponent(
+      "adresse " + address,
+    )}&type=locations&origins=address&limit=1&sr=2056`;
+    const sRes = await fetch(searchUrl, { headers: { Accept: "application/json" } });
+    if (!sRes.ok) return null;
+    const sJson = (await sRes.json()) as any;
+    const hit = sJson.results?.[0]?.attrs;
+    if (!hit) return null;
+    const featureId: string | undefined = hit.featureId;
+    const east: number | null = hit.y ?? null;
+    const north: number | null = hit.x ?? null;
+
+    let attrs: any = null;
+    if (featureId) {
+      const detUrl = `https://api3.geo.admin.ch/rest/services/ech/MapServer/ch.bfs.gebaeude_wohnungs_register/${featureId}?returnGeometry=false`;
+      const dRes = await fetch(detUrl, { headers: { Accept: "application/json" } });
+      if (dRes.ok) {
+        const dJson = (await dRes.json()) as any;
+        attrs = dJson.feature?.attributes ?? dJson.attributes ?? null;
+      }
+    }
+
+    let usage_zone: string | null = null;
+    if (east != null && north != null) {
+      const zUrl = `https://api3.geo.admin.ch/rest/services/ech/MapServer/identify?geometry=${east},${north}&geometryType=esriGeometryPoint&imageDisplay=0,0,0&mapExtent=0,0,0,0&tolerance=5&layers=all:ch.are.bauzonen&returnGeometry=false&sr=2056`;
+      const zRes = await fetch(zUrl, { headers: { Accept: "application/json" } });
+      if (zRes.ok) {
+        const zJson = (await zRes.json()) as any;
+        const a = zJson.results?.[0]?.attributes ?? null;
+        usage_zone = a?.ch_bezeichnung ?? a?.bezeichnung ?? a?.kategorie_de ?? null;
+      }
+    }
+
+    return {
+      egid: attrs?.egid ?? null,
+      egrid: attrs?.egrid ?? null,
+      building_year: attrs?.gbauj ?? null,
+      building_category: attrs?.gkat ? String(attrs.gkat) : null,
+      building_area_sqm: attrs?.garea ?? null,
+      dwellings: attrs?.ganzwhg ?? null,
+      floors: attrs?.gastw ?? null,
+      heating_type: attrs?.genh1 ? String(attrs.genh1) : null,
+      energy_source: attrs?.gwaerzh1 ? String(attrs.gwaerzh1) : null,
+      municipality: attrs?.ggdename ?? null,
+      canton: attrs?.gdekt ?? null,
+      parcel_number: attrs?.lparz ?? null,
+      lv95_east: east,
+      lv95_north: north,
+      usage_zone,
+    };
+  } catch (e) {
+    console.warn("GWR fetch failed", e);
+    return null;
+  }
+}
+
 async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok: boolean; reason?: string; updated?: any; imagesAdded?: number }> {
   if (!listing.primary_url) return { id: listing.id, ok: false, reason: "no url" };
   const url = listing.primary_url;
@@ -229,28 +331,82 @@ async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok:
   if (!listing.postal_code && meta.postal_code) update.postal_code = meta.postal_code;
   if (!listing.city && meta.city) update.city = meta.city;
   if (!listing.address && meta.address) update.address = meta.address;
-  if (!listing.image_url && images.length > 0) update.image_url = images[0];
+  if ((!listing.title || listing.title === "Inserat") && meta.title) update.title = meta.title;
+  if (!listing.description && meta.description) update.description = meta.description;
 
-  if (Object.keys(update).length > 1) {
-    const { error } = await supabase.from("listings").update(update).eq("id", listing.id);
-    if (error) return { id: listing.id, ok: false, reason: error.message };
-  }
-
-  // Insert images
+  // Upload cover + gallery to Supabase Storage
   let imagesAdded = 0;
   if (images.length > 0) {
     const { data: existing } = await supabase
       .from("listing_images")
       .select("url, sort_order")
       .eq("listing_id", listing.id);
-    const existingUrls = new Set((existing ?? []).map((e: any) => e.url));
+    const existingCount = (existing ?? []).length;
     const startSort = (existing ?? []).reduce((m: number, e: any) => Math.max(m, e.sort_order ?? 0), -1) + 1;
-    const fresh = images.filter((u) => !existingUrls.has(u)).slice(0, 30);
-    if (fresh.length > 0) {
-      const rows = fresh.map((url, i) => ({ listing_id: listing.id, url, sort_order: startSort + i }));
-      const { error } = await supabase.from("listing_images").insert(rows);
-      if (!error) imagesAdded = fresh.length;
+
+    // Cover (first image) — upload to storage if listing has no image yet
+    if (!listing.image_url) {
+      const coverUrl = await uploadImageToStorage(supabase, listing.id, images[0], "cover.jpg");
+      if (coverUrl) update.image_url = coverUrl;
+      else update.image_url = images[0];
     }
+
+    // Gallery — upload up to 10 to storage and store rows
+    if (existingCount < 10) {
+      const slots = 10 - existingCount;
+      const candidates = images.slice(0, slots);
+      const rows: Array<{ listing_id: string; url: string; sort_order: number }> = [];
+      for (let i = 0; i < candidates.length; i++) {
+        const stored = await uploadImageToStorage(
+          supabase,
+          listing.id,
+          candidates[i],
+          `${startSort + i}.jpg`,
+        );
+        rows.push({
+          listing_id: listing.id,
+          url: stored ?? candidates[i],
+          sort_order: startSort + i,
+        });
+      }
+      if (rows.length > 0) {
+        const { error } = await supabase.from("listing_images").insert(rows);
+        if (!error) imagesAdded = rows.length;
+      }
+    }
+  }
+
+  // GWR enrichment via geo.admin.ch — only if address available and not yet researched
+  const effectiveAddress =
+    update.address ?? listing.address
+      ? `${update.address ?? listing.address}, ${update.postal_code ?? listing.postal_code ?? ""} ${update.city ?? listing.city ?? ""}`.trim()
+      : null;
+  if (effectiveAddress && !listing.geo_researched) {
+    const gwr = await fetchGwrFromGeoAdmin(effectiveAddress);
+    if (gwr) {
+      if (gwr.egid != null) update.egid = gwr.egid;
+      if (gwr.egrid) update.egrid = gwr.egrid;
+      if (gwr.building_year) update.building_year = gwr.building_year;
+      if (gwr.building_category) update.building_category = gwr.building_category;
+      if (gwr.building_area_sqm) update.building_area_sqm = gwr.building_area_sqm;
+      if (gwr.dwellings) update.dwellings = gwr.dwellings;
+      if (gwr.floors) update.floors = gwr.floors;
+      if (gwr.heating_type) update.heating_type = gwr.heating_type;
+      if (gwr.energy_source) update.energy_source = gwr.energy_source;
+      if (gwr.municipality) update.municipality = gwr.municipality;
+      if (gwr.canton) update.canton = gwr.canton;
+      if (gwr.parcel_number) update.parcel_number = gwr.parcel_number;
+      if (gwr.lv95_east != null) update.lv95_east = gwr.lv95_east;
+      if (gwr.lv95_north != null) update.lv95_north = gwr.lv95_north;
+      if (gwr.usage_zone) update.usage_zone = gwr.usage_zone;
+    }
+    update.geo_researched = true;
+    update.gwr_enriched_at = new Date().toISOString();
+  }
+
+  if (Object.keys(update).length > 1) {
+    const { error } = await supabase.from("listings").update(update).eq("id", listing.id);
+    if (error) return { id: listing.id, ok: false, reason: error.message };
   }
 
   return { id: listing.id, ok: true, updated: update, imagesAdded };
