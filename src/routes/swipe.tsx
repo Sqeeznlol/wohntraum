@@ -391,17 +391,25 @@ function CardContent({
     l.city ?? l.municipality ?? "",
   )}`;
 
-  // Compact info chips — only those with values
+  // Compact info chips — only those with values (Key-Daten direkt sichtbar)
   const chips: Array<{ label: string; value: string }> = [];
   if (objType) chips.push({ label: "Typ", value: objType });
-  if (l.building_year) chips.push({ label: "Baujahr", value: String(l.building_year) });
   if (l.parcel_area_sqm)
-    chips.push({ label: "Parzelle", value: formatSqm(l.parcel_area_sqm) });
-  if (l.area_sqm) chips.push({ label: "Wohnfl.", value: formatSqm(l.area_sqm) });
+    chips.push({ label: "Grundstück", value: formatSqm(l.parcel_area_sqm) });
+  if (l.area_sqm) chips.push({ label: "Wohnfläche", value: formatSqm(l.area_sqm) });
+  if (l.building_area_sqm)
+    chips.push({ label: "Gebäudefl.", value: formatSqm(l.building_area_sqm) });
   if (l.rooms) chips.push({ label: "Zimmer", value: `${l.rooms}` });
-  if (l.dwellings) chips.push({ label: "WE", value: String(l.dwellings) });
+  if (l.building_year) chips.push({ label: "Baujahr", value: String(l.building_year) });
   if (l.floors) chips.push({ label: "Geschosse", value: String(l.floors) });
+  if (l.dwellings) chips.push({ label: "WE", value: String(l.dwellings) });
   if (l.zone_code) chips.push({ label: "Zone", value: l.zone_code });
+  if (l.usage_zone && l.usage_zone !== l.zone_code)
+    chips.push({ label: "Nutzung", value: l.usage_zone });
+  if (l.zone_legal_status)
+    chips.push({ label: "Zonenstatus", value: l.zone_legal_status });
+  if (l.heritage_protected) chips.push({ label: "Heimatschutz", value: "Ja" });
+  if (l.isos_protected) chips.push({ label: "ISOS", value: "Ja" });
 
   return (
     <>
