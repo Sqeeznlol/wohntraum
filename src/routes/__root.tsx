@@ -53,7 +53,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Josefin+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap",
       },
     ],
   }),
@@ -68,7 +68,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+      <body style={{ fontFamily: "'Josefin Sans', system-ui, sans-serif" }}>
         {children}
         <Scripts />
       </body>
@@ -77,7 +77,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 const navItems: ReadonlyArray<{
-  to: "/" | "/map" | "/alerts" | "/onboarding" | "/insights";
+  to: "/" | "/map" | "/alerts" | "/onboarding" | "/insights" | "/archive";
   label: string;
   exact?: boolean;
 }> = [
@@ -85,6 +85,7 @@ const navItems: ReadonlyArray<{
   { to: "/map", label: "Karte" },
   { to: "/alerts", label: "Alerts" },
   { to: "/insights", label: "Tims Geschmack" },
+  { to: "/archive", label: "Archiv" },
   { to: "/onboarding", label: "Setup" },
 ];
 
@@ -153,12 +154,18 @@ function RootComponent() {
       <MobileRedirect />
       <VisitTracker />
       <div className="min-h-screen bg-background pb-[env(safe-area-inset-bottom)]">
-        {/* Apple-style fixed glass nav */}
-        <header className="sticky top-0 z-40 border-b-[0.5px] border-hairline bg-background/70 backdrop-blur-2xl">
+        {/* Swiss minimalist glass nav */}
+        <header
+          className="sticky top-0 z-40 border-b-[0.5px] border-hairline backdrop-blur-2xl"
+          style={{ backgroundColor: "oklch(0.972 0.006 155 / 0.75)" }}
+        >
           <div className="mx-auto flex h-12 max-w-[1600px] items-center justify-between px-4 md:px-6">
             <Link to="/" className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sapphire">
-                Immo Radar
+              <span
+                className="font-serif-display text-[13px] font-semibold text-teal"
+                style={{ letterSpacing: "0.14em" }}
+              >
+                IMMO RADAR
               </span>
               <span className="hidden text-[9px] uppercase tracking-[0.28em] text-steel sm:inline">
                 · CH
@@ -170,10 +177,11 @@ function RootComponent() {
                   key={to}
                   to={to}
                   activeOptions={exact ? { exact: true } : undefined}
-                  className="rounded-[3px] px-3 py-1.5 text-[11px] font-medium text-steel transition-colors hover:text-sapphire md:text-xs"
+                  className="rounded-[3px] px-3 py-1.5 text-[11px] font-medium uppercase text-steel transition-colors hover:text-teal"
+                  style={{ letterSpacing: "0.08em" }}
                   activeProps={{
                     className:
-                      "rounded-[3px] px-3 py-1.5 text-[11px] md:text-xs font-medium text-sapphire bg-white/60 border-[0.5px] border-hairline",
+                      "rounded-[3px] px-3 py-1.5 text-[11px] font-medium uppercase text-teal bg-white/70 border-[0.5px] border-hairline",
                   }}
                 >
                   {label}
@@ -181,6 +189,13 @@ function RootComponent() {
               ))}
             </nav>
           </div>
+          <div
+            className="h-px w-full"
+            style={{
+              background:
+                "linear-gradient(to right, transparent, oklch(0.465 0.105 175 / 0.35), transparent)",
+            }}
+          />
         </header>
         <main className="mx-auto max-w-[1600px] px-4 py-8 md:px-6 md:py-12">
           <Outlet />
