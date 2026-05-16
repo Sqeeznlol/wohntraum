@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import porscheImg from "@/assets/porsche-gt4rs.png";
-import { ListingSlotMachine } from "@/components/ListingSlotMachine";
+
 import { PitchHero } from "@/components/PitchHero";
 import { ContactProgress } from "@/components/ContactProgress";
 import {
@@ -362,10 +362,6 @@ function ListingsPage() {
       {/* Pitch / Wert-Versprechen */}
       <PitchHero />
 
-      {/* Slot machine — Casino-Style Inserat-Roulette */}
-      {listings && listings.length >= 3 && (
-        <ListingSlotMachine listings={listings} />
-      )}
 
       {/* Pipeline column tabs — sapphire eyebrow style */}
       <div className="sticky top-12 z-30 -mx-4 border-b-[0.5px] border-hairline bg-background/80 px-4 py-3 backdrop-blur-2xl md:-mx-6 md:px-6">
