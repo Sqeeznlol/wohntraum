@@ -362,10 +362,6 @@ function ListingsPage() {
       {/* Pitch / Wert-Versprechen */}
       <PitchHero />
 
-      {/* Slot machine — Casino-Style Inserat-Roulette */}
-      {listings && listings.length >= 3 && (
-        <ListingSlotMachine listings={listings} />
-      )}
 
       {/* Pipeline column tabs — sapphire eyebrow style */}
       <div className="sticky top-12 z-30 -mx-4 border-b-[0.5px] border-hairline bg-background/80 px-4 py-3 backdrop-blur-2xl md:-mx-6 md:px-6">
