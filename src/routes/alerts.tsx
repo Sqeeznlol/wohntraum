@@ -120,7 +120,13 @@ function AlertsPage() {
             <div className="flex items-end">
               <Button
                 className="w-full"
-                onClick={() => create.mutate()}
+                onClick={() => {
+                  if (maxPpsm && (!isFinite(Number(maxPpsm)) || Number(maxPpsm) <= 0)) {
+                    toast.error("CHF/m² muss eine positive Zahl sein");
+                    return;
+                  }
+                  create.mutate();
+                }}
                 disabled={create.isPending}
               >
                 Hinzufügen
