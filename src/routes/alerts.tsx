@@ -61,6 +61,7 @@ function AlertsPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["alert_rules"] }),
+    onError: () => toast.error("Status konnte nicht geändert werden"),
   });
 
   const remove = useMutation({
@@ -68,7 +69,11 @@ function AlertsPage() {
       const { error } = await supabase.from("alert_rules").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["alert_rules"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["alert_rules"] });
+      toast.success("Alert gelöscht");
+    },
+    onError: () => toast.error("Alert konnte nicht gelöscht werden"),
   });
 
   return (
