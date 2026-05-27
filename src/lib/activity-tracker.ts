@@ -147,7 +147,7 @@ function handleClick(ev: MouseEvent) {
 
   const tag = el.tagName.toLowerCase();
   const trackName = el.getAttribute("data-track");
-  let label =
+  const label =
     trackName ||
     el.getAttribute("aria-label") ||
     (el.textContent || "").trim().slice(0, 120) ||
