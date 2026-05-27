@@ -50,6 +50,7 @@ function AlertsPage() {
       qc.invalidateQueries({ queryKey: ["alert_rules"] });
       toast.success("Alert erstellt");
     },
+    onError: () => toast.error("Alert konnte nicht erstellt werden"),
   });
 
   const toggle = useMutation({
