@@ -106,26 +106,21 @@ function MobileRedirect() {
 }
 
 function VisitTracker() {
-  const [tracked, setTracked] = useState(false);
-  if (typeof window !== "undefined" && !tracked) {
-    setTracked(true);
-    // Don't track admin viewing their own dashboard
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     const isAdmin = window.location.pathname.startsWith("/admin");
-    if (!isAdmin) {
-      // Fire-and-forget visit log
-      fetch("/api/track-visit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: window.location.pathname,
-          referrer: document.referrer || null,
-          language: navigator.language || null,
-        }),
-      }).catch(() => {});
-      // Detailed activity tracking (clicks, scrolls, page views, inputs)
-      initActivityTracker();
-    }
-  }
+    if (isAdmin) return;
+    fetch("/api/track-visit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: window.location.pathname,
+        referrer: document.referrer || null,
+        language: navigator.language || null,
+      }),
+    }).catch(() => {});
+    initActivityTracker();
+  }, []);
   return null;
 }
 
