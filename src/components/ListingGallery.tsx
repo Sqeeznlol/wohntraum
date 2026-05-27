@@ -133,6 +133,7 @@ export function ListingGallery({
                   <img
                     src={img.url}
                     alt={`${title} ${i + 2}`}
+                    loading="lazy"
                     className="h-full w-full object-cover transition-transform hover:scale-105"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";

@@ -50,6 +50,7 @@ function AlertsPage() {
       qc.invalidateQueries({ queryKey: ["alert_rules"] });
       toast.success("Alert erstellt");
     },
+    onError: () => toast.error("Alert konnte nicht erstellt werden"),
   });
 
   const toggle = useMutation({
@@ -61,6 +62,7 @@ function AlertsPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["alert_rules"] }),
+    onError: () => toast.error("Status konnte nicht geändert werden"),
   });
 
   const remove = useMutation({
@@ -68,7 +70,11 @@ function AlertsPage() {
       const { error } = await supabase.from("alert_rules").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["alert_rules"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["alert_rules"] });
+      toast.success("Alert gelöscht");
+    },
+    onError: () => toast.error("Alert konnte nicht gelöscht werden"),
   });
 
   return (
@@ -114,7 +120,13 @@ function AlertsPage() {
             <div className="flex items-end">
               <Button
                 className="w-full"
-                onClick={() => create.mutate()}
+                onClick={() => {
+                  if (maxPpsm && (!isFinite(Number(maxPpsm)) || Number(maxPpsm) <= 0)) {
+                    toast.error("CHF/m² muss eine positive Zahl sein");
+                    return;
+                  }
+                  create.mutate();
+                }}
                 disabled={create.isPending}
               >
                 Hinzufügen
