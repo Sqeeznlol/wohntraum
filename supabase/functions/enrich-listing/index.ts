@@ -381,7 +381,7 @@ async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok:
   // Build update payload only with missing fields.
   // NOTE: price_per_sqm is a GENERATED column in Postgres — never write it,
   // it auto-computes from price_chf / area_sqm.
-  const update: any = { updated_at: new Date().toISOString() };
+  const update: any = { updated_at: nowIso, source_checked_at: nowIso, source_available: true };
   if (!listing.price_chf && meta.price) update.price_chf = meta.price;
   if (!listing.area_sqm && meta.area) update.area_sqm = meta.area;
   if (!listing.rooms && meta.rooms) update.rooms = meta.rooms;
