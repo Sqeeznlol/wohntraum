@@ -85,6 +85,8 @@ function ListingsPage() {
   const [search, setSearch] = useState("");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
+  const hasImage = (l: Listing) => !!(l.image_url && l.image_url.trim() !== "");
   const qc = useQueryClient();
 
   const LISTING_COLUMNS =
@@ -106,6 +108,22 @@ function ListingsPage() {
     },
     staleTime: 60_000,
     gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Lightweight count of incomplete (queued) non-archived listings — used for the badge.
+  const { data: queueBadgeCount } = useQuery({
+    queryKey: ["listings", "queue-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .is("archived_at", null)
+        .or("image_url.is.null,image_url.eq.");
+      if (error) throw error;
+      return count ?? 0;
+    },
+    staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
 
@@ -213,6 +231,16 @@ function ListingsPage() {
   }, [qc]);
 
 
+  const completeListings = useMemo(
+    () => (listings ?? []).filter((l) => showArchived || hasImage(l)),
+    [listings, showArchived],
+  );
+  const queueListings = useMemo(
+    () => (listings ?? []).filter((l) => !hasImage(l) && !l.archived_at),
+    [listings],
+  );
+  const queueCount = queueListings.length;
+
   const counts = useMemo(() => {
     const c: Record<PipelineStage, number> = {
       new: 0,
@@ -221,15 +249,14 @@ function ListingsPage() {
       visited: 0,
       rejected: 0,
     };
-    listings?.forEach((l) => {
+    completeListings.forEach((l) => {
       c[l.status as PipelineStage] = (c[l.status as PipelineStage] ?? 0) + 1;
     });
     return c;
-  }, [listings]);
+  }, [completeListings]);
 
   const filtered = useMemo(() => {
-    if (!listings) return [];
-    return listings.filter((l) => {
+    return completeListings.filter((l) => {
       if (l.status !== stage) return false;
       if (favoritesOnly && !l.is_favorite) return false;
       if (search) {
@@ -239,9 +266,9 @@ function ListingsPage() {
       }
       return true;
     });
-  }, [listings, stage, favoritesOnly, search]);
+  }, [completeListings, stage, favoritesOnly, search]);
 
-  const totalActive = listings?.length ?? 0;
+  const totalActive = completeListings.length;
   const median = useMemo(() => {
     const v = (listings ?? [])
       .map((l) => (l.price_per_sqm != null ? Number(l.price_per_sqm) : null))
@@ -345,7 +372,10 @@ function ListingsPage() {
             Favoriten
           </button>
           <button
-            onClick={() => setShowArchived((v) => !v)}
+            onClick={() => {
+              setShowArchived((v) => !v);
+              setShowQueue(false);
+            }}
             className={`shrink-0 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
               showArchived
                 ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
@@ -355,6 +385,26 @@ function ListingsPage() {
             <Archive className="mr-1.5 inline h-3 w-3" />
             Archiv
           </button>
+          <button
+            onClick={() => {
+              setShowQueue((v) => !v);
+              setShowArchived(false);
+            }}
+            className={`shrink-0 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
+              showQueue
+                ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                : "border-transparent text-steel hover:bg-white/40"
+            }`}
+            title="Inserate ohne Bild – werden im Hintergrund angereichert"
+          >
+            <Clock className="mr-1.5 inline h-3 w-3" />
+            Warteschlange
+            {(queueBadgeCount ?? 0) > 0 && (
+              <span className="ml-1.5 rounded-[2px] font-serif-display tabular-nums text-steel">
+                {queueBadgeCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -362,49 +412,51 @@ function ListingsPage() {
       <PitchHero />
 
 
-      {/* Pipeline column tabs — sapphire eyebrow style */}
-      <div className="sticky top-12 z-30 -mx-4 border-b-[0.5px] border-hairline bg-background/80 px-4 py-3 backdrop-blur-2xl md:-mx-6 md:px-6">
-        <div className="flex gap-1 overflow-x-auto scrollbar-none">
-          {STAGES.map((s) => {
-            const active = stage === s.key;
-            const count = counts[s.key] ?? 0;
-            const Icon = s.icon;
-            return (
-              <button
-                key={s.key}
-                onClick={() => setStage(s.key)}
-                className={`group relative flex shrink-0 items-center gap-2 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
-                  active
-                    ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                    : "border-transparent text-steel hover:bg-white/40"
-                }`}
-              >
-                <Icon className="h-3 w-3" />
-                <span>{s.label}</span>
-                <span className="rounded-[2px] font-serif-display text-[11px] tabular-nums text-steel">
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+      {/* Pipeline column tabs — hidden in queue mode */}
+      {!showQueue && (
+        <div className="sticky top-12 z-30 -mx-4 border-b-[0.5px] border-hairline bg-background/80 px-4 py-3 backdrop-blur-2xl md:-mx-6 md:px-6">
+          <div className="flex gap-1 overflow-x-auto scrollbar-none">
+            {STAGES.map((s) => {
+              const active = stage === s.key;
+              const count = counts[s.key] ?? 0;
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.key}
+                  onClick={() => setStage(s.key)}
+                  className={`group relative flex shrink-0 items-center gap-2 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
+                    active
+                      ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                      : "border-transparent text-steel hover:bg-white/40"
+                  }`}
+                >
+                  <Icon className="h-3 w-3" />
+                  <span>{s.label}</span>
+                  <span className="rounded-[2px] font-serif-display text-[11px] tabular-nums text-steel">
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Hairline progress strip */}
+          <div className="mt-2 flex h-px overflow-hidden bg-hairline">
+            {STAGES.map((s) => {
+              const v = counts[s.key] ?? 0;
+              const pct = totalActive > 0 ? (v / totalActive) * 100 : 0;
+              const isActive = stage === s.key;
+              return (
+                <div
+                  key={s.key}
+                  style={{ width: `${pct}%` }}
+                  className={`transition-all ${isActive ? "bg-sapphire-light" : "bg-sapphire/30"}`}
+                  title={`${s.label}: ${v}`}
+                />
+              );
+            })}
+          </div>
         </div>
-        {/* Hairline progress strip */}
-        <div className="mt-2 flex h-px overflow-hidden bg-hairline">
-          {STAGES.map((s) => {
-            const v = counts[s.key] ?? 0;
-            const pct = totalActive > 0 ? (v / totalActive) * 100 : 0;
-            const isActive = stage === s.key;
-            return (
-              <div
-                key={s.key}
-                style={{ width: `${pct}%` }}
-                className={`transition-all ${isActive ? "bg-sapphire-light" : "bg-sapphire/30"}`}
-                title={`${s.label}: ${v}`}
-              />
-            );
-          })}
-        </div>
-      </div>
+      )}
 
       {/* Listings */}
       {isLoading ? (
@@ -416,6 +468,21 @@ function ListingsPage() {
             />
           ))}
         </div>
+      ) : showQueue ? (
+        queueListings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-[6px] border-[0.5px] border-hairline bg-white/40 py-16 text-center">
+            <Clock className="h-6 w-6 text-steel" />
+            <p className="text-sm font-light text-steel">
+              Keine Inserate in der Warteschlange.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {queueListings.map((l) => (
+              <QueueCard key={l.id} listing={l} />
+            ))}
+          </div>
+        )
       ) : filtered.length === 0 ? (
         <EmptyState stage={stage} />
       ) : (
@@ -440,6 +507,42 @@ function ListingsPage() {
           </AnimatePresence>
         </motion.div>
       )}
+    </div>
+  );
+}
+
+function QueueCard({ listing }: { listing: Listing }) {
+  const location = [listing.postal_code, listing.city].filter(Boolean).join(" ");
+  return (
+    <div className="flex flex-col gap-2 rounded-[6px] border-[0.5px] border-hairline bg-white/60 p-4 shadow-card">
+      <div className="flex items-center gap-2 text-[10px] uppercase tracking-eyebrow text-steel">
+        <Clock className="h-3 w-3 animate-pulse" />
+        <span>Bild wird noch geladen…</span>
+      </div>
+      <h3 className="font-serif-display text-base leading-snug text-foreground line-clamp-2">
+        {listing.title || "Inserat"}
+      </h3>
+      {location && (
+        <div className="flex items-center gap-1 text-xs font-light text-steel">
+          <MapPin className="h-3 w-3" />
+          <span>{location}</span>
+        </div>
+      )}
+      <div className="flex items-center justify-between text-xs font-light text-steel">
+        <span className="tabular-nums">
+          {listing.price_chf != null ? formatCHF(Number(listing.price_chf)) : "—"}
+        </span>
+        {listing.primary_url && (
+          <a
+            href={listing.primary_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sapphire hover:underline"
+          >
+            Portal <ChevronRight className="h-3 w-3" />
+          </a>
+        )}
+      </div>
     </div>
   );
 }
