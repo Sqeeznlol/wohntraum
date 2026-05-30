@@ -171,35 +171,59 @@ function extractMetadata(html: string): {
   return result;
 }
 
-async function directFetch(url: string): Promise<{ html: string; ok: boolean }> {
+async function directFetch(url: string): Promise<{ html: string; status: number; finalUrl: string }> {
   try {
     const res = await fetch(url, { headers: BROWSER_HEADERS, redirect: "follow" });
     const html = await res.text();
-    return { html, ok: res.ok };
+    return { html, status: res.status, finalUrl: res.url };
   } catch {
-    return { html: "", ok: false };
+    return { html: "", status: 0, finalUrl: url };
   }
 }
 
-async function firecrawlScrape(url: string): Promise<string> {
-  if (!FIRECRAWL_API_KEY) return "";
+async function firecrawlScrape(url: string): Promise<{ html: string; status: number; error?: string }> {
+  if (!FIRECRAWL_API_KEY) return { html: "", status: 0, error: "no api key" };
   try {
     const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
       headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url, formats: ["html"], onlyMainContent: false, waitFor: 800, timeout: 20000 }),
+      body: JSON.stringify({
+        url,
+        formats: ["html"],
+        onlyMainContent: false,
+        waitFor: 2500,
+        timeout: 30000,
+        proxy: "stealth",
+        location: { country: "CH" },
+      }),
     });
-    if (!res.ok) return "";
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      return { html: "", status: res.status, error: txt.slice(0, 200) };
+    }
     const data = await res.json();
     const payload = data.data ?? data;
-    return payload.html ?? payload.rawHtml ?? "";
-  } catch {
-    return "";
+    return { html: payload.html ?? payload.rawHtml ?? "", status: 200 };
+  } catch (e) {
+    return { html: "", status: 0, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
-function needsFirecrawl(url: string): boolean {
-  return /immoscout24\.ch/i.test(url);
+// Detect dead/redirected pages (404/410 or redirect to home/search/not-found)
+function isDeadResponse(status: number, finalUrl: string, originalUrl: string, html: string): boolean {
+  if (status === 404 || status === 410) return true;
+  try {
+    const o = new URL(originalUrl);
+    const f = new URL(finalUrl);
+    if (f.host === o.host && f.pathname !== o.pathname) {
+      if (/^\/?$/.test(f.pathname)) return true;
+      if (/(suchen|search|not-found|nicht-gefunden|404|expired|abgelaufen)/i.test(f.pathname)) return true;
+    }
+  } catch { /* ignore */ }
+  if (html && html.length < 8000 && /(nicht\s*mehr\s*verf|nicht\s*gefunden|inserat.*(entfernt|abgelaufen|inaktiv)|listing\s*not\s*found|no longer available)/i.test(html)) {
+    return true;
+  }
+  return false;
 }
 
 async function uploadImageToStorage(
@@ -304,27 +328,60 @@ async function fetchGwrFromGeoAdmin(address: string): Promise<{
   }
 }
 
-async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok: boolean; reason?: string; updated?: any; imagesAdded?: number }> {
+async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok: boolean; reason?: string; updated?: any; imagesAdded?: number; method?: string; dead?: boolean }> {
   if (!listing.primary_url) return { id: listing.id, ok: false, reason: "no url" };
   const url = listing.primary_url;
+  const nowIso = new Date().toISOString();
 
+  // Always try direct fetch first (free + fast). Used to detect 404/410 cleanly.
+  const direct = await directFetch(url);
   let html = "";
-  if (!needsFirecrawl(url)) {
-    const direct = await directFetch(url);
-    if (direct.ok && direct.html.length > 500) html = direct.html;
+  let method = "direct";
+  let imagesFromDirect: string[] = [];
+
+  if (direct.html.length > 500 && direct.status === 200) {
+    imagesFromDirect = extractImages(direct.html, url);
   }
-  if (!html || html.length < 500) {
-    html = await firecrawlScrape(url);
+
+  // Use direct only if it produced images. Otherwise fall back to Firecrawl stealth.
+  if (direct.status === 200 && imagesFromDirect.length > 0) {
+    html = direct.html;
+  } else {
+    const fc = await firecrawlScrape(url);
+    if (fc.html && fc.html.length > 500) {
+      html = fc.html;
+      method = "firecrawl";
+    } else if (fc.error) {
+      console.warn(`[enrich] firecrawl failed for ${listing.id}: status=${fc.status} err=${fc.error}`);
+    }
   }
-  if (!html) return { id: listing.id, ok: false, reason: "fetch failed" };
+
+  // Dead-link detection: if direct says 404/410 OR redirected to home/search OR matched "not found" text, mark and stop.
+  if (isDeadResponse(direct.status, direct.finalUrl, url, direct.html)) {
+    await supabase
+      .from("listings")
+      .update({ source_available: false, source_checked_at: nowIso, updated_at: nowIso })
+      .eq("id", listing.id);
+    console.log(`[enrich] dead listing ${listing.id} status=${direct.status} final=${direct.finalUrl}`);
+    return { id: listing.id, ok: false, reason: "dead link", dead: true, method };
+  }
+
+  if (!html) {
+    await supabase
+      .from("listings")
+      .update({ source_checked_at: nowIso })
+      .eq("id", listing.id);
+    return { id: listing.id, ok: false, reason: "fetch failed", method };
+  }
 
   const meta = extractMetadata(html);
   const images = extractImages(html, url);
 
+
   // Build update payload only with missing fields.
   // NOTE: price_per_sqm is a GENERATED column in Postgres — never write it,
   // it auto-computes from price_chf / area_sqm.
-  const update: any = { updated_at: new Date().toISOString() };
+  const update: any = { updated_at: nowIso, source_checked_at: nowIso, source_available: true };
   if (!listing.price_chf && meta.price) update.price_chf = meta.price;
   if (!listing.area_sqm && meta.area) update.area_sqm = meta.area;
   if (!listing.rooms && meta.rooms) update.rooms = meta.rooms;
@@ -409,7 +466,8 @@ async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok:
     if (error) return { id: listing.id, ok: false, reason: error.message };
   }
 
-  return { id: listing.id, ok: true, updated: update, imagesAdded };
+  console.log(`[enrich] ok ${listing.id} method=${method} imagesAdded=${imagesAdded} fields=${Object.keys(update).filter(k=>k!=='updated_at'&&k!=='source_checked_at'&&k!=='source_available').join(',')}`);
+  return { id: listing.id, ok: true, updated: update, imagesAdded, method };
 }
 
 Deno.serve(async (req) => {
@@ -432,6 +490,7 @@ Deno.serve(async (req) => {
         .from("listings")
         .select("*")
         .is("archived_at", null)
+        .eq("source_available", true)
         .or("price_chf.is.null,image_url.is.null,rooms.is.null,area_sqm.is.null,address.is.null")
         .order("created_at", { ascending: false })
         .limit(hardCap);

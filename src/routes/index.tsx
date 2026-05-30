@@ -119,6 +119,7 @@ function ListingsPage() {
         .from("listings")
         .select("id", { count: "exact", head: true })
         .is("archived_at", null)
+        .neq("source_available", false)
         .or("image_url.is.null,image_url.eq.");
       if (error) throw error;
       return count ?? 0;
@@ -236,7 +237,7 @@ function ListingsPage() {
     [listings, showArchived],
   );
   const queueListings = useMemo(
-    () => (listings ?? []).filter((l) => !hasImage(l) && !l.archived_at),
+    () => (listings ?? []).filter((l) => !hasImage(l) && !l.archived_at && (l as Listing & { source_available?: boolean }).source_available !== false),
     [listings],
   );
   const queueCount = queueListings.length;

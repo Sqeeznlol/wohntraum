@@ -294,6 +294,8 @@ export type Database = {
           primary_portal: Database["public"]["Enums"]["portal"]
           primary_url: string | null
           rooms: number | null
+          source_available: boolean
+          source_checked_at: string | null
           status: Database["public"]["Enums"]["listing_status"]
           title: string
           updated_at: string
@@ -348,6 +350,8 @@ export type Database = {
           primary_portal?: Database["public"]["Enums"]["portal"]
           primary_url?: string | null
           rooms?: number | null
+          source_available?: boolean
+          source_checked_at?: string | null
           status?: Database["public"]["Enums"]["listing_status"]
           title: string
           updated_at?: string
@@ -402,6 +406,8 @@ export type Database = {
           primary_portal?: Database["public"]["Enums"]["portal"]
           primary_url?: string | null
           rooms?: number | null
+          source_available?: boolean
+          source_checked_at?: string | null
           status?: Database["public"]["Enums"]["listing_status"]
           title?: string
           updated_at?: string
