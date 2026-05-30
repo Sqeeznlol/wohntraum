@@ -489,6 +489,7 @@ Deno.serve(async (req) => {
         .from("listings")
         .select("*")
         .is("archived_at", null)
+        .eq("source_available", true)
         .or("price_chf.is.null,image_url.is.null,rooms.is.null,area_sqm.is.null,address.is.null")
         .order("created_at", { ascending: false })
         .limit(hardCap);
