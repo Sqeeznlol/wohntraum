@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
       .from("listings")
       .select("id, created_at, primary_url")
       .is("archived_at", null)
+      .eq("source_available", true)
       .or("image_url.is.null,price_chf.is.null,area_sqm.is.null,address.is.null")
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
