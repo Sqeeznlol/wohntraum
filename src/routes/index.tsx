@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import porscheImg from "@/assets/porsche-gt4rs.png";
+import porscheImg from "@/assets/porsche-gt4rs.webp";
 
 import { PitchHero } from "@/components/PitchHero";
 import { ContactProgress } from "@/components/ContactProgress";
@@ -87,43 +87,26 @@ function ListingsPage() {
   const [showArchived, setShowArchived] = useState(false);
   const qc = useQueryClient();
 
+  const LISTING_COLUMNS =
+    "id,title,image_url,price_chf,price_per_sqm,area_sqm,rooms,city,postal_code,address,status,is_favorite,archived_at,created_at,updated_at,first_seen_at,primary_portal,primary_url,geo_researched";
+
   const { data: listings, isLoading } = useQuery({
     queryKey: ["listings", showArchived],
     queryFn: async () => {
       const query = supabase
         .from("listings")
-        .select("*")
+        .select(LISTING_COLUMNS)
         .order("created_at", { ascending: false })
         .limit(500);
       const { data, error } = showArchived
         ? await query.not("archived_at", "is", null)
         : await query.is("archived_at", null);
       if (error) throw error;
-      const rows = data as Listing[];
-
-      // Fallback-Bilder: lade erstes listing_images-Bild je Inserat,
-      // falls image_url leer ist (z. B. nach Tracking-Wrapper-Cleanup).
-      const missing = rows.filter((l) => !l.image_url).map((l) => l.id);
-      if (missing.length > 0) {
-        const { data: imgs } = await supabase
-          .from("listing_images" as never)
-          .select("listing_id, url, sort_order")
-          .in("listing_id", missing)
-          .order("sort_order", { ascending: true });
-        const firstByListing = new Map<string, string>();
-        for (const img of (imgs ?? []) as Array<{ listing_id: string; url: string }>) {
-          if (!firstByListing.has(img.listing_id)) {
-            firstByListing.set(img.listing_id, img.url);
-          }
-        }
-        for (const l of rows) {
-          if (!l.image_url && firstByListing.has(l.id)) {
-            l.image_url = firstByListing.get(l.id) ?? null;
-          }
-        }
-      }
-      return rows;
+      return (data ?? []) as unknown as Listing[];
     },
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const updateStatus = useMutation({
@@ -184,51 +167,51 @@ function ListingsPage() {
     },
   });
 
-  const refreshAll = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("enrich-listing", {
-        body: { all_incomplete: true, limit: 8 },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data as { processed: number; succeeded: number };
-    },
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["listings"] });
-      toast.success(`${data.succeeded} von ${data.processed} Inseraten aktualisiert`);
-    },
-    onError: (e: Error) => toast.error(`Aktualisierung fehlgeschlagen: ${e.message}`),
-  });
+  // Fire-and-forget: trigger the enrichment job in the background.
+  // Does not wait for completion — the cron job picks up incomplete listings hourly.
+  const [refreshTriggered, setRefreshTriggered] = useState(false);
+  const triggerRefresh = () => {
+    setRefreshTriggered(true);
+    supabase.functions
+      .invoke("enrich-listing", { body: { all_incomplete: true, limit: 25 } })
+      .then(() => qc.invalidateQueries({ queryKey: ["listings"] }))
+      .catch(() => {});
+    toast.success("Aktualisierung im Hintergrund gestartet");
+    setTimeout(() => setRefreshTriggered(false), 2000);
+  };
 
-  // Realtime: auto-enrich newly inserted listings + refresh the list on updates
+  // Realtime: debounced refresh on listing changes. No browser-side enrichment.
   useEffect(() => {
+    let pending = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleInvalidate = () => {
+      if (pending) return;
+      pending = true;
+      timer = setTimeout(() => {
+        pending = false;
+        qc.invalidateQueries({ queryKey: ["listings"] });
+      }, 3000);
+    };
+
     const channel = supabase
       .channel("listings-stream")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "listings" },
-        (payload) => {
-          const row = payload.new as Listing;
-          qc.invalidateQueries({ queryKey: ["listings"] });
-          if (row?.id && row?.primary_url) {
-            supabase.functions.invoke("enrich-listing", {
-              body: { listing_id: row.id },
-            }).catch(() => {});
-          }
-        },
+        scheduleInvalidate,
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "listings" },
-        () => {
-          qc.invalidateQueries({ queryKey: ["listings"] });
-        },
+        scheduleInvalidate,
       )
       .subscribe();
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, [qc]);
+
 
   const counts = useMemo(() => {
     const c: Record<PipelineStage, number> = {
@@ -266,6 +249,17 @@ function ListingsPage() {
       .sort((a, b) => a - b);
     return v.length ? v[Math.floor(v.length / 2)] : null;
   }, [listings]);
+
+  const lastUpdated = useMemo(() => {
+    if (!listings || listings.length === 0) return null;
+    let max = 0;
+    for (const l of listings) {
+      const t = l.updated_at ? new Date(l.updated_at).getTime() : 0;
+      if (t > max) max = t;
+    }
+    return max > 0 ? new Date(max) : null;
+  }, [listings]);
+
 
   return (
     <div className="space-y-10 md:space-y-14">
@@ -308,18 +302,23 @@ function ListingsPage() {
               className="hidden h-20 w-auto self-center drop-shadow-[0_8px_16px_rgba(8,29,66,0.18)] lg:block"
             />
             <Button
-              onClick={() => refreshAll.mutate()}
-              disabled={refreshAll.isPending}
+              onClick={triggerRefresh}
               variant="outline"
               size="sm"
               className="self-center rounded-[3px] border-[0.5px] border-sapphire/30 bg-white text-xs font-medium text-sapphire hover:bg-sapphire hover:text-white"
             >
-              <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${refreshAll.isPending ? "animate-spin" : ""}`} />
-              {refreshAll.isPending ? "Aktualisiere…" : "Aktualisieren"}
+              <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${refreshTriggered ? "animate-spin" : ""}`} />
+              Aktualisieren
             </Button>
           </div>
         </div>
+        {lastUpdated && (
+          <p className="mt-3 text-[10px] uppercase tracking-[0.22em] text-steel">
+            Zuletzt aktualisiert · {formatExactTime(lastUpdated.toISOString())}
+          </p>
+        )}
       </section>
+
 
       {/* Filter band — hairline borders, glass chips */}
       <div className="border-y-[0.5px] border-hairline py-3">
