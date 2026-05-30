@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.enrich-listing]
 verify_jwt = false
+
+[functions.enrich-backfill]
+verify_jwt = false
