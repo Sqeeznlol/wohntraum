@@ -372,7 +372,10 @@ function ListingsPage() {
             Favoriten
           </button>
           <button
-            onClick={() => setShowArchived((v) => !v)}
+            onClick={() => {
+              setShowArchived((v) => !v);
+              setShowQueue(false);
+            }}
             className={`shrink-0 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
               showArchived
                 ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
@@ -381,6 +384,26 @@ function ListingsPage() {
           >
             <Archive className="mr-1.5 inline h-3 w-3" />
             Archiv
+          </button>
+          <button
+            onClick={() => {
+              setShowQueue((v) => !v);
+              setShowArchived(false);
+            }}
+            className={`shrink-0 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
+              showQueue
+                ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                : "border-transparent text-steel hover:bg-white/40"
+            }`}
+            title="Inserate ohne Bild – werden im Hintergrund angereichert"
+          >
+            <Clock className="mr-1.5 inline h-3 w-3" />
+            Warteschlange
+            {(queueBadgeCount ?? 0) > 0 && (
+              <span className="ml-1.5 rounded-[2px] font-serif-display tabular-nums text-steel">
+                {queueBadgeCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
