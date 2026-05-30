@@ -216,8 +216,8 @@ function ListingsPage() {
 
 
   const completeListings = useMemo(
-    () => (listings ?? []).filter(hasImage),
-    [listings],
+    () => (listings ?? []).filter((l) => showArchived || hasImage(l)),
+    [listings, showArchived],
   );
   const queueListings = useMemo(
     () => (listings ?? []).filter((l) => !hasImage(l) && !l.archived_at),
