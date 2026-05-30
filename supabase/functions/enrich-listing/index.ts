@@ -328,22 +328,55 @@ async function fetchGwrFromGeoAdmin(address: string): Promise<{
   }
 }
 
-async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok: boolean; reason?: string; updated?: any; imagesAdded?: number }> {
+async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok: boolean; reason?: string; updated?: any; imagesAdded?: number; method?: string; dead?: boolean }> {
   if (!listing.primary_url) return { id: listing.id, ok: false, reason: "no url" };
   const url = listing.primary_url;
+  const nowIso = new Date().toISOString();
 
+  // Always try direct fetch first (free + fast). Used to detect 404/410 cleanly.
+  const direct = await directFetch(url);
   let html = "";
-  if (!needsFirecrawl(url)) {
-    const direct = await directFetch(url);
-    if (direct.ok && direct.html.length > 500) html = direct.html;
+  let method = "direct";
+  let imagesFromDirect: string[] = [];
+
+  if (direct.html.length > 500 && direct.status === 200) {
+    imagesFromDirect = extractImages(direct.html, url);
   }
-  if (!html || html.length < 500) {
-    html = await firecrawlScrape(url);
+
+  // Use direct only if it produced images. Otherwise fall back to Firecrawl stealth.
+  if (direct.status === 200 && imagesFromDirect.length > 0) {
+    html = direct.html;
+  } else {
+    const fc = await firecrawlScrape(url);
+    if (fc.html && fc.html.length > 500) {
+      html = fc.html;
+      method = "firecrawl";
+    } else if (fc.error) {
+      console.warn(`[enrich] firecrawl failed for ${listing.id}: status=${fc.status} err=${fc.error}`);
+    }
   }
-  if (!html) return { id: listing.id, ok: false, reason: "fetch failed" };
+
+  // Dead-link detection: if direct says 404/410 OR redirected to home/search OR matched "not found" text, mark and stop.
+  if (isDeadResponse(direct.status, direct.finalUrl, url, direct.html)) {
+    await supabase
+      .from("listings")
+      .update({ source_available: false, source_checked_at: nowIso, updated_at: nowIso })
+      .eq("id", listing.id);
+    console.log(`[enrich] dead listing ${listing.id} status=${direct.status} final=${direct.finalUrl}`);
+    return { id: listing.id, ok: false, reason: "dead link", dead: true, method };
+  }
+
+  if (!html) {
+    await supabase
+      .from("listings")
+      .update({ source_checked_at: nowIso })
+      .eq("id", listing.id);
+    return { id: listing.id, ok: false, reason: "fetch failed", method };
+  }
 
   const meta = extractMetadata(html);
   const images = extractImages(html, url);
+
 
   // Build update payload only with missing fields.
   // NOTE: price_per_sqm is a GENERATED column in Postgres — never write it,
