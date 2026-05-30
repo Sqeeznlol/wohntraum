@@ -111,6 +111,22 @@ function ListingsPage() {
     refetchOnWindowFocus: false,
   });
 
+  // Lightweight count of incomplete (queued) non-archived listings — used for the badge.
+  const { data: queueBadgeCount } = useQuery({
+    queryKey: ["listings", "queue-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .is("archived_at", null)
+        .or("image_url.is.null,image_url.eq.");
+      if (error) throw error;
+      return count ?? 0;
+    },
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: ListingStatus }) => {
       const { error } = await supabase.from("listings").update({ status }).eq("id", id);
