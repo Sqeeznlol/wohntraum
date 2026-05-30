@@ -87,43 +87,26 @@ function ListingsPage() {
   const [showArchived, setShowArchived] = useState(false);
   const qc = useQueryClient();
 
+  const LISTING_COLUMNS =
+    "id,title,image_url,price_chf,price_per_sqm,area_sqm,rooms,city,postal_code,address,status,is_favorite,archived_at,created_at,updated_at,first_seen_at,primary_portal,primary_url,geo_researched";
+
   const { data: listings, isLoading } = useQuery({
     queryKey: ["listings", showArchived],
     queryFn: async () => {
       const query = supabase
         .from("listings")
-        .select("*")
+        .select(LISTING_COLUMNS)
         .order("created_at", { ascending: false })
         .limit(500);
       const { data, error } = showArchived
         ? await query.not("archived_at", "is", null)
         : await query.is("archived_at", null);
       if (error) throw error;
-      const rows = data as Listing[];
-
-      // Fallback-Bilder: lade erstes listing_images-Bild je Inserat,
-      // falls image_url leer ist (z. B. nach Tracking-Wrapper-Cleanup).
-      const missing = rows.filter((l) => !l.image_url).map((l) => l.id);
-      if (missing.length > 0) {
-        const { data: imgs } = await supabase
-          .from("listing_images" as never)
-          .select("listing_id, url, sort_order")
-          .in("listing_id", missing)
-          .order("sort_order", { ascending: true });
-        const firstByListing = new Map<string, string>();
-        for (const img of (imgs ?? []) as Array<{ listing_id: string; url: string }>) {
-          if (!firstByListing.has(img.listing_id)) {
-            firstByListing.set(img.listing_id, img.url);
-          }
-        }
-        for (const l of rows) {
-          if (!l.image_url && firstByListing.has(l.id)) {
-            l.image_url = firstByListing.get(l.id) ?? null;
-          }
-        }
-      }
-      return rows;
+      return (data ?? []) as unknown as Listing[];
     },
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const updateStatus = useMutation({
@@ -184,51 +167,51 @@ function ListingsPage() {
     },
   });
 
-  const refreshAll = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("enrich-listing", {
-        body: { all_incomplete: true, limit: 8 },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data as { processed: number; succeeded: number };
-    },
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["listings"] });
-      toast.success(`${data.succeeded} von ${data.processed} Inseraten aktualisiert`);
-    },
-    onError: (e: Error) => toast.error(`Aktualisierung fehlgeschlagen: ${e.message}`),
-  });
+  // Fire-and-forget: trigger the enrichment job in the background.
+  // Does not wait for completion — the cron job picks up incomplete listings hourly.
+  const [refreshTriggered, setRefreshTriggered] = useState(false);
+  const triggerRefresh = () => {
+    setRefreshTriggered(true);
+    supabase.functions
+      .invoke("enrich-listing", { body: { all_incomplete: true, limit: 25 } })
+      .then(() => qc.invalidateQueries({ queryKey: ["listings"] }))
+      .catch(() => {});
+    toast.success("Aktualisierung im Hintergrund gestartet");
+    setTimeout(() => setRefreshTriggered(false), 2000);
+  };
 
-  // Realtime: auto-enrich newly inserted listings + refresh the list on updates
+  // Realtime: debounced refresh on listing changes. No browser-side enrichment.
   useEffect(() => {
+    let pending = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleInvalidate = () => {
+      if (pending) return;
+      pending = true;
+      timer = setTimeout(() => {
+        pending = false;
+        qc.invalidateQueries({ queryKey: ["listings"] });
+      }, 3000);
+    };
+
     const channel = supabase
       .channel("listings-stream")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "listings" },
-        (payload) => {
-          const row = payload.new as Listing;
-          qc.invalidateQueries({ queryKey: ["listings"] });
-          if (row?.id && row?.primary_url) {
-            supabase.functions.invoke("enrich-listing", {
-              body: { listing_id: row.id },
-            }).catch(() => {});
-          }
-        },
+        scheduleInvalidate,
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "listings" },
-        () => {
-          qc.invalidateQueries({ queryKey: ["listings"] });
-        },
+        scheduleInvalidate,
       )
       .subscribe();
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, [qc]);
+
 
   const counts = useMemo(() => {
     const c: Record<PipelineStage, number> = {
