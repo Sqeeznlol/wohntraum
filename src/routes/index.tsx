@@ -85,6 +85,8 @@ function ListingsPage() {
   const [search, setSearch] = useState("");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
+  const hasImage = (l: Listing) => !!(l.image_url && l.image_url.trim() !== "");
   const qc = useQueryClient();
 
   const LISTING_COLUMNS =
