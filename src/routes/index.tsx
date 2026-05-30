@@ -791,7 +791,8 @@ function PipelineCard({
                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                 loading="lazy"
               />
-            ) : !listing.geo_researched ? (
+            ) : listing.first_seen_at &&
+              Date.now() - new Date(listing.first_seen_at).getTime() < 2 * 60 * 1000 ? (
               <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-xs text-steel">
                 <RefreshCw className="h-5 w-5 animate-spin text-sapphire/60" />
                 <span>Lade Inseratdaten…</span>
