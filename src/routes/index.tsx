@@ -237,7 +237,7 @@ function ListingsPage() {
     [listings, showArchived],
   );
   const queueListings = useMemo(
-    () => (listings ?? []).filter((l) => !hasImage(l) && !l.archived_at),
+    () => (listings ?? []).filter((l) => !hasImage(l) && !l.archived_at && (l as Listing & { source_available?: boolean }).source_available !== false),
     [listings],
   );
   const queueCount = queueListings.length;
