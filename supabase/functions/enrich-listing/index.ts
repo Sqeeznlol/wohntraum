@@ -466,7 +466,8 @@ async function enrichOne(supabase: any, listing: any): Promise<{ id: string; ok:
     if (error) return { id: listing.id, ok: false, reason: error.message };
   }
 
-  return { id: listing.id, ok: true, updated: update, imagesAdded };
+  console.log(`[enrich] ok ${listing.id} method=${method} imagesAdded=${imagesAdded} fields=${Object.keys(update).filter(k=>k!=='updated_at'&&k!=='source_checked_at'&&k!=='source_available').join(',')}`);
+  return { id: listing.id, ok: true, updated: update, imagesAdded, method };
 }
 
 Deno.serve(async (req) => {
