@@ -119,6 +119,7 @@ function ListingsPage() {
         .from("listings")
         .select("id", { count: "exact", head: true })
         .is("archived_at", null)
+        .neq("source_available", false)
         .or("image_url.is.null,image_url.eq.");
       if (error) throw error;
       return count ?? 0;
