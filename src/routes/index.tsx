@@ -412,49 +412,51 @@ function ListingsPage() {
       <PitchHero />
 
 
-      {/* Pipeline column tabs — sapphire eyebrow style */}
-      <div className="sticky top-12 z-30 -mx-4 border-b-[0.5px] border-hairline bg-background/80 px-4 py-3 backdrop-blur-2xl md:-mx-6 md:px-6">
-        <div className="flex gap-1 overflow-x-auto scrollbar-none">
-          {STAGES.map((s) => {
-            const active = stage === s.key;
-            const count = counts[s.key] ?? 0;
-            const Icon = s.icon;
-            return (
-              <button
-                key={s.key}
-                onClick={() => setStage(s.key)}
-                className={`group relative flex shrink-0 items-center gap-2 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
-                  active
-                    ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                    : "border-transparent text-steel hover:bg-white/40"
-                }`}
-              >
-                <Icon className="h-3 w-3" />
-                <span>{s.label}</span>
-                <span className="rounded-[2px] font-serif-display text-[11px] tabular-nums text-steel">
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+      {/* Pipeline column tabs — hidden in queue mode */}
+      {!showQueue && (
+        <div className="sticky top-12 z-30 -mx-4 border-b-[0.5px] border-hairline bg-background/80 px-4 py-3 backdrop-blur-2xl md:-mx-6 md:px-6">
+          <div className="flex gap-1 overflow-x-auto scrollbar-none">
+            {STAGES.map((s) => {
+              const active = stage === s.key;
+              const count = counts[s.key] ?? 0;
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.key}
+                  onClick={() => setStage(s.key)}
+                  className={`group relative flex shrink-0 items-center gap-2 rounded-[3px] border-[0.5px] px-3 py-1.5 text-[11px] font-medium transition-all ${
+                    active
+                      ? "border-sapphire/30 bg-white text-sapphire shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                      : "border-transparent text-steel hover:bg-white/40"
+                  }`}
+                >
+                  <Icon className="h-3 w-3" />
+                  <span>{s.label}</span>
+                  <span className="rounded-[2px] font-serif-display text-[11px] tabular-nums text-steel">
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Hairline progress strip */}
+          <div className="mt-2 flex h-px overflow-hidden bg-hairline">
+            {STAGES.map((s) => {
+              const v = counts[s.key] ?? 0;
+              const pct = totalActive > 0 ? (v / totalActive) * 100 : 0;
+              const isActive = stage === s.key;
+              return (
+                <div
+                  key={s.key}
+                  style={{ width: `${pct}%` }}
+                  className={`transition-all ${isActive ? "bg-sapphire-light" : "bg-sapphire/30"}`}
+                  title={`${s.label}: ${v}`}
+                />
+              );
+            })}
+          </div>
         </div>
-        {/* Hairline progress strip */}
-        <div className="mt-2 flex h-px overflow-hidden bg-hairline">
-          {STAGES.map((s) => {
-            const v = counts[s.key] ?? 0;
-            const pct = totalActive > 0 ? (v / totalActive) * 100 : 0;
-            const isActive = stage === s.key;
-            return (
-              <div
-                key={s.key}
-                style={{ width: `${pct}%` }}
-                className={`transition-all ${isActive ? "bg-sapphire-light" : "bg-sapphire/30"}`}
-                title={`${s.label}: ${v}`}
-              />
-            );
-          })}
-        </div>
-      </div>
+      )}
 
       {/* Listings */}
       {isLoading ? (
@@ -466,6 +468,21 @@ function ListingsPage() {
             />
           ))}
         </div>
+      ) : showQueue ? (
+        queueListings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-[6px] border-[0.5px] border-hairline bg-white/40 py-16 text-center">
+            <Clock className="h-6 w-6 text-steel" />
+            <p className="text-sm font-light text-steel">
+              Keine Inserate in der Warteschlange.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {queueListings.map((l) => (
+              <QueueCard key={l.id} listing={l} />
+            ))}
+          </div>
+        )
       ) : filtered.length === 0 ? (
         <EmptyState stage={stage} />
       ) : (
@@ -490,6 +507,42 @@ function ListingsPage() {
           </AnimatePresence>
         </motion.div>
       )}
+    </div>
+  );
+}
+
+function QueueCard({ listing }: { listing: Listing }) {
+  const location = [listing.postal_code, listing.city].filter(Boolean).join(" ");
+  return (
+    <div className="flex flex-col gap-2 rounded-[6px] border-[0.5px] border-hairline bg-white/60 p-4 shadow-card">
+      <div className="flex items-center gap-2 text-[10px] uppercase tracking-eyebrow text-steel">
+        <Clock className="h-3 w-3 animate-pulse" />
+        <span>Bild wird noch geladen…</span>
+      </div>
+      <h3 className="font-serif-display text-base leading-snug text-foreground line-clamp-2">
+        {listing.title || "Inserat"}
+      </h3>
+      {location && (
+        <div className="flex items-center gap-1 text-xs font-light text-steel">
+          <MapPin className="h-3 w-3" />
+          <span>{location}</span>
+        </div>
+      )}
+      <div className="flex items-center justify-between text-xs font-light text-steel">
+        <span className="tabular-nums">
+          {listing.price_chf != null ? formatCHF(Number(listing.price_chf)) : "—"}
+        </span>
+        {listing.primary_url && (
+          <a
+            href={listing.primary_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sapphire hover:underline"
+          >
+            Portal <ChevronRight className="h-3 w-3" />
+          </a>
+        )}
+      </div>
     </div>
   );
 }
