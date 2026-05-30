@@ -171,35 +171,59 @@ function extractMetadata(html: string): {
   return result;
 }
 
-async function directFetch(url: string): Promise<{ html: string; ok: boolean }> {
+async function directFetch(url: string): Promise<{ html: string; status: number; finalUrl: string }> {
   try {
     const res = await fetch(url, { headers: BROWSER_HEADERS, redirect: "follow" });
     const html = await res.text();
-    return { html, ok: res.ok };
+    return { html, status: res.status, finalUrl: res.url };
   } catch {
-    return { html: "", ok: false };
+    return { html: "", status: 0, finalUrl: url };
   }
 }
 
-async function firecrawlScrape(url: string): Promise<string> {
-  if (!FIRECRAWL_API_KEY) return "";
+async function firecrawlScrape(url: string): Promise<{ html: string; status: number; error?: string }> {
+  if (!FIRECRAWL_API_KEY) return { html: "", status: 0, error: "no api key" };
   try {
     const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
       headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url, formats: ["html"], onlyMainContent: false, waitFor: 800, timeout: 20000 }),
+      body: JSON.stringify({
+        url,
+        formats: ["html"],
+        onlyMainContent: false,
+        waitFor: 2500,
+        timeout: 30000,
+        proxy: "stealth",
+        location: { country: "CH" },
+      }),
     });
-    if (!res.ok) return "";
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      return { html: "", status: res.status, error: txt.slice(0, 200) };
+    }
     const data = await res.json();
     const payload = data.data ?? data;
-    return payload.html ?? payload.rawHtml ?? "";
-  } catch {
-    return "";
+    return { html: payload.html ?? payload.rawHtml ?? "", status: 200 };
+  } catch (e) {
+    return { html: "", status: 0, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
-function needsFirecrawl(url: string): boolean {
-  return /immoscout24\.ch/i.test(url);
+// Detect dead/redirected pages (404/410 or redirect to home/search/not-found)
+function isDeadResponse(status: number, finalUrl: string, originalUrl: string, html: string): boolean {
+  if (status === 404 || status === 410) return true;
+  try {
+    const o = new URL(originalUrl);
+    const f = new URL(finalUrl);
+    if (f.host === o.host && f.pathname !== o.pathname) {
+      if (/^\/?$/.test(f.pathname)) return true;
+      if (/(suchen|search|not-found|nicht-gefunden|404|expired|abgelaufen)/i.test(f.pathname)) return true;
+    }
+  } catch { /* ignore */ }
+  if (html && html.length < 8000 && /(nicht\s*mehr\s*verf|nicht\s*gefunden|inserat.*(entfernt|abgelaufen|inaktiv)|listing\s*not\s*found|no longer available)/i.test(html)) {
+    return true;
+  }
+  return false;
 }
 
 async function uploadImageToStorage(
