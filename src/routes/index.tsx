@@ -215,6 +215,16 @@ function ListingsPage() {
   }, [qc]);
 
 
+  const completeListings = useMemo(
+    () => (listings ?? []).filter(hasImage),
+    [listings],
+  );
+  const queueListings = useMemo(
+    () => (listings ?? []).filter((l) => !hasImage(l) && !l.archived_at),
+    [listings],
+  );
+  const queueCount = queueListings.length;
+
   const counts = useMemo(() => {
     const c: Record<PipelineStage, number> = {
       new: 0,
@@ -223,15 +233,14 @@ function ListingsPage() {
       visited: 0,
       rejected: 0,
     };
-    listings?.forEach((l) => {
+    completeListings.forEach((l) => {
       c[l.status as PipelineStage] = (c[l.status as PipelineStage] ?? 0) + 1;
     });
     return c;
-  }, [listings]);
+  }, [completeListings]);
 
   const filtered = useMemo(() => {
-    if (!listings) return [];
-    return listings.filter((l) => {
+    return completeListings.filter((l) => {
       if (l.status !== stage) return false;
       if (favoritesOnly && !l.is_favorite) return false;
       if (search) {
@@ -241,9 +250,9 @@ function ListingsPage() {
       }
       return true;
     });
-  }, [listings, stage, favoritesOnly, search]);
+  }, [completeListings, stage, favoritesOnly, search]);
 
-  const totalActive = listings?.length ?? 0;
+  const totalActive = completeListings.length;
   const median = useMemo(() => {
     const v = (listings ?? [])
       .map((l) => (l.price_per_sqm != null ? Number(l.price_per_sqm) : null))
