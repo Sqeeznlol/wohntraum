@@ -250,6 +250,17 @@ function ListingsPage() {
     return v.length ? v[Math.floor(v.length / 2)] : null;
   }, [listings]);
 
+  const lastUpdated = useMemo(() => {
+    if (!listings || listings.length === 0) return null;
+    let max = 0;
+    for (const l of listings) {
+      const t = l.updated_at ? new Date(l.updated_at).getTime() : 0;
+      if (t > max) max = t;
+    }
+    return max > 0 ? new Date(max) : null;
+  }, [listings]);
+
+
   return (
     <div className="space-y-10 md:space-y-14">
       {/* Editorial Header — Marktintelligenz */}
