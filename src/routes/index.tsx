@@ -317,9 +317,8 @@ function ListingsPage() {
             Zuletzt aktualisiert · {formatExactTime(lastUpdated.toISOString())}
           </p>
         )}
-          </div>
-        </div>
       </section>
+
 
       {/* Filter band — hairline borders, glass chips */}
       <div className="border-y-[0.5px] border-hairline py-3">
