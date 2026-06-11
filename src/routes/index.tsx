@@ -310,51 +310,37 @@ function ListingsPage() {
       {/* Editorial Header — Marktintelligenz */}
       <section>
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-[10px] font-medium tracking-[0.28em] uppercase text-steel">
-              Marktintelligenz
+          <div className="min-w-0">
+            <p className="tracking-eyebrow text-[10px] font-medium text-gold">
+              Maison · Marktintelligenz
             </p>
-            <h1 className="mt-2 font-serif-display text-4xl leading-[1.05] sm:text-5xl md:text-6xl bg-gradient-to-b from-sapphire-light to-sapphire bg-clip-text text-transparent">
+            <h1 className="mt-3 font-serif-display text-4xl leading-[1.05] text-marine sm:text-5xl md:text-6xl">
               Deal Pipeline
             </h1>
             <p className="mt-3 max-w-md text-sm font-light text-steel">
-              Präzise CHF/m²-Analyse. Dein Weg zum
-              <span className="italic text-sapphire"> GT4 RS.</span>
+              Kuratierte Schweizer Immobilien — präzise <span className="italic text-marine">CHF/m²-</span> und <span className="italic text-marine">GIS-Analyse</span>.
             </p>
           </div>
-          <div className="flex gap-8 md:gap-12">
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.22em] text-steel mb-1">
-                Aktive Inserate
-              </p>
-              <p className="font-serif-display text-3xl tabular-nums text-sapphire md:text-4xl">
-                {totalActive}
-              </p>
-            </div>
-            <div className="border-l-[0.5px] border-hairline pl-8 md:pl-12">
-              <p className="text-[9px] uppercase tracking-[0.22em] text-steel mb-1">
-                Median CHF/m²
-              </p>
-              <p className="font-serif-display text-3xl tabular-nums text-sapphire md:text-4xl">
-                {median ? Math.round(median).toLocaleString("de-CH") : "—"}
-              </p>
-            </div>
-            <img
-              src={porscheImg}
-              alt="Porsche 911 GT4 RS"
-              loading="lazy"
-              className="hidden h-20 w-auto self-center drop-shadow-[0_8px_16px_rgba(8,29,66,0.18)] lg:block"
-            />
-            <Button
-              onClick={triggerRefresh}
-              variant="outline"
-              size="sm"
-              className="self-center rounded-[3px] border-[0.5px] border-sapphire/30 bg-white text-xs font-medium text-sapphire hover:bg-sapphire hover:text-white"
-            >
-              <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${refreshTriggered ? "animate-spin" : ""}`} />
-              Aktualisieren
-            </Button>
-          </div>
+          <Button
+            onClick={triggerRefresh}
+            variant="outline"
+            size="sm"
+            className="self-start rounded-full border-[0.5px] border-marine/20 bg-white text-xs font-medium text-marine hover:bg-marine hover:text-white md:self-end"
+          >
+            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${refreshTriggered ? "animate-spin" : ""}`} />
+            Aktualisieren
+          </Button>
+        </div>
+
+        {/* KPI-Kacheln */}
+        <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-lg border-[0.5px] border-hairline bg-hairline md:grid-cols-4">
+          <Kpi label="Aktive Inserate" value={String(totalActive)} />
+          <Kpi
+            label="Ø Preis / m²"
+            value={median ? `CHF ${Math.round(median).toLocaleString("de-CH")}` : "—"}
+          />
+          <Kpi label="Neu diese Woche" value={String(newThisWeek)} accent />
+          <Kpi label="In Anreicherung" value={String(inEnrichment)} muted />
         </div>
         {lastUpdated && (
           <p className="mt-3 text-[10px] uppercase tracking-[0.22em] text-steel">
