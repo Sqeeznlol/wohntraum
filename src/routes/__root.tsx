@@ -33,16 +33,16 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Immo Radar — Schweizer Immobilien-Intelligenz" },
+      { title: "Homeseeker — Maison für Schweizer Immobilien" },
       {
         name: "description",
         content:
-          "Schweizer Immobilien-Intelligenz: kuratierte Inserate mit präziser CHF/m²-Analyse.",
+          "Homeseeker kuratiert hochwertige Schweizer Immobilien mit präziser Markt- und GIS-Analyse.",
       },
-      { property: "og:title", content: "Immo Radar — Schweizer Immobilien-Intelligenz" },
-      { name: "twitter:title", content: "Immo Radar — Schweizer Immobilien-Intelligenz" },
-      { property: "og:description", content: "Schweizer Immobilien-Intelligenz: kuratierte Inserate mit präziser CHF/m²-Analyse." },
-      { name: "twitter:description", content: "Schweizer Immobilien-Intelligenz: kuratierte Inserate mit präziser CHF/m²-Analyse." },
+      { property: "og:title", content: "Homeseeker — Maison für Schweizer Immobilien" },
+      { name: "twitter:title", content: "Homeseeker — Maison für Schweizer Immobilien" },
+      { property: "og:description", content: "Kuratierte Schweizer Immobilien mit präziser CHF/m²- und GIS-Analyse." },
+      { name: "twitter:description", content: "Kuratierte Schweizer Immobilien mit präziser CHF/m²- und GIS-Analyse." },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],
@@ -53,7 +53,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Josefin+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap",
       },
     ],
   }),
