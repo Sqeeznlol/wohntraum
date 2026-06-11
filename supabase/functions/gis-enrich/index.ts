@@ -57,8 +57,29 @@ async function fetchGwr(east: number, north: number): Promise<any | null> {
 }
 
 // -------- Bauzone --------
-async function fetchBauzone(east: number, north: number): Promise<{ code: string | null; name: string | null }> {
-  // Bundes-Layer ch.are.bauzonen (deckt CH ab)
+async function fetchZoneZh(east: number, north: number): Promise<{ code: string | null; name: string | null }> {
+  // Exakter kommunaler BZO-Zonencode via Kanton-Zürich-WFS
+  const bbox = `${east - 1},${north - 1},${east + 1},${north + 1},EPSG:2056`;
+  const url = `https://maps.zh.ch/wfs/OGDZHWFS?service=WFS&version=2.0.0&request=GetFeature&typeNames=ms:ogd-0156_arv_basis_np_gn_zonenflaeche_f&srsName=EPSG:2056&bbox=${bbox}&count=1&outputFormat=geojson`;
+  try {
+    const r = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!r.ok) return { code: null, name: null };
+    const txt = await r.text();
+    if (!txt.startsWith("{")) return { code: null, name: null };
+    const j = JSON.parse(txt);
+    const p = j.features?.[0]?.properties;
+    if (!p) return { code: null, name: null };
+    return {
+      code: p.typ_gde_abkuerzung ?? p.typ_zh_abkuerzung ?? null,
+      name: p.typ_gde_bezeichnung ?? p.typ_zh_bezeichnung ?? null,
+    };
+  } catch {
+    return { code: null, name: null };
+  }
+}
+
+async function fetchZoneCh(east: number, north: number): Promise<{ code: string | null; name: string | null }> {
+  // Fallback: Bundes-Layer ch.are.bauzonen (harmonisiert)
   const url = `https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${east},${north}&geometryType=esriGeometryPoint&layers=all:ch.are.bauzonen&tolerance=0&mapExtent=${east - 50},${north - 50},${east + 50},${north + 50}&imageDisplay=100,100,96&sr=2056&returnGeometry=false`;
   try {
     const r = await fetch(url, { headers: { Accept: "application/json" } });
@@ -73,6 +94,17 @@ async function fetchBauzone(east: number, north: number): Promise<{ code: string
   } catch {
     return { code: null, name: null };
   }
+}
+
+async function fetchBauzone(east: number, north: number, postalCode?: string | null, kanton?: string | null): Promise<{ code: string | null; name: string | null }> {
+  // ZH bevorzugt: PLZ 8000–8999 ODER kanton == 'ZH'
+  const plz = postalCode ? parseInt(postalCode, 10) : 0;
+  const isZh = (kanton === "ZH") || (plz >= 8000 && plz <= 8999);
+  if (isZh) {
+    const zh = await fetchZoneZh(east, north);
+    if (zh.code || zh.name) return zh;
+  }
+  return fetchZoneCh(east, north);
 }
 
 // -------- enrich single --------
