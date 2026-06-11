@@ -288,6 +288,22 @@ function ListingsPage() {
     return max > 0 ? new Date(max) : null;
   }, [listings]);
 
+  const newThisWeek = useMemo(() => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return (listings ?? []).filter(
+      (l) => l.first_seen_at && new Date(l.first_seen_at).getTime() >= cutoff,
+    ).length;
+  }, [listings]);
+
+  const inEnrichment = useMemo(
+    () =>
+      (listings ?? []).filter((l) => {
+        const ll = l as Listing & { gis_enriched?: boolean; gis_enrich_failed?: boolean };
+        return !hasImage(l) || ll.gis_enriched === false;
+      }).length,
+    [listings],
+  );
+
 
   return (
     <div className="space-y-10 md:space-y-14">
