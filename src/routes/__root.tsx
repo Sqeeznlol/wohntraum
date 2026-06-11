@@ -149,34 +149,45 @@ function RootComponent() {
       <MobileRedirect />
       <VisitTracker />
       <div className="min-h-screen bg-background pb-[env(safe-area-inset-bottom)]">
-        {/* Swiss minimalist glass nav */}
+        {/* Maison-Header — Marineblau auf Sand, Wortmarke in Serif, Gold-Akzent */}
         <header
-          className="sticky top-0 z-40 border-b-[0.5px] border-hairline backdrop-blur-2xl"
-          style={{ backgroundColor: "oklch(0.972 0.006 155 / 0.75)" }}
+          className="sticky top-0 z-40 border-b border-white/10"
+          style={{ backgroundColor: "var(--marine)", color: "oklch(0.985 0.008 86)" }}
         >
-          <div className="mx-auto flex h-12 max-w-[1600px] items-center justify-between px-4 md:px-6">
-            <Link to="/" className="flex items-center gap-2">
+          <div className="mx-auto grid h-16 max-w-[1600px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 md:px-8">
+            <Link to="/" className="flex min-w-0 items-center gap-3">
               <span
-                className="font-serif-display text-[13px] font-semibold text-teal"
-                style={{ letterSpacing: "0.14em" }}
+                aria-hidden
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full"
+                style={{ background: "var(--gold)", color: "var(--marine)", fontFamily: "var(--font-serif)", fontWeight: 600 }}
               >
-                IMMO RADAR
+                H
               </span>
-              <span className="hidden text-[9px] uppercase tracking-[0.28em] text-steel sm:inline">
-                · CH
+              <span
+                className="truncate font-serif-display text-[20px] tracking-wide"
+                style={{ color: "oklch(0.985 0.008 86)" }}
+              >
+                Homeseeker
+              </span>
+              <span
+                className="hidden text-[9px] uppercase sm:inline"
+                style={{ letterSpacing: "0.28em", color: "var(--gold)" }}
+              >
+                · Maison
               </span>
             </Link>
-            <nav className="flex items-center gap-1 text-xs md:gap-2">
+            <nav className="flex items-center gap-1 text-xs md:gap-1">
               {navItems.map(({ to, label, exact }) => (
                 <Link
                   key={to}
                   to={to}
                   activeOptions={exact ? { exact: true } : undefined}
-                  className="rounded-[3px] px-3 py-1.5 text-[11px] font-medium uppercase text-steel transition-colors hover:text-teal"
-                  style={{ letterSpacing: "0.08em" }}
+                  className="rounded-full px-3 py-1.5 text-[11px] font-medium uppercase transition-colors hover:text-white/95"
+                  style={{ letterSpacing: "0.10em", color: "color-mix(in srgb, white 70%, transparent)" }}
                   activeProps={{
                     className:
-                      "rounded-[3px] px-3 py-1.5 text-[11px] font-medium uppercase text-teal bg-white/70 border-[0.5px] border-hairline",
+                      "rounded-full px-3 py-1.5 text-[11px] font-medium uppercase",
+                    style: { letterSpacing: "0.10em", color: "var(--marine)", background: "var(--gold)" },
                   }}
                 >
                   {label}
@@ -188,7 +199,8 @@ function RootComponent() {
             className="h-px w-full"
             style={{
               background:
-                "linear-gradient(to right, transparent, oklch(0.465 0.105 175 / 0.35), transparent)",
+                "linear-gradient(to right, transparent, var(--gold) 50%, transparent)",
+              opacity: 0.6,
             }}
           />
         </header>
