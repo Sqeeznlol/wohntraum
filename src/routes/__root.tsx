@@ -68,7 +68,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body style={{ fontFamily: "'Josefin Sans', system-ui, sans-serif" }}>
+      <body style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
         {children}
         <Scripts />
       </body>
