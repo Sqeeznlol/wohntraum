@@ -132,7 +132,7 @@ async function enrichOne(supabase: any, listing: any) {
 
     const [gwr, zone] = await Promise.all([
       fetchGwr(coords.east, coords.north),
-      fetchBauzone(coords.east, coords.north),
+      fetchBauzone(coords.east, coords.north, listing.postal_code, listing.canton),
     ]);
 
     // Preis pro m²
