@@ -1084,3 +1084,19 @@ function StageIndicator({ current }: { current: PipelineStage }) {
     </div>
   );
 }
+
+function Kpi({ label, value, accent, muted }: { label: string; value: string; accent?: boolean; muted?: boolean }) {
+  const valueClass = accent
+    ? "text-gold"
+    : muted
+      ? "text-steel"
+      : "text-marine";
+  return (
+    <div className="bg-card px-5 py-5 sm:px-6 sm:py-6">
+      <p className="tracking-eyebrow text-[9px] text-steel">{label}</p>
+      <p className={`mt-2 font-serif-price text-3xl leading-none sm:text-4xl ${valueClass}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
