@@ -57,8 +57,29 @@ async function fetchGwr(east: number, north: number): Promise<any | null> {
 }
 
 // -------- Bauzone --------
-async function fetchBauzone(east: number, north: number): Promise<{ code: string | null; name: string | null }> {
-  // Bundes-Layer ch.are.bauzonen (deckt CH ab)
+async function fetchZoneZh(east: number, north: number): Promise<{ code: string | null; name: string | null }> {
+  // Exakter kommunaler BZO-Zonencode via Kanton-Zürich-WFS
+  const bbox = `${east - 1},${north - 1},${east + 1},${north + 1},EPSG:2056`;
+  const url = `https://maps.zh.ch/wfs/OGDZHWFS?service=WFS&version=2.0.0&request=GetFeature&typeNames=ms:ogd-0156_arv_basis_np_gn_zonenflaeche_f&srsName=EPSG:2056&bbox=${bbox}&count=1&outputFormat=geojson`;
+  try {
+    const r = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!r.ok) return { code: null, name: null };
+    const txt = await r.text();
+    if (!txt.startsWith("{")) return { code: null, name: null };
+    const j = JSON.parse(txt);
+    const p = j.features?.[0]?.properties;
+    if (!p) return { code: null, name: null };
+    return {
+      code: p.typ_gde_abkuerzung ?? p.typ_zh_abkuerzung ?? null,
+      name: p.typ_gde_bezeichnung ?? p.typ_zh_bezeichnung ?? null,
+    };
+  } catch {
+    return { code: null, name: null };
+  }
+}
+
+async function fetchZoneCh(east: number, north: number): Promise<{ code: string | null; name: string | null }> {
+  // Fallback: Bundes-Layer ch.are.bauzonen (harmonisiert)
   const url = `https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${east},${north}&geometryType=esriGeometryPoint&layers=all:ch.are.bauzonen&tolerance=0&mapExtent=${east - 50},${north - 50},${east + 50},${north + 50}&imageDisplay=100,100,96&sr=2056&returnGeometry=false`;
   try {
     const r = await fetch(url, { headers: { Accept: "application/json" } });
@@ -73,6 +94,17 @@ async function fetchBauzone(east: number, north: number): Promise<{ code: string
   } catch {
     return { code: null, name: null };
   }
+}
+
+async function fetchBauzone(east: number, north: number, postalCode?: string | null, kanton?: string | null): Promise<{ code: string | null; name: string | null }> {
+  // ZH bevorzugt: PLZ 8000–8999 ODER kanton == 'ZH'
+  const plz = postalCode ? parseInt(postalCode, 10) : 0;
+  const isZh = (kanton === "ZH") || (plz >= 8000 && plz <= 8999);
+  if (isZh) {
+    const zh = await fetchZoneZh(east, north);
+    if (zh.code || zh.name) return zh;
+  }
+  return fetchZoneCh(east, north);
 }
 
 // -------- enrich single --------
@@ -100,7 +132,7 @@ async function enrichOne(supabase: any, listing: any) {
 
     const [gwr, zone] = await Promise.all([
       fetchGwr(coords.east, coords.north),
-      fetchBauzone(coords.east, coords.north),
+      fetchBauzone(coords.east, coords.north, listing.postal_code, listing.canton),
     ]);
 
     // Preis pro m²
@@ -160,8 +192,34 @@ Deno.serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
   let body: any = {};
   try { body = await req.json(); } catch { /* empty */ }
-  const limit = Math.min(Number(body.limit ?? 10), 50);
+  const limit = Math.min(Number(body.limit ?? 10), 200);
   const listingId = body.listingId as string | undefined;
+  const mode = (body.mode as string | undefined) ?? "enrich";
+
+  // -------- rezone: nur Zone neu ziehen für bereits enriched ZH-Listings --------
+  if (mode === "rezone") {
+    const { data } = await supabase
+      .from("listings")
+      .select("id, lv95_east, lv95_north, postal_code, canton")
+      .eq("gis_enriched", true)
+      .not("lv95_east", "is", null)
+      .or("canton.eq.ZH,postal_code.gte.8000,postal_code.gte.8000")
+      .limit(limit);
+    const targets = (data ?? []).filter((l: any) => {
+      const plz = parseInt(l.postal_code ?? "0", 10);
+      return l.canton === "ZH" || (plz >= 8000 && plz <= 8999);
+    });
+    const results = [];
+    for (const l of targets) {
+      const z = await fetchBauzone(Number(l.lv95_east), Number(l.lv95_north), l.postal_code, l.canton);
+      await supabase.from("listings").update({ zone_code: z.code, zone_name: z.name }).eq("id", l.id);
+      results.push({ id: l.id, code: z.code, name: z.name });
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    return new Response(JSON.stringify({ mode, processed: results.length, results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   let listings: any[] = [];
   if (listingId) {
@@ -170,7 +228,7 @@ Deno.serve(async (req) => {
   } else {
     const { data } = await supabase
       .from("listings")
-      .select("id, address, postal_code, city, price_chf, area_sqm, parcel_area_sqm, gis_enrich_attempts")
+      .select("id, address, postal_code, city, canton, price_chf, area_sqm, parcel_area_sqm, gis_enrich_attempts")
       .eq("gis_enriched", false)
       .eq("gis_enrich_failed", false)
       .not("address", "is", null)

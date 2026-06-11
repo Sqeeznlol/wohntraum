@@ -288,57 +288,59 @@ function ListingsPage() {
     return max > 0 ? new Date(max) : null;
   }, [listings]);
 
+  const newThisWeek = useMemo(() => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return (listings ?? []).filter(
+      (l) => l.first_seen_at && new Date(l.first_seen_at).getTime() >= cutoff,
+    ).length;
+  }, [listings]);
+
+  const inEnrichment = useMemo(
+    () =>
+      (listings ?? []).filter((l) => {
+        const ll = l as Listing & { gis_enriched?: boolean; gis_enrich_failed?: boolean };
+        return !hasImage(l) || ll.gis_enriched === false;
+      }).length,
+    [listings],
+  );
+
 
   return (
     <div className="space-y-10 md:space-y-14">
       {/* Editorial Header — Marktintelligenz */}
       <section>
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-[10px] font-medium tracking-[0.28em] uppercase text-steel">
-              Marktintelligenz
+          <div className="min-w-0">
+            <p className="tracking-eyebrow text-[10px] font-medium text-gold">
+              Maison · Marktintelligenz
             </p>
-            <h1 className="mt-2 font-serif-display text-4xl leading-[1.05] sm:text-5xl md:text-6xl bg-gradient-to-b from-sapphire-light to-sapphire bg-clip-text text-transparent">
+            <h1 className="mt-3 font-serif-display text-4xl leading-[1.05] text-marine sm:text-5xl md:text-6xl">
               Deal Pipeline
             </h1>
             <p className="mt-3 max-w-md text-sm font-light text-steel">
-              Präzise CHF/m²-Analyse. Dein Weg zum
-              <span className="italic text-sapphire"> GT4 RS.</span>
+              Kuratierte Schweizer Immobilien — präzise <span className="italic text-marine">CHF/m²-</span> und <span className="italic text-marine">GIS-Analyse</span>.
             </p>
           </div>
-          <div className="flex gap-8 md:gap-12">
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.22em] text-steel mb-1">
-                Aktive Inserate
-              </p>
-              <p className="font-serif-display text-3xl tabular-nums text-sapphire md:text-4xl">
-                {totalActive}
-              </p>
-            </div>
-            <div className="border-l-[0.5px] border-hairline pl-8 md:pl-12">
-              <p className="text-[9px] uppercase tracking-[0.22em] text-steel mb-1">
-                Median CHF/m²
-              </p>
-              <p className="font-serif-display text-3xl tabular-nums text-sapphire md:text-4xl">
-                {median ? Math.round(median).toLocaleString("de-CH") : "—"}
-              </p>
-            </div>
-            <img
-              src={porscheImg}
-              alt="Porsche 911 GT4 RS"
-              loading="lazy"
-              className="hidden h-20 w-auto self-center drop-shadow-[0_8px_16px_rgba(8,29,66,0.18)] lg:block"
-            />
-            <Button
-              onClick={triggerRefresh}
-              variant="outline"
-              size="sm"
-              className="self-center rounded-[3px] border-[0.5px] border-sapphire/30 bg-white text-xs font-medium text-sapphire hover:bg-sapphire hover:text-white"
-            >
-              <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${refreshTriggered ? "animate-spin" : ""}`} />
-              Aktualisieren
-            </Button>
-          </div>
+          <Button
+            onClick={triggerRefresh}
+            variant="outline"
+            size="sm"
+            className="self-start rounded-full border-[0.5px] border-marine/20 bg-white text-xs font-medium text-marine hover:bg-marine hover:text-white md:self-end"
+          >
+            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${refreshTriggered ? "animate-spin" : ""}`} />
+            Aktualisieren
+          </Button>
+        </div>
+
+        {/* KPI-Kacheln */}
+        <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-lg border-[0.5px] border-hairline bg-hairline md:grid-cols-4">
+          <Kpi label="Aktive Inserate" value={String(totalActive)} />
+          <Kpi
+            label="Ø Preis / m²"
+            value={median ? `CHF ${Math.round(median).toLocaleString("de-CH")}` : "—"}
+          />
+          <Kpi label="Neu diese Woche" value={String(newThisWeek)} accent />
+          <Kpi label="In Anreicherung" value={String(inEnrichment)} muted />
         </div>
         {lastUpdated && (
           <p className="mt-3 text-[10px] uppercase tracking-[0.22em] text-steel">
@@ -940,18 +942,18 @@ function PipelineCard({
             </button>
           </div>
 
-          <CardContent className="space-y-3 p-3.5">
+          <CardContent className="space-y-3 p-4">
             {/* Title + price */}
             <div className="flex items-start justify-between gap-3">
               <h3 className="line-clamp-2 flex-1 text-sm font-medium leading-tight text-foreground">
                 {listing.title}
               </h3>
-              <p className="font-serif-display whitespace-nowrap text-base tabular-nums text-sapphire">
+              <p className="font-serif-price whitespace-nowrap text-lg leading-tight text-marine">
                 {formatCHF(listing.price_chf ? Number(listing.price_chf) : null)}
               </p>
             </div>
 
-            {/* Location */}
+            {/* Location + Time */}
             <div className="flex items-center justify-between gap-2 text-[11px] text-steel">
               {listing.city ? (
                 <div className="flex min-w-0 items-center gap-1 font-light tracking-wide">
@@ -971,6 +973,28 @@ function PipelineCard({
                 {formatDateTime(listing.first_seen_at)}
               </div>
             </div>
+
+            {/* Gold-Badges: Zone, Baujahr, Heizung */}
+            {(() => {
+              const ll = listing as Listing & {
+                zone_code?: string | null;
+                construction_period?: string | null;
+                heating_generator?: string | null;
+              };
+              const items = [
+                ll.zone_code ?? null,
+                listing.building_year ? `Bj ${listing.building_year}` : (ll.construction_period ?? null),
+                ll.heating_generator ?? null,
+              ].filter(Boolean) as string[];
+              if (!items.length) return null;
+              return (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {items.slice(0, 3).map((t) => (
+                    <span key={t} className="badge-gold">{t}</span>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Metric grid — hairline separated */}
             <div className="grid grid-cols-3 gap-2 border-t-[0.5px] border-hairline pt-2.5">
@@ -1079,6 +1103,22 @@ function StageIndicator({ current }: { current: PipelineStage }) {
         </div>
       ))}
       <span className="ml-auto font-medium text-sapphire">{STAGES[idx]?.label}</span>
+    </div>
+  );
+}
+
+function Kpi({ label, value, accent, muted }: { label: string; value: string; accent?: boolean; muted?: boolean }) {
+  const valueClass = accent
+    ? "text-gold"
+    : muted
+      ? "text-steel"
+      : "text-marine";
+  return (
+    <div className="bg-card px-5 py-5 sm:px-6 sm:py-6">
+      <p className="tracking-eyebrow text-[9px] text-steel">{label}</p>
+      <p className={`mt-2 font-serif-price text-3xl leading-none sm:text-4xl ${valueClass}`}>
+        {value}
+      </p>
     </div>
   );
 }
