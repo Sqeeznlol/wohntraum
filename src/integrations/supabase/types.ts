@@ -251,6 +251,7 @@ export type Database = {
       listings: {
         Row: {
           address: string | null
+          apartments_in_building: number | null
           archived_at: string | null
           area_sqm: number | null
           bewertet_von: string | null
@@ -261,6 +262,11 @@ export type Database = {
           building_year: number | null
           canton: string | null
           city: string | null
+          construction_period: string | null
+          contact_company: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
           created_at: string
           description: string | null
           dwellings: number | null
@@ -272,8 +278,15 @@ export type Database = {
           first_seen_at: string
           floors: number | null
           geo_researched: boolean
+          gis_enrich_attempts: number
+          gis_enrich_failed: boolean
+          gis_enriched: boolean
+          gis_enriched_at: string | null
           gwr_enriched_at: string | null
+          heating_energy_source: string | null
+          heating_generator: string | null
           heating_type: string | null
+          heating_updated_at: string | null
           heritage_protected: boolean | null
           id: string
           image_url: string | null
@@ -291,6 +304,7 @@ export type Database = {
           postal_code: string | null
           price_chf: number | null
           price_per_sqm: number | null
+          price_per_sqm_land: number | null
           primary_portal: Database["public"]["Enums"]["portal"]
           primary_url: string | null
           rooms: number | null
@@ -303,10 +317,12 @@ export type Database = {
           zone_area_sqm: number | null
           zone_code: string | null
           zone_legal_status: string | null
+          zone_name: string | null
           zone_part_percent: number | null
         }
         Insert: {
           address?: string | null
+          apartments_in_building?: number | null
           archived_at?: string | null
           area_sqm?: number | null
           bewertet_von?: string | null
@@ -317,6 +333,11 @@ export type Database = {
           building_year?: number | null
           canton?: string | null
           city?: string | null
+          construction_period?: string | null
+          contact_company?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           dwellings?: number | null
@@ -328,8 +349,15 @@ export type Database = {
           first_seen_at?: string
           floors?: number | null
           geo_researched?: boolean
+          gis_enrich_attempts?: number
+          gis_enrich_failed?: boolean
+          gis_enriched?: boolean
+          gis_enriched_at?: string | null
           gwr_enriched_at?: string | null
+          heating_energy_source?: string | null
+          heating_generator?: string | null
           heating_type?: string | null
+          heating_updated_at?: string | null
           heritage_protected?: boolean | null
           id?: string
           image_url?: string | null
@@ -347,6 +375,7 @@ export type Database = {
           postal_code?: string | null
           price_chf?: number | null
           price_per_sqm?: number | null
+          price_per_sqm_land?: number | null
           primary_portal?: Database["public"]["Enums"]["portal"]
           primary_url?: string | null
           rooms?: number | null
@@ -359,10 +388,12 @@ export type Database = {
           zone_area_sqm?: number | null
           zone_code?: string | null
           zone_legal_status?: string | null
+          zone_name?: string | null
           zone_part_percent?: number | null
         }
         Update: {
           address?: string | null
+          apartments_in_building?: number | null
           archived_at?: string | null
           area_sqm?: number | null
           bewertet_von?: string | null
@@ -373,6 +404,11 @@ export type Database = {
           building_year?: number | null
           canton?: string | null
           city?: string | null
+          construction_period?: string | null
+          contact_company?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           dwellings?: number | null
@@ -384,8 +420,15 @@ export type Database = {
           first_seen_at?: string
           floors?: number | null
           geo_researched?: boolean
+          gis_enrich_attempts?: number
+          gis_enrich_failed?: boolean
+          gis_enriched?: boolean
+          gis_enriched_at?: string | null
           gwr_enriched_at?: string | null
+          heating_energy_source?: string | null
+          heating_generator?: string | null
           heating_type?: string | null
+          heating_updated_at?: string | null
           heritage_protected?: boolean | null
           id?: string
           image_url?: string | null
@@ -403,6 +446,7 @@ export type Database = {
           postal_code?: string | null
           price_chf?: number | null
           price_per_sqm?: number | null
+          price_per_sqm_land?: number | null
           primary_portal?: Database["public"]["Enums"]["portal"]
           primary_url?: string | null
           rooms?: number | null
@@ -415,6 +459,7 @@ export type Database = {
           zone_area_sqm?: number | null
           zone_code?: string | null
           zone_legal_status?: string | null
+          zone_name?: string | null
           zone_part_percent?: number | null
         }
         Relationships: []

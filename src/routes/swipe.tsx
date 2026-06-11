@@ -41,12 +41,19 @@ function SwipePage() {
   const draggingRef = useRef(false);
 
   const loadMore = async () => {
+    // Gating: nur vollständig angereicherte Inserate (Bild + Preis + Fläche + GIS).
+    // Backup: GIS-fehlgeschlagene Inserate >24h alt werden trotzdem zugelassen.
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from("listings")
       .select("*")
       .eq("status", "new")
       .is("bewertet_von", null)
       .is("archived_at", null)
+      .not("image_url", "is", null)
+      .not("price_chf", "is", null)
+      .not("area_sqm", "is", null)
+      .or(`gis_enriched.eq.true,and(gis_enrich_failed.eq.true,first_seen_at.lt.${cutoff})`)
       .order("created_at", { ascending: false })
       .limit(PREFETCH);
     setQueue(data ?? []);
