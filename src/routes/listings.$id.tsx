@@ -31,6 +31,8 @@ import { ListingNotes } from "@/components/ListingNotes";
 import { ListingPrecheck } from "@/components/ListingPrecheck";
 import { ContactProgress } from "@/components/ContactProgress";
 import { BuildingDataPanel } from "@/components/BuildingDataPanel";
+import { ContactCard } from "@/components/ContactCard";
+import { PurchaseAnalysis } from "@/components/PurchaseAnalysis";
 
 export const Route = createFileRoute("/listings/$id")({
   component: ListingDetail,
