@@ -192,8 +192,34 @@ Deno.serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
   let body: any = {};
   try { body = await req.json(); } catch { /* empty */ }
-  const limit = Math.min(Number(body.limit ?? 10), 50);
+  const limit = Math.min(Number(body.limit ?? 10), 200);
   const listingId = body.listingId as string | undefined;
+  const mode = (body.mode as string | undefined) ?? "enrich";
+
+  // -------- rezone: nur Zone neu ziehen für bereits enriched ZH-Listings --------
+  if (mode === "rezone") {
+    const { data } = await supabase
+      .from("listings")
+      .select("id, lv95_east, lv95_north, postal_code, canton")
+      .eq("gis_enriched", true)
+      .not("lv95_east", "is", null)
+      .or("canton.eq.ZH,postal_code.gte.8000,postal_code.gte.8000")
+      .limit(limit);
+    const targets = (data ?? []).filter((l: any) => {
+      const plz = parseInt(l.postal_code ?? "0", 10);
+      return l.canton === "ZH" || (plz >= 8000 && plz <= 8999);
+    });
+    const results = [];
+    for (const l of targets) {
+      const z = await fetchBauzone(Number(l.lv95_east), Number(l.lv95_north), l.postal_code, l.canton);
+      await supabase.from("listings").update({ zone_code: z.code, zone_name: z.name }).eq("id", l.id);
+      results.push({ id: l.id, code: z.code, name: z.name });
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    return new Response(JSON.stringify({ mode, processed: results.length, results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   let listings: any[] = [];
   if (listingId) {
@@ -202,7 +228,7 @@ Deno.serve(async (req) => {
   } else {
     const { data } = await supabase
       .from("listings")
-      .select("id, address, postal_code, city, price_chf, area_sqm, parcel_area_sqm, gis_enrich_attempts")
+      .select("id, address, postal_code, city, canton, price_chf, area_sqm, parcel_area_sqm, gis_enrich_attempts")
       .eq("gis_enriched", false)
       .eq("gis_enrich_failed", false)
       .not("address", "is", null)
