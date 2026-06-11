@@ -942,18 +942,18 @@ function PipelineCard({
             </button>
           </div>
 
-          <CardContent className="space-y-3 p-3.5">
+          <CardContent className="space-y-3 p-4">
             {/* Title + price */}
             <div className="flex items-start justify-between gap-3">
               <h3 className="line-clamp-2 flex-1 text-sm font-medium leading-tight text-foreground">
                 {listing.title}
               </h3>
-              <p className="font-serif-display whitespace-nowrap text-base tabular-nums text-sapphire">
+              <p className="font-serif-price whitespace-nowrap text-lg leading-tight text-marine">
                 {formatCHF(listing.price_chf ? Number(listing.price_chf) : null)}
               </p>
             </div>
 
-            {/* Location */}
+            {/* Location + Time */}
             <div className="flex items-center justify-between gap-2 text-[11px] text-steel">
               {listing.city ? (
                 <div className="flex min-w-0 items-center gap-1 font-light tracking-wide">
@@ -973,6 +973,28 @@ function PipelineCard({
                 {formatDateTime(listing.first_seen_at)}
               </div>
             </div>
+
+            {/* Gold-Badges: Zone, Baujahr, Heizung */}
+            {(() => {
+              const ll = listing as Listing & {
+                zone_code?: string | null;
+                construction_period?: string | null;
+                heating_generator?: string | null;
+              };
+              const items = [
+                ll.zone_code ?? null,
+                listing.building_year ? `Bj ${listing.building_year}` : (ll.construction_period ?? null),
+                ll.heating_generator ?? null,
+              ].filter(Boolean) as string[];
+              if (!items.length) return null;
+              return (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {items.slice(0, 3).map((t) => (
+                    <span key={t} className="badge-gold">{t}</span>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Metric grid — hairline separated */}
             <div className="grid grid-cols-3 gap-2 border-t-[0.5px] border-hairline pt-2.5">
