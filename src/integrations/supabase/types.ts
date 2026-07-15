@@ -41,6 +41,48 @@ export type Database = {
         }
         Relationships: []
       }
+      lead: {
+        Row: {
+          erstellt_am: string
+          id: string
+          inserat_id: string | null
+          kanal: string
+          status: string
+          suchabo_id: string | null
+        }
+        Insert: {
+          erstellt_am?: string
+          id?: string
+          inserat_id?: string | null
+          kanal: string
+          status?: string
+          suchabo_id?: string | null
+        }
+        Update: {
+          erstellt_am?: string
+          id?: string
+          inserat_id?: string | null
+          kanal?: string
+          status?: string
+          suchabo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_inserat_id_fkey"
+            columns: ["inserat_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_suchabo_id_fkey"
+            columns: ["suchabo_id"]
+            isOneToOne: false
+            referencedRelation: "suchabo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_contact_progress: {
         Row: {
           created_at: string
@@ -509,6 +551,36 @@ export type Database = {
         }
         Relationships: []
       }
+      suchabo: {
+        Row: {
+          aktiv: boolean
+          erstellt_am: string
+          filter_json: Json
+          id: string
+          kanal: string
+          kontakt: string
+          zuletzt_geaendert: string
+        }
+        Insert: {
+          aktiv?: boolean
+          erstellt_am?: string
+          filter_json?: Json
+          id?: string
+          kanal?: string
+          kontakt: string
+          zuletzt_geaendert?: string
+        }
+        Update: {
+          aktiv?: boolean
+          erstellt_am?: string
+          filter_json?: Json
+          id?: string
+          kanal?: string
+          kontakt?: string
+          zuletzt_geaendert?: string
+        }
+        Relationships: []
+      }
       tim_preferences: {
         Row: {
           area_sqm: number | null
@@ -700,6 +772,30 @@ export type Database = {
           updated_at?: string
           user_agent?: string | null
           visit_count?: number
+        }
+        Relationships: []
+      }
+      whatsapp_nachricht: {
+        Row: {
+          erstellt_am: string
+          id: string
+          inhalt: string
+          richtung: string
+          telefon: string
+        }
+        Insert: {
+          erstellt_am?: string
+          id?: string
+          inhalt: string
+          richtung: string
+          telefon: string
+        }
+        Update: {
+          erstellt_am?: string
+          id?: string
+          inhalt?: string
+          richtung?: string
+          telefon?: string
         }
         Relationships: []
       }
