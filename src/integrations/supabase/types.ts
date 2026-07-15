@@ -775,6 +775,41 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_lead: {
+        Row: {
+          erstellt_am: string | null
+          id: number
+          inserat_id: string | null
+          status: string | null
+          suchabo_id: number | null
+          telefon: string
+        }
+        Insert: {
+          erstellt_am?: string | null
+          id?: number
+          inserat_id?: string | null
+          status?: string | null
+          suchabo_id?: number | null
+          telefon: string
+        }
+        Update: {
+          erstellt_am?: string | null
+          id?: number
+          inserat_id?: string | null
+          status?: string | null
+          suchabo_id?: number | null
+          telefon?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_lead_suchabo_id_fkey"
+            columns: ["suchabo_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_suchabo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_nachricht: {
         Row: {
           erstellt_am: string
@@ -795,6 +830,33 @@ export type Database = {
           id?: string
           inhalt?: string
           richtung?: string
+          telefon?: string
+        }
+        Relationships: []
+      }
+      whatsapp_suchabo: {
+        Row: {
+          aktiv: boolean | null
+          erstellt_am: string | null
+          filter_json: Json
+          geaendert_am: string | null
+          id: number
+          telefon: string
+        }
+        Insert: {
+          aktiv?: boolean | null
+          erstellt_am?: string | null
+          filter_json?: Json
+          geaendert_am?: string | null
+          id?: number
+          telefon: string
+        }
+        Update: {
+          aktiv?: boolean | null
+          erstellt_am?: string | null
+          filter_json?: Json
+          geaendert_am?: string | null
+          id?: number
           telefon?: string
         }
         Relationships: []
